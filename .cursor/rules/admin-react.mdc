@@ -1,0 +1,205 @@
+---
+description: React Admin and Operations Portal rules for MZ Logistics
+alwaysApply: true
+---
+
+# MZ Logistics Admin & Operations Portal - React Rules
+
+Follow the global MZ Logistics rules.
+
+This is a professional web administration and operations system.
+
+Technology:
+- React
+- TypeScript
+- Vite
+
+## TypeScript
+
+Use strict typing.
+
+Avoid `any` unless absolutely unavoidable and documented.
+
+Define proper:
+- Interfaces.
+- Types.
+- API response types.
+- Form models.
+
+## Architecture
+
+Use feature-based structure.
+
+Example:
+
+src/
+  app/
+  core/
+  shared/
+  features/
+    dashboard/
+    customers/
+    service-providers/
+    fleet/
+    drivers/
+    shipments/
+    quotations/
+    jobs/
+    trips/
+    tracking/
+    payments/
+    invoices/
+    settlements/
+    reports/
+    users/
+    roles/
+    permissions/
+
+Do not place all components in one components folder.
+
+## Components
+
+Create reusable components for repeated UI patterns.
+
+Examples:
+- DataTable
+- StatusBadge
+- PageHeader
+- FilterBar
+- SearchInput
+- EmptyState
+- LoadingState
+- ConfirmDialog
+- FormField
+- DateRangeFilter
+
+Do not over-abstract components used only once.
+
+## Admin Design
+
+The portal should feel like a premium enterprise logistics system.
+
+Use:
+
+- Professional sidebar.
+- Clear top navigation.
+- Structured dashboards.
+- Clean data tables.
+- Advanced filters.
+- Search.
+- Pagination.
+- Status badges.
+- Useful KPIs.
+- Clear details pages.
+
+Avoid generic AI dashboard designs.
+
+Do not fill the dashboard with meaningless cards.
+
+Every metric must serve an operational or business purpose.
+
+## Tables
+
+Admin relies heavily on tables.
+
+Tables must support where relevant:
+
+- Pagination.
+- Sorting.
+- Filtering.
+- Search.
+- Empty states.
+- Loading states.
+- Responsive behavior.
+- Clear actions.
+
+Do not show excessive row actions.
+
+Use action menus when appropriate.
+
+## RTL / LTR
+
+Arabic:
+- Full RTL.
+
+English:
+- Full LTR.
+
+Sidebar direction must switch correctly.
+
+Icons such as arrows and chevrons must respond to direction.
+
+Tables and forms must remain readable in both languages.
+
+## Roles and Permissions
+
+Admin UI must support permission-based access.
+
+Possible roles:
+
+Super Admin:
+- Full system access.
+
+Operations:
+- Shipment Requests.
+- Quotations.
+- Jobs.
+- Trips.
+- Tracking.
+
+Finance:
+- Payments.
+- Invoices.
+- Settlements.
+
+Customer Support:
+- Customers.
+- Jobs.
+- Trips.
+- Support-related information.
+
+Provider Management:
+- Service Providers.
+- Verification.
+- Fleet-related review.
+
+Auditor:
+- Read-only access to permitted reports and audit information.
+
+Do not authorize actions only in frontend.
+
+Frontend permissions are for UI visibility and UX.
+
+Backend authorization is mandatory.
+
+## Forms
+
+For long administrative forms:
+- Group related fields.
+- Use sections/tabs where appropriate.
+- Keep validation clear.
+- Avoid extremely long unstructured forms.
+
+## Data Fetching
+
+Centralize API calls.
+
+Use proper caching and invalidation strategy where appropriate.
+
+Avoid refetching everything after every small action.
+
+## Error Handling
+
+Provide clear user-facing errors.
+
+Never expose raw server error messages or stack traces.
+
+## Performance
+
+Use:
+- Code splitting where useful.
+- Lazy-loaded routes where appropriate.
+- Pagination.
+- Memoization only when useful.
+
+Do not prematurely optimize simple components.

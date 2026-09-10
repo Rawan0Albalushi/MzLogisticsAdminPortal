@@ -1,0 +1,97 @@
+---
+description: UI and UX quality rules for MZ Logistics
+alwaysApply: true
+---
+
+# MZ Logistics UI/UX Design Rules
+
+Every screen must look intentionally designed, not AI-generated.
+
+Before implementing a page, think like a senior product designer working on an enterprise logistics product.
+
+## Visual Style
+
+Use a modern, refined, professional design.
+
+Prefer:
+- Clean layouts.
+- Strong hierarchy.
+- Balanced whitespace.
+- Clear typography using IBM Plex Sans Arabic for all languages.
+- Consistent spacing.
+- Subtle borders.
+- Limited and meaningful use of color.
+- Professional logistics-oriented iconography.
+
+Avoid:
+- Excessive gradients.
+- Random purple/blue AI gradients.
+- Glassmorphism everywhere.
+- Excessive rounded rectangles.
+- Excessive shadows.
+- Floating decorative blobs.
+- Random illustrations.
+- Huge hero text inside operational screens.
+- Cards inside cards inside cards.
+- Unnecessary animations.
+- Fake statistics.
+
+## Consistency
+
+Use a consistent design system for:
+
+- Colors.
+- Typography.
+- Spacing.
+- Radius.
+- Buttons.
+- Forms.
+- Tables.
+- Dialogs.
+- Status badges.
+- Icons.
+
+Do not invent a new design style on every page.
+
+## Responsive UX
+
+Do not merely scale screens.
+
+Design intentionally for:
+
+Mobile
+Tablet
+Desktop
+
+Desktop operational screens should efficiently use horizontal space.
+
+Mobile must simplify the information architecture.
+
+## RTL
+
+RTL must be treated as a first-class layout, not a mirrored afterthought.
+
+Check:
+- Text alignment.
+- Sidebar.
+- Breadcrumbs.
+- Tables.
+- Form fields.
+- Icons.
+- Arrows.
+- Step indicators.
+- Pagination.
+- Dialogs.
+
+## Animation
+
+Use subtle animations only when they improve understanding.
+
+Good examples:
+- Page transition.
+- Loading transition.
+- Expand/collapse.
+- Status updates.
+- Modal appearance.
+
+Avoid flashy or distracting animation in operational workflows.

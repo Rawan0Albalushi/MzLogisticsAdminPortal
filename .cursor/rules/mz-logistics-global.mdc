@@ -1,0 +1,258 @@
+---
+description: Global development and design rules for all MZ Logistics projects
+alwaysApply: true
+---
+
+# MZ Logistics - Global Rules
+
+You are working on the MZ Logistics digital freight and transportation platform.
+
+Always follow these rules throughout the project.
+
+## General Development
+
+- Write clean, readable, maintainable, production-quality code.
+- Follow SOLID principles where appropriate.
+- Follow DRY, KISS, and separation of concerns.
+- Avoid unnecessary complexity and over-engineering.
+- Do not create large files or components when they can be logically separated.
+- Reuse existing components, services, utilities, models, and patterns before creating new ones.
+- Use clear and descriptive naming for variables, methods, classes, files, routes, APIs, and database fields.
+- Never use vague names such as data1, temp, item2, testValue, etc.
+- Keep business logic separate from UI code.
+- Avoid duplicated business logic.
+- Do not hardcode business rules, statuses, URLs, API endpoints, colors, strings, or configuration values.
+- Use constants, enums, configuration files, localization files, or environment variables as appropriate.
+- Never make unrelated changes while implementing a requested feature.
+- Before modifying existing functionality, understand its current flow and dependencies.
+- Preserve backward compatibility unless a breaking change is explicitly required.
+- Do not delete existing functionality unless explicitly instructed.
+
+## Architecture
+
+- Maintain clear separation between presentation, business logic, data access, and infrastructure.
+- Every feature should have a clear responsibility.
+- Prefer feature-based modular architecture.
+- Keep modules loosely coupled.
+- Shared functionality must live in shared/common/core modules.
+- Avoid circular dependencies.
+- Design the system so features can grow without requiring major rewrites.
+
+## MZ Logistics Business Domain
+
+Use consistent domain terminology across all projects:
+
+- Customer
+- Service Provider
+- Driver
+- Shipment Request
+- Quotation
+- Job
+- Trip
+- Truck
+- Equipment
+- Payment
+- Invoice
+- Settlement
+- Proof of Delivery (POD)
+
+Important business hierarchy:
+
+Customer creates Shipment Request
+→ Service Providers submit Quotations
+→ Customer selects a Quotation
+→ Payment
+→ Job is created
+→ Job contains one or multiple Trips
+→ Each Trip is assigned to a Truck and Driver
+→ Trip execution and tracking
+→ Proof of Delivery
+→ Job completion
+→ Financial settlement
+
+Important:
+
+- A Driver belongs to a Service Provider.
+- A Truck belongs to a Service Provider.
+- Drivers and trucks must not be treated as independent companies or service providers.
+- A Job may contain multiple Trips.
+- Trip and Job are separate entities and must never be treated as the same thing.
+
+## UI / UX
+
+All interfaces must look professionally designed by a real product design team.
+
+The design must be:
+
+- Modern
+- Clean
+- Professional
+- Minimal
+- Elegant
+- Business-oriented
+- Logistics-oriented
+- Easy to understand
+- Visually balanced
+
+Avoid generic AI-generated looking interfaces.
+
+Do NOT:
+
+- Overuse gradients.
+- Overuse glassmorphism.
+- Use excessive rounded cards everywhere.
+- Add decorative elements without purpose.
+- Use random icons.
+- Use excessive shadows.
+- Create huge headings unnecessarily.
+- Fill every screen with cards.
+- Use unrealistic placeholder dashboards.
+- Add random statistics or fake data without a functional purpose.
+
+Prefer:
+
+- Strong visual hierarchy.
+- Proper whitespace.
+- Clear typography.
+- Consistent spacing.
+- Subtle borders.
+- Meaningful icons.
+- Professional tables.
+- Clear forms.
+- Practical dashboards.
+- Logical information grouping.
+
+## Responsive Design
+
+Every interface must be fully responsive.
+
+Support:
+
+- Mobile
+- Tablet
+- Laptop
+- Desktop
+- Large desktop screens
+
+Do not simply shrink desktop UI for mobile.
+
+Design responsive layouts properly.
+
+For mobile:
+- Simplify navigation.
+- Stack content intelligently.
+- Avoid horizontal overflow.
+- Keep touch targets accessible.
+
+For desktop:
+- Use available space efficiently.
+- Use appropriate tables, grids, sidebars, filters, and dashboards.
+
+## Arabic and English
+
+The entire system must support:
+
+- Arabic
+- English
+
+Arabic:
+- RTL
+- Arabic-friendly typography using IBM Plex Sans Arabic for all languages
+- Correct alignment
+- Correct icon direction where applicable
+
+English:
+- LTR
+
+Never hardcode visible UI text.
+
+All user-facing strings must come from localization files.
+
+Changing language must update:
+
+- Text
+- Direction
+- Alignment
+- Navigation direction
+- Icons when direction-sensitive
+- Forms
+- Tables
+- Dialogs
+- Date display where applicable
+
+The interface must remain visually correct in both RTL and LTR.
+
+## Forms
+
+Forms must have:
+
+- Clear labels.
+- Proper validation.
+- Helpful error messages.
+- Required field indicators.
+- Loading states.
+- Disabled states.
+- Success feedback.
+- Error feedback.
+
+Do not rely only on placeholders as labels.
+
+Prevent duplicate submissions.
+
+## States
+
+Every data-driven page must handle:
+
+- Loading
+- Empty
+- Error
+- Success
+- No permission
+- Offline/network failure where applicable
+
+Never leave users with an infinite loader.
+
+## Accessibility
+
+- Maintain readable font sizes.
+- Maintain sufficient contrast.
+- Use accessible touch/click targets.
+- Support keyboard navigation on web where applicable.
+- Do not communicate important state using color alone.
+- Add semantic labels where applicable.
+
+## Security
+
+- Never expose secrets or credentials in source code.
+- Use environment variables.
+- Never trust client-side validation alone.
+- Always enforce authorization on the backend.
+- Do not expose internal database IDs or sensitive information unnecessarily.
+- Validate and sanitize input.
+- Follow least-privilege permissions.
+
+## API Integration
+
+- Centralize API configuration.
+- Centralize authentication handling.
+- Handle token expiration consistently.
+- Handle API errors consistently.
+- Do not call APIs directly from random UI components.
+- Use typed request and response models where supported.
+- Avoid duplicated API calls.
+- Prevent unnecessary repeated network requests.
+
+## Git / Code Quality
+
+Before considering a task complete:
+
+- Remove debug code.
+- Remove unused imports.
+- Remove commented-out code that is no longer needed.
+- Remove temporary logs.
+- Ensure formatting is correct.
+- Ensure naming is consistent.
+- Check for obvious regressions.
+- Run relevant tests or static analysis where available.
+
+Do not create commits unless explicitly requested.
