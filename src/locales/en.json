@@ -195,6 +195,7 @@
     "commercialRegister": "Commercial register",
     "taxNumber": "Tax number",
     "accountType": "Account type",
+    "allAccountTypes": "All account types",
     "commissionRate": "Commission rate"
   },
   "providers": {

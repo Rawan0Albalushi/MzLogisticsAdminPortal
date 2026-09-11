@@ -195,6 +195,7 @@
     "commercialRegister": "السجل التجاري",
     "taxNumber": "الرقم الضريبي",
     "accountType": "نوع الحساب",
+    "allAccountTypes": "كل أنواع الحساب",
     "commissionRate": "نسبة العمولة"
   },
   "providers": {

@@ -9,6 +9,7 @@ export function useListQuery() {
   const status = params.get('status') ?? ''
   const type = params.get('type') ?? ''
   const role = params.get('role') ?? ''
+  const accountType = params.get('account_type') ?? ''
 
   const setFilter = useCallback(
     (key: string, value: string) => {
@@ -36,7 +37,7 @@ export function useListQuery() {
   )
 
   return useMemo(
-    () => ({ page, search, status, type, role, setFilter, setPage }),
-    [page, search, status, type, role, setFilter, setPage],
+    () => ({ page, search, status, type, role, accountType, setFilter, setPage }),
+    [page, search, status, type, role, accountType, setFilter, setPage],
   )
 }

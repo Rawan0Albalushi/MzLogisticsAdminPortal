@@ -373,6 +373,7 @@ export interface ListQuery {
   per_page?: number
   type?: string
   role?: string
+  account_type?: string
   job_id?: number | string
   organization_id?: number | string
 }

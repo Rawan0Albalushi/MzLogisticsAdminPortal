@@ -38,6 +38,7 @@ function toParams(query: ListQuery = {}): Record<string, string | number> {
   if (query.per_page) params.per_page = query.per_page
   if (query.type) params.type = query.type
   if (query.role) params.role = query.role
+  if (query.account_type) params.account_type = query.account_type
   if (query.job_id) params.job_id = query.job_id
   if (query.organization_id) params.organization_id = query.organization_id
   return params

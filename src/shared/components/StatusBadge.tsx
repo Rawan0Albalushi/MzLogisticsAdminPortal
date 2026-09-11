@@ -24,7 +24,18 @@ const WARNING = new Set([
   'job_earning',
   'payout_reserved',
 ])
-const INFO = new Set(['in_progress', 'in_transit', 'assigned', 'loaded', 'arrived', 'arrived_at_pickup', 'issued', 'adjustment'])
+const INFO = new Set([
+  'in_progress',
+  'in_transit',
+  'assigned',
+  'loaded',
+  'arrived',
+  'arrived_at_pickup',
+  'issued',
+  'adjustment',
+  'individual',
+  'company',
+])
 
 function tone(status: string): string {
   if (SUCCESS.has(status)) return 'success'

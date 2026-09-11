@@ -2,6 +2,24 @@ import i18n from '@/core/i18n/index.ts'
 import { DEFAULT_CURRENCY } from '@/core/constants/statuses.ts'
 import type { Organization } from '@/core/api/types.ts'
 
+export function enumString(value: unknown): string | null {
+  if (value == null || value === '') {
+    return null
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'object' && value !== null && 'value' in value) {
+    const inner = (value as { value: unknown }).value
+    return typeof inner === 'string' ? inner : null
+  }
+  return null
+}
+
+export function isCustomerOrganization(organization?: Organization | null): boolean {
+  return enumString(organization?.type) === 'customer'
+}
+
 export function displayValue(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') {
     return i18n.t('common.noValue')

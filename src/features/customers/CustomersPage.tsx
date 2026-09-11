@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchCustomers } from '@/core/api/services.ts'
+import { CUSTOMER_ACCOUNT_TYPES, ORGANIZATION_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
@@ -9,17 +11,26 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
-
-const STATUSES = ['pending', 'active', 'suspended', 'rejected']
+import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
 
 export function CustomersPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['customers', list.search, list.status, list.page],
-    queryFn: () => fetchCustomers({ search: list.search, status: list.status, page: list.page }),
+    queryKey: ['customers', list.search, list.status, list.accountType, list.page],
+    queryFn: () =>
+      fetchCustomers({
+        search: list.search,
+        status: list.status,
+        account_type: list.accountType,
+        page: list.page,
+      }),
   })
+
+  const rows = useMemo(
+    () => (query.data?.items ?? []).filter((row) => isCustomerOrganization(row) || !enumString(row.type)),
+    [query.data?.items],
+  )
 
   const columns: Column<Organization>[] = [
     {
@@ -30,6 +41,11 @@ export function CustomersPage() {
           {organizationName(row)}
         </Link>
       ),
+    },
+    {
+      id: 'accountType',
+      header: t('customers.accountType'),
+      cell: (row) => <StatusBadge status={enumString(row.account_type)} />,
     },
     { id: 'email', header: t('common.email'), cell: (row) => displayValue(row.email) },
     { id: 'city', header: t('common.city'), cell: (row) => displayValue(row.city) },
@@ -52,8 +68,15 @@ export function CustomersPage() {
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter
+          value={list.accountType}
+          options={[...CUSTOMER_ACCOUNT_TYPES]}
+          onChange={(value) => list.setFilter('account_type', value)}
+          allLabel={t('customers.allAccountTypes')}
+          label={(value) => t(`status.${value}`)}
+        />
+        <StatusFilter
           value={list.status}
-          options={STATUSES}
+          options={[...ORGANIZATION_LIST_STATUSES]}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
@@ -61,7 +84,7 @@ export function CustomersPage() {
       </FilterBar>
       <DataTable
         columns={columns}
-        rows={query.data?.items ?? []}
+        rows={rows}
         rowKey={(row) => row.id}
         isLoading={query.isLoading}
         isError={query.isError}
