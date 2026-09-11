@@ -748,6 +748,12 @@ table.mz-table {
   border-bottom: 0;
 }
 
+.mz-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
 .mz-table tbody tr:hover td {
   background: #f7f9fa;
 }

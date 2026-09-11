@@ -13,6 +13,8 @@ import type {
   LoginPayload,
   Organization,
   Payment,
+  PaymentMethod,
+  PaymentMethodInput,
   Quotation,
   Settlement,
   Shipment,
@@ -149,6 +151,25 @@ export async function createSettlement(payload: CreateSettlementInput): Promise<
 export async function completeSettlement(id: string | number): Promise<Settlement> {
   const { data } = await api.post<ApiSuccess<Settlement>>(`/settlements/${id}/complete`)
   return unwrapData(data)
+}
+
+export async function fetchPaymentMethods(): Promise<PaymentMethod[]> {
+  const { data } = await api.get<ApiSuccess<PaymentMethod[]>>('/payment-methods')
+  return unwrapData(data)
+}
+
+export async function createPaymentMethod(payload: PaymentMethodInput): Promise<PaymentMethod> {
+  const { data } = await api.post<ApiSuccess<PaymentMethod>>('/payment-methods', payload)
+  return unwrapData(data)
+}
+
+export async function updatePaymentMethod(id: number, payload: Partial<PaymentMethodInput>): Promise<PaymentMethod> {
+  const { data } = await api.patch<ApiSuccess<PaymentMethod>>(`/payment-methods/${id}`, payload)
+  return unwrapData(data)
+}
+
+export async function deletePaymentMethod(id: number): Promise<void> {
+  await api.delete(`/payment-methods/${id}`)
 }
 
 export async function fetchCatalog(): Promise<Catalog> {

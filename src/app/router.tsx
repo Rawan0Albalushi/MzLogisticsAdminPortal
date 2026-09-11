@@ -33,6 +33,9 @@ const TripsPage = lazy(() => import('@/features/trips/TripsPage.tsx').then((m) =
 const TripDetailPage = lazy(() => import('@/features/trips/TripDetailPage.tsx').then((m) => ({ default: m.TripDetailPage })))
 const TrackingPage = lazy(() => import('@/features/tracking/TrackingPage.tsx').then((m) => ({ default: m.TrackingPage })))
 const PaymentsPage = lazy(() => import('@/features/payments/PaymentsPage.tsx').then((m) => ({ default: m.PaymentsPage })))
+const PaymentMethodsPage = lazy(() =>
+  import('@/features/payments/PaymentMethodsPage.tsx').then((m) => ({ default: m.PaymentMethodsPage })),
+)
 const InvoicesPage = lazy(() => import('@/features/invoices/InvoicesPage.tsx').then((m) => ({ default: m.InvoicesPage })))
 const SettlementsPage = lazy(() =>
   import('@/features/settlements/SettlementsPage.tsx').then((m) => ({ default: m.SettlementsPage })),
@@ -119,6 +122,10 @@ const router = createBrowserRouter([
           {
             element: <ProtectedRoute permission={PERMISSIONS.PAYMENTS_VIEW} />,
             children: [{ path: '/payments', element: withSuspense(<PaymentsPage />) }],
+          },
+          {
+            element: <ProtectedRoute permission={PERMISSIONS.PAYMENTS_MANAGE} />,
+            children: [{ path: '/payment-methods', element: withSuspense(<PaymentMethodsPage />) }],
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.INVOICES_VIEW} />,

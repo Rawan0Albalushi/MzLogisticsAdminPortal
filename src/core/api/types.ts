@@ -263,6 +263,18 @@ export interface Settlement {
   created_at?: string
 }
 
+export interface PaymentMethod {
+  id: number
+  code: string
+  name: string
+  name_ar: string
+  label?: string
+  processor: 'thawani' | 'cash' | string
+  is_active: boolean
+  is_system: boolean
+  sort_order: number
+}
+
 export interface Catalog {
   shipment_statuses: string[]
   quotation_statuses: string[]
@@ -270,8 +282,18 @@ export interface Catalog {
   trip_statuses: string[]
   payment_statuses: string[]
   truck_types: string[]
+  payment_methods?: PaymentMethod[]
   currency: string
   commission_rate: number
+}
+
+export interface PaymentMethodInput {
+  code?: string
+  name: string
+  name_ar: string
+  processor: 'thawani' | 'cash'
+  is_active?: boolean
+  sort_order?: number
 }
 
 export interface AccessRole {
