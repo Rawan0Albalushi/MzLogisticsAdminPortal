@@ -136,6 +136,7 @@ export interface Quotation {
   currency?: string | null
   truck_count?: number | null
   truck_type?: string | null
+  truck_type_label?: string | null
   truck_capacity_tons?: string | number | null
   trip_count?: number | null
   quantity_per_trip?: string | number | null
@@ -172,6 +173,7 @@ export interface Truck {
   id: number
   plate_number: string
   type?: string | null
+  type_label?: string | null
   capacity_tons?: string | number | null
   year?: number | null
   make?: string | null
@@ -309,16 +311,38 @@ export interface PaymentMethod {
   sort_order: number
 }
 
+export interface CatalogTruckType {
+  id: number
+  code: string
+  name: string
+  name_ar: string
+  label?: string
+  is_active: boolean
+  is_system: boolean
+  is_platform: boolean
+  can_manage: boolean
+  organization_id?: number | null
+  sort_order: number
+}
+
 export interface Catalog {
   shipment_statuses: string[]
   quotation_statuses: string[]
   job_statuses: string[]
   trip_statuses: string[]
   payment_statuses: string[]
-  truck_types: string[]
+  truck_types: CatalogTruckType[]
   payment_methods?: PaymentMethod[]
   currency: string
   commission_rate: number
+}
+
+export interface TruckTypeInput {
+  code?: string
+  name: string
+  name_ar: string
+  is_active?: boolean
+  sort_order?: number
 }
 
 export interface PaymentMethodInput {

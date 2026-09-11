@@ -32,6 +32,7 @@ export const navGroups: NavGroup[] = [
       { to: '/customers', labelKey: 'nav.customers', permission: PERMISSIONS.CUSTOMERS_VIEW, icon: icons.customers },
       { to: '/providers', labelKey: 'nav.providers', permission: PERMISSIONS.PROVIDERS_VIEW, icon: icons.providers },
       { to: '/fleet', labelKey: 'nav.fleet', permission: PERMISSIONS.FLEET_VIEW, icon: icons.fleet },
+      { to: '/truck-types', labelKey: 'nav.truckTypes', permission: PERMISSIONS.FLEET_MANAGE, icon: icons.settings },
       { to: '/drivers', labelKey: 'nav.drivers', permission: PERMISSIONS.DRIVERS_VIEW, icon: icons.drivers },
     ],
   },

@@ -49,7 +49,7 @@ export function QuotationDetailPage() {
               },
               { label: t('quotations.price'), value: formatMoney(quotation.total_price, quotation.currency ?? undefined) },
               { label: t('quotations.truckCount'), value: displayValue(quotation.truck_count) },
-              { label: t('quotations.truckType'), value: quotation.truck_type ? t(`status.${quotation.truck_type}`, { defaultValue: quotation.truck_type }) : t('common.noValue') },
+              { label: t('quotations.truckType'), value: quotation.truck_type_label ?? (quotation.truck_type ? t(`status.${quotation.truck_type}`, { defaultValue: quotation.truck_type }) : t('common.noValue')) },
               { label: t('quotations.truckCapacity'), value: displayValue(quotation.truck_capacity_tons) },
               { label: t('quotations.tripCount'), value: displayValue(quotation.trip_count) },
               { label: t('quotations.quantityPerTrip'), value: displayValue(quotation.quantity_per_trip) },

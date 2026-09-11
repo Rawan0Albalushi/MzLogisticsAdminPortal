@@ -21,7 +21,7 @@ export function FleetPage() {
 
   const columns: Column<Truck>[] = [
     { id: 'plate', header: t('fleet.plate'), cell: (row) => row.plate_number },
-    { id: 'type', header: t('common.type'), cell: (row) => (row.type ? t(`status.${row.type}`, { defaultValue: row.type }) : t('common.noValue')) },
+    { id: 'type', header: t('common.type'), cell: (row) => displayValue(row.type_label ?? row.type) },
     { id: 'capacity', header: t('fleet.capacity'), cell: (row) => displayValue(row.capacity_tons) },
     { id: 'make', header: t('fleet.make'), cell: (row) => `${displayValue(row.make)} ${displayValue(row.model)}` },
     { id: 'org', header: t('common.provider'), cell: (row) => organizationName(row.organization) },

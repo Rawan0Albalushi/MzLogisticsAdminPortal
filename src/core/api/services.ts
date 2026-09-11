@@ -21,6 +21,8 @@ import type {
   TransportJob,
   Trip,
   Truck,
+  CatalogTruckType,
+  TruckTypeInput,
   UpdateCommissionRateInput,
   UpdateStaffUserInput,
   VerifyOrganizationInput,
@@ -202,6 +204,25 @@ export async function updatePaymentMethod(id: number, payload: Partial<PaymentMe
 
 export async function deletePaymentMethod(id: number): Promise<void> {
   await api.delete(`/payment-methods/${id}`)
+}
+
+export async function fetchTruckTypes(): Promise<CatalogTruckType[]> {
+  const { data } = await api.get<ApiSuccess<CatalogTruckType[]>>('/truck-types')
+  return unwrapData(data)
+}
+
+export async function createTruckType(payload: TruckTypeInput): Promise<CatalogTruckType> {
+  const { data } = await api.post<ApiSuccess<CatalogTruckType>>('/truck-types', payload)
+  return unwrapData(data)
+}
+
+export async function updateTruckType(id: number, payload: Partial<TruckTypeInput>): Promise<CatalogTruckType> {
+  const { data } = await api.patch<ApiSuccess<CatalogTruckType>>(`/truck-types/${id}`, payload)
+  return unwrapData(data)
+}
+
+export async function deleteTruckType(id: number): Promise<void> {
+  await api.delete(`/truck-types/${id}`)
 }
 
 export async function fetchCatalog(): Promise<Catalog> {

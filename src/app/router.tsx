@@ -18,6 +18,7 @@ const ProviderDetailPage = lazy(() =>
   import('@/features/service-providers/ProviderDetailPage.tsx').then((m) => ({ default: m.ProviderDetailPage })),
 )
 const FleetPage = lazy(() => import('@/features/fleet/FleetPage.tsx').then((m) => ({ default: m.FleetPage })))
+const TruckTypesPage = lazy(() => import('@/features/fleet/TruckTypesPage.tsx').then((m) => ({ default: m.TruckTypesPage })))
 const DriversPage = lazy(() => import('@/features/drivers/DriversPage.tsx').then((m) => ({ default: m.DriversPage })))
 const ShipmentsPage = lazy(() => import('@/features/shipments/ShipmentsPage.tsx').then((m) => ({ default: m.ShipmentsPage })))
 const ShipmentDetailPage = lazy(() =>
@@ -86,6 +87,10 @@ const router = createBrowserRouter([
           {
             element: <ProtectedRoute permission={PERMISSIONS.FLEET_VIEW} />,
             children: [{ path: '/fleet', element: withSuspense(<FleetPage />) }],
+          },
+          {
+            element: <ProtectedRoute permission={PERMISSIONS.FLEET_MANAGE} />,
+            children: [{ path: '/truck-types', element: withSuspense(<TruckTypesPage />) }],
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.DRIVERS_VIEW} />,
