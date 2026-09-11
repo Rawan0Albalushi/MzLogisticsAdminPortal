@@ -79,6 +79,30 @@ export function formatPercent(value?: number | null): string {
   return `${Math.round(value)}%`
 }
 
+export function formatCommissionRate(rate?: string | number | null): string {
+  if (rate === null || rate === undefined || rate === '') {
+    return i18n.t('common.noValue')
+  }
+  const value = typeof rate === 'number' ? rate : Number(rate)
+  if (Number.isNaN(value)) {
+    return displayValue(rate)
+  }
+  const percent = value * 100
+  return `${percent.toFixed(percent % 1 === 0 ? 0 : 1)}%`
+}
+
+export function commissionRateToPercentInput(rate?: string | number | null): string {
+  if (rate === null || rate === undefined || rate === '') {
+    return ''
+  }
+  const value = typeof rate === 'number' ? rate : Number(rate)
+  if (Number.isNaN(value)) {
+    return ''
+  }
+  const percent = value * 100
+  return percent % 1 === 0 ? String(percent) : percent.toFixed(1)
+}
+
 export function formatCoords(lat?: number | null, lng?: number | null): string {
   if (lat === null || lat === undefined || lng === null || lng === undefined) {
     return i18n.t('trips.noLocation')

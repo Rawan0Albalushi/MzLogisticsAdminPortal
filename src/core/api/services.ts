@@ -21,8 +21,11 @@ import type {
   TransportJob,
   Trip,
   Truck,
+  UpdateCommissionRateInput,
   UpdateStaffUserInput,
   VerifyOrganizationInput,
+  Wallet,
+  WalletTransaction,
 } from '@/core/api/types.ts'
 
 function toParams(query: ListQuery = {}): Record<string, string | number> {
@@ -34,6 +37,7 @@ function toParams(query: ListQuery = {}): Record<string, string | number> {
   if (query.type) params.type = query.type
   if (query.role) params.role = query.role
   if (query.job_id) params.job_id = query.job_id
+  if (query.organization_id) params.organization_id = query.organization_id
   return params
 }
 
@@ -73,6 +77,14 @@ export async function fetchOrganization(id: string | number): Promise<Organizati
 
 export async function verifyOrganization(id: string | number, payload: VerifyOrganizationInput): Promise<Organization> {
   const { data } = await api.post<ApiSuccess<Organization>>(`/organizations/${id}/verify`, payload)
+  return unwrapData(data)
+}
+
+export async function updateOrganizationCommission(
+  id: string | number,
+  payload: UpdateCommissionRateInput,
+): Promise<Organization> {
+  const { data } = await api.patch<ApiSuccess<Organization>>(`/organizations/${id}/commission-rate`, payload)
   return unwrapData(data)
 }
 
@@ -133,6 +145,26 @@ export async function fetchPayments(query: ListQuery) {
 
 export async function fetchInvoices(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Invoice[]>>('/invoices', { params: toParams(query) })
+  return unwrapList(data)
+}
+
+export async function fetchWallets(query: ListQuery = {}) {
+  const { data } = await api.get<ApiSuccess<Wallet[] | { data: Wallet[] }>>('/wallets', {
+    params: toParams(query),
+  })
+  return unwrapList(data)
+}
+
+export async function fetchWallet(id: string | number): Promise<Wallet> {
+  const { data } = await api.get<ApiSuccess<Wallet>>(`/wallets/${id}`)
+  return unwrapData(data)
+}
+
+export async function fetchWalletTransactions(id: string | number, query: ListQuery = {}) {
+  const { data } = await api.get<ApiSuccess<WalletTransaction[] | { data: WalletTransaction[] }>>(
+    `/wallets/${id}/transactions`,
+    { params: toParams(query) },
+  )
   return unwrapList(data)
 }
 

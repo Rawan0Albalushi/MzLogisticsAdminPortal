@@ -39,6 +39,8 @@ export interface Organization {
   status: string
   verification_notes?: string | null
   commission_rate?: string | number | null
+  effective_commission_rate?: string | number | null
+  uses_default_commission?: boolean
   created_at?: string
   trucks_count?: number
   driver_profiles_count?: number
@@ -88,6 +90,9 @@ export interface DashboardStats {
   payments_pending: number
   payments_completed_amount: number
   commission_amount: number
+  wallet_pending?: number
+  wallet_available?: number
+  wallet_reserved?: number
   provider_receivable: number
   settlements_pending: number
   invoices_count: number
@@ -247,6 +252,35 @@ export interface Invoice {
   payment?: Payment | null
 }
 
+export interface Wallet {
+  id: number
+  organization_id: number
+  currency?: string | null
+  pending_balance?: string | number | null
+  available_balance?: string | number | null
+  reserved_balance?: string | number | null
+  lifetime_earned?: string | number | null
+  lifetime_withdrawn?: string | number | null
+  outstanding_balance?: string | number | null
+  organization?: Organization | null
+  updated_at?: string | null
+}
+
+export interface WalletTransaction {
+  id: number
+  reference: string
+  type: string
+  amount?: string | number | null
+  pending_delta?: string | number | null
+  available_delta?: string | number | null
+  reserved_delta?: string | number | null
+  currency?: string | null
+  description?: string | null
+  payment?: { id: number; reference: string } | null
+  job?: { id: number; reference: string } | null
+  created_at?: string | null
+}
+
 export interface Settlement {
   id: number
   reference: string
@@ -316,6 +350,7 @@ export interface ListQuery {
   type?: string
   role?: string
   job_id?: number | string
+  organization_id?: number | string
 }
 
 export interface CreateStaffUserInput {
@@ -340,8 +375,6 @@ export interface UpdateStaffUserInput {
 export interface CreateSettlementInput {
   provider_organization_id: number
   amount: number
-  commission_amount: number
-  net_amount: number
   period_start: string
   period_end: string
 }
@@ -349,4 +382,8 @@ export interface CreateSettlementInput {
 export interface VerifyOrganizationInput {
   status: string
   verification_notes?: string
+}
+
+export interface UpdateCommissionRateInput {
+  commission_rate: number | null
 }

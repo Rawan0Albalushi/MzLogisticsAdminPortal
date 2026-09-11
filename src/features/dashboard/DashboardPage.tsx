@@ -8,7 +8,8 @@ import type { DashboardStats } from '@/core/api/types.ts'
 import { KpiCard } from '@/shared/components/KpiCard.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
-import { formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
+import { useCatalog } from '@/shared/hooks/useCatalog.ts'
+import { formatCommissionRate, formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
 import { WorkQueue } from '@/features/dashboard/WorkQueue.tsx'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 
@@ -19,6 +20,7 @@ function count(value: number | undefined): number {
 export function DashboardPage() {
   const { t } = useTranslation()
   const { user, hasPermission } = useAuth()
+  const catalog = useCatalog()
   const query = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
@@ -194,10 +196,15 @@ export function DashboardPage() {
         </div>
       </section>
 
-      {hasPermission(PERMISSIONS.PAYMENTS_VIEW) || hasPermission(PERMISSIONS.INVOICES_VIEW) || hasPermission(PERMISSIONS.SETTLEMENTS_VIEW) ? (
+      {hasPermission(PERMISSIONS.PAYMENTS_VIEW) || hasPermission(PERMISSIONS.INVOICES_VIEW) || hasPermission(PERMISSIONS.SETTLEMENTS_VIEW) || hasPermission(PERMISSIONS.WALLETS_VIEW) ? (
         <section className="mz-panel">
           <div className="mz-panel__head">
             <h2>{t('dashboard.finance')}</h2>
+            {catalog.data?.commission_rate != null ? (
+              <span style={{ color: 'var(--mz-muted)', fontSize: 13 }}>
+                {t('dashboard.defaultCommissionRate', { rate: formatCommissionRate(catalog.data.commission_rate) })}
+              </span>
+            ) : null}
           </div>
           <div className="mz-kpi-grid">
             {hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
@@ -219,13 +226,23 @@ export function DashboardPage() {
                 to="/payments"
               />
             ) : null}
-            {hasPermission(PERMISSIONS.SETTLEMENTS_VIEW) ? (
+            {hasPermission(PERMISSIONS.WALLETS_VIEW) ? (
               <KpiCard
                 icon={kpiIcons.settlement}
                 label={t('dashboard.providerReceivable')}
                 value={formatMoney(stats.provider_receivable)}
                 hint={t('dashboard.providerReceivableHint')}
-                to="/settlements"
+                to="/wallets"
+              />
+            ) : null}
+            {hasPermission(PERMISSIONS.WALLETS_VIEW) ? (
+              <KpiCard
+                icon={kpiIcons.settlement}
+                label={t('dashboard.walletAvailable')}
+                value={formatMoney(stats.wallet_available ?? 0)}
+                hint={t('dashboard.walletAvailableHint')}
+                to="/wallets"
+                tone={(stats.wallet_available ?? 0) > 0 ? 'success' : 'default'}
               />
             ) : null}
             {hasPermission(PERMISSIONS.INVOICES_VIEW) ? (

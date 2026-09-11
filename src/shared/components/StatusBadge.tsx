@@ -8,8 +8,10 @@ const SUCCESS = new Set([
   'delivered',
   'published',
   'available',
+  'earning_released',
+  'payout_completed',
 ])
-const DANGER = new Set(['rejected', 'cancelled', 'failed', 'void', 'inactive', 'expired'])
+const DANGER = new Set(['rejected', 'cancelled', 'failed', 'void', 'inactive', 'expired', 'payout_rejected'])
 const WARNING = new Set([
   'pending',
   'pending_dispatch',
@@ -19,8 +21,10 @@ const WARNING = new Set([
   'maintenance',
   'suspended',
   'unassigned',
+  'job_earning',
+  'payout_reserved',
 ])
-const INFO = new Set(['in_progress', 'in_transit', 'assigned', 'loaded', 'arrived', 'arrived_at_pickup', 'issued'])
+const INFO = new Set(['in_progress', 'in_transit', 'assigned', 'loaded', 'arrived', 'arrived_at_pickup', 'issued', 'adjustment'])
 
 function tone(status: string): string {
   if (SUCCESS.has(status)) return 'success'

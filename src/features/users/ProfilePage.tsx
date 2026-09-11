@@ -8,11 +8,17 @@ import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
-import { displayValue, organizationName } from '@/shared/utils/format.ts'
+import { useCatalog } from '@/shared/hooks/useCatalog.ts'
+import { displayValue, formatCommissionRate, organizationName } from '@/shared/utils/format.ts'
 
 export function ProfilePage() {
   const { t } = useTranslation()
   const { user, setUser, hasPermission } = useAuth()
+  const catalog = useCatalog()
+  const canViewCommission =
+    hasPermission(PERMISSIONS.PAYMENTS_VIEW) ||
+    hasPermission(PERMISSIONS.PROVIDERS_VIEW) ||
+    hasPermission(PERMISSIONS.SETTLEMENTS_VIEW)
   const [profile, setProfile] = useState({
     name: user?.name ?? '',
     phone: user?.phone ?? '',
@@ -64,6 +70,23 @@ export function ProfilePage() {
   return (
     <>
       <PageHeader title={t('settings.title')} subtitle={t('settings.subtitle')} />
+
+      {canViewCommission && catalog.data?.commission_rate != null ? (
+        <section className="mz-card" style={{ marginBottom: 16 }}>
+          <div className="mz-card__body">
+            <h2 className="mz-card__title">{t('settings.platformCommission')}</h2>
+            <p style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>{t('settings.platformCommissionHint')}</p>
+            <p style={{ fontSize: 22, fontWeight: 700, margin: '0 0 12px' }}>
+              {formatCommissionRate(catalog.data.commission_rate)}
+            </p>
+            {hasPermission(PERMISSIONS.PROVIDERS_VIEW) ? (
+              <Link className="mz-link" to="/providers">
+                {t('settings.platformCommissionProviders')}
+              </Link>
+            ) : null}
+          </div>
+        </section>
+      ) : null}
 
       {hasPermission(PERMISSIONS.USERS_MANAGE) || hasPermission(PERMISSIONS.ROLES_MANAGE) ? (
         <section className="mz-quick-links mz-section" style={{ marginTop: 0, marginBottom: 16 }}>

@@ -28,6 +28,8 @@ export const PERMISSIONS = {
   INVOICES_VIEW: 'invoices.view',
   SETTLEMENTS_VIEW: 'settlements.view',
   SETTLEMENTS_MANAGE: 'settlements.manage',
+  WALLETS_VIEW: 'wallets.view',
+  WALLETS_MANAGE: 'wallets.manage',
   REPORTS_VIEW: 'reports.view',
   USERS_MANAGE: 'users.manage',
   ROLES_MANAGE: 'roles.manage',
@@ -81,6 +83,8 @@ export const PERMISSION_GROUPS = [
       PERMISSIONS.INVOICES_VIEW,
       PERMISSIONS.SETTLEMENTS_VIEW,
       PERMISSIONS.SETTLEMENTS_MANAGE,
+      PERMISSIONS.WALLETS_VIEW,
+      PERMISSIONS.WALLETS_MANAGE,
     ],
   },
   {

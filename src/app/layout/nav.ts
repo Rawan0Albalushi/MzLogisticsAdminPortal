@@ -41,6 +41,7 @@ export const navGroups: NavGroup[] = [
       { to: '/payments', labelKey: 'nav.payments', permission: PERMISSIONS.PAYMENTS_VIEW, icon: icons.payments },
       { to: '/payment-methods', labelKey: 'nav.paymentMethods', permission: PERMISSIONS.PAYMENTS_MANAGE, icon: icons.settings },
       { to: '/invoices', labelKey: 'nav.invoices', permission: PERMISSIONS.INVOICES_VIEW, icon: icons.invoices },
+      { to: '/wallets', labelKey: 'nav.wallets', permission: PERMISSIONS.WALLETS_VIEW, icon: icons.wallets },
       { to: '/settlements', labelKey: 'nav.settlements', permission: PERMISSIONS.SETTLEMENTS_VIEW, icon: icons.settlements },
       { to: '/reports', labelKey: 'nav.reports', permission: PERMISSIONS.REPORTS_VIEW, icon: icons.reports },
     ],

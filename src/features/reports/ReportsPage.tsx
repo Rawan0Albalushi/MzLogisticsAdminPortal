@@ -56,7 +56,8 @@ export function ReportsPage() {
       <div className="mz-kpi-grid">
         <KpiCard label={t('dashboard.paymentsCompleted')} value={formatMoney(stats.payments_completed_amount)} to="/payments" tone="success" />
         <KpiCard label={t('dashboard.commission')} value={formatMoney(stats.commission_amount)} to="/payments" />
-        <KpiCard label={t('dashboard.providerReceivable')} value={formatMoney(stats.provider_receivable)} to="/settlements" />
+        <KpiCard label={t('dashboard.providerReceivable')} value={formatMoney(stats.provider_receivable)} to="/wallets" />
+        <KpiCard label={t('dashboard.walletAvailable')} value={formatMoney(stats.wallet_available ?? 0)} to="/wallets" />
         <KpiCard label={t('dashboard.invoices')} value={formatNumber(stats.invoices_count)} to="/invoices" />
         <KpiCard
           label={t('dashboard.invoicesUnpaid')}

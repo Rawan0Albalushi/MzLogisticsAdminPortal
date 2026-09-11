@@ -9,6 +9,7 @@ interface ConfirmDialogProps {
   cancelLabel?: string
   danger?: boolean
   busy?: boolean
+  disabled?: boolean
   onConfirm: () => void
   onClose: () => void
 }
@@ -21,6 +22,7 @@ export function ConfirmDialog({
   cancelLabel,
   danger,
   busy,
+  disabled,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -50,7 +52,7 @@ export function ConfirmDialog({
             type="button"
             className={`mz-btn ${danger ? 'mz-btn--danger' : 'mz-btn--primary'}`}
             onClick={onConfirm}
-            disabled={busy}
+            disabled={busy || disabled}
           >
             {confirmLabel ?? t('common.confirm')}
           </button>

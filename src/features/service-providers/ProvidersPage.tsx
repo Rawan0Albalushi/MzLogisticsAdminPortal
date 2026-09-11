@@ -9,7 +9,7 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
 
 const STATUSES = ['pending', 'active', 'suspended', 'rejected']
 
@@ -33,6 +33,11 @@ export function ProvidersPage() {
     },
     { id: 'cr', header: t('customers.commercialRegister'), cell: (row) => displayValue(row.commercial_register) },
     { id: 'city', header: t('common.city'), cell: (row) => displayValue(row.city) },
+    {
+      id: 'commission',
+      header: t('providers.commissionRate'),
+      cell: (row) => formatCommissionRate(row.effective_commission_rate ?? row.commission_rate),
+    },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
     { id: 'created', header: t('common.createdAt'), cell: (row) => formatDate(row.created_at) },
     {

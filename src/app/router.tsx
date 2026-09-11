@@ -37,6 +37,10 @@ const PaymentMethodsPage = lazy(() =>
   import('@/features/payments/PaymentMethodsPage.tsx').then((m) => ({ default: m.PaymentMethodsPage })),
 )
 const InvoicesPage = lazy(() => import('@/features/invoices/InvoicesPage.tsx').then((m) => ({ default: m.InvoicesPage })))
+const WalletsPage = lazy(() => import('@/features/wallets/WalletsPage.tsx').then((m) => ({ default: m.WalletsPage })))
+const WalletDetailPage = lazy(() =>
+  import('@/features/wallets/WalletDetailPage.tsx').then((m) => ({ default: m.WalletDetailPage })),
+)
 const SettlementsPage = lazy(() =>
   import('@/features/settlements/SettlementsPage.tsx').then((m) => ({ default: m.SettlementsPage })),
 )
@@ -130,6 +134,13 @@ const router = createBrowserRouter([
           {
             element: <ProtectedRoute permission={PERMISSIONS.INVOICES_VIEW} />,
             children: [{ path: '/invoices', element: withSuspense(<InvoicesPage />) }],
+          },
+          {
+            element: <ProtectedRoute permission={PERMISSIONS.WALLETS_VIEW} />,
+            children: [
+              { path: '/wallets', element: withSuspense(<WalletsPage />) },
+              { path: '/wallets/:id', element: withSuspense(<WalletDetailPage />) },
+            ],
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.SETTLEMENTS_VIEW} />,

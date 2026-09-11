@@ -86,6 +86,13 @@ export const icons = {
       <path d="M15 3v4h4" />
     </Icon>
   ),
+  wallets: (
+    <Icon>
+      <rect x="3" y="7" width="18" height="12" rx="1.5" />
+      <path d="M3 11h18" />
+      <circle cx="16.5" cy="15" r="1.2" />
+    </Icon>
+  ),
   settlements: (
     <Icon>
       <path d="M4 18V6h16v12" />
