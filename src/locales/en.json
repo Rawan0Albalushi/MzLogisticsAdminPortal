@@ -196,7 +196,11 @@
     "taxNumber": "Tax number",
     "accountType": "Account type",
     "allAccountTypes": "All account types",
-    "commissionRate": "Commission rate"
+    "commissionRate": "Commission rate",
+    "nameAr": "Arabic name",
+    "contactSection": "Contact details",
+    "companySection": "Company details",
+    "accountSection": "Account details"
   },
   "providers": {
     "title": "Service providers",
@@ -248,6 +252,8 @@
     "cargoDescription": "Description",
     "requiredDate": "Required date",
     "publishedAt": "Published",
+    "scheduleSection": "Schedule",
+    "routeSection": "Route",
     "quotations": "Quotations",
     "noQuotations": "No quotations have been submitted yet.",
     "cancel": "Cancel request",

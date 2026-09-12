@@ -6,12 +6,24 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
-import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
+import { displayValue, enumString, formatDate, initials, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
+
+function ContactValue({ value, href }: { value?: string | null; href: string }) {
+  if (!value) {
+    return displayValue(null)
+  }
+
+  return (
+    <a className="mz-link" href={href}>
+      {value}
+    </a>
+  )
+}
 
 export function CustomerDetailPage() {
   const { id = '' } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const query = useQuery({ queryKey: ['organization', id], queryFn: () => fetchOrganization(id), enabled: Boolean(id) })
 
   if (query.isLoading) {
@@ -25,6 +37,14 @@ export function CustomerDetailPage() {
   const org = query.data
   const accountType = enumString(org.account_type)
   const isCompany = accountType === 'company'
+  const primaryName = organizationName(org)
+  const secondaryName = i18n.language.startsWith('ar')
+    ? org.name && org.name !== primaryName
+      ? org.name
+      : null
+    : org.name_ar && org.name_ar !== primaryName
+      ? org.name_ar
+      : null
 
   if (enumString(org.type) === 'provider') {
     return <Navigate to={`/providers/${org.id}`} replace />
@@ -37,9 +57,9 @@ export function CustomerDetailPage() {
   return (
     <>
       <PageHeader
-        title={organizationName(org)}
+        title={primaryName}
         subtitle={t('customers.detailTitle')}
-        crumbs={[{ label: t('customers.title'), to: '/customers' }, { label: organizationName(org) }]}
+        crumbs={[{ label: t('customers.title'), to: '/customers' }, { label: primaryName }]}
         actions={
           <>
             <StatusBadge status={accountType} />
@@ -47,27 +67,81 @@ export function CustomerDetailPage() {
           </>
         }
       />
-      <section className="mz-card">
-        <div className="mz-card__body">
-          <DetailList
-            items={[
-              { label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
-              { label: t('common.status'), value: <StatusBadge status={org.status} /> },
-              { label: t('common.email'), value: displayValue(org.email) },
-              { label: t('common.phone'), value: displayValue(org.phone) },
-              { label: t('common.city'), value: displayValue(org.city) },
-              { label: t('common.address'), value: displayValue(org.address) },
-              ...(isCompany
-                ? [
-                    { label: t('customers.commercialRegister'), value: displayValue(org.commercial_register) },
-                    { label: t('customers.taxNumber'), value: displayValue(org.tax_number) },
-                  ]
-                : []),
-              { label: t('common.createdAt'), value: formatDate(org.created_at) },
-            ]}
-          />
+      <div className="mz-grid-2">
+        <section className="mz-card">
+          <div className="mz-card__body">
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(primaryName)}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{primaryName}</h2>
+                {secondaryName ? <p className="mz-profile__aka">{secondaryName}</p> : null}
+                <div className="mz-profile__contacts">
+                  {org.email ? (
+                    <a className="mz-profile__chip" href={`mailto:${org.email}`} dir="ltr">
+                      {org.email}
+                    </a>
+                  ) : null}
+                  {org.phone ? (
+                    <a className="mz-profile__chip" href={`tel:${org.phone}`} dir="ltr">
+                      {org.phone}
+                    </a>
+                  ) : null}
+                  {org.city ? <span className="mz-profile__chip">{org.city}</span> : null}
+                </div>
+              </div>
+            </div>
+            <h2 className="mz-card__title">{t('customers.contactSection')}</h2>
+            <InfoGrid
+              fields={[
+                {
+                  label: t('common.email'),
+                  value: org.email ? <ContactValue value={org.email} href={`mailto:${org.email}`} /> : null,
+                  dir: 'ltr',
+                },
+                {
+                  label: t('common.phone'),
+                  value: org.phone ? <ContactValue value={org.phone} href={`tel:${org.phone}`} /> : null,
+                  dir: 'ltr',
+                },
+                { label: t('common.city'), value: org.city },
+                { label: t('common.country'), value: org.country },
+                { label: t('common.address'), value: org.address, wide: true },
+              ]}
+            />
+          </div>
+        </section>
+        <div className="mz-stack">
+          {isCompany ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <h2 className="mz-card__title">{t('customers.companySection')}</h2>
+                <InfoGrid
+                  fields={[
+                    { label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
+                    { label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
+                  ]}
+                />
+              </div>
+            </section>
+          ) : null}
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('customers.accountSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('common.name'), value: org.name, dir: org.name && /[A-Za-z]/.test(org.name) ? 'ltr' : undefined },
+                  { label: t('customers.nameAr'), value: org.name_ar },
+                  { label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
+                  { label: t('common.status'), value: <StatusBadge status={org.status} /> },
+                  { label: t('common.createdAt'), value: formatDate(org.created_at) },
+                ]}
+              />
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </>
   )
 }

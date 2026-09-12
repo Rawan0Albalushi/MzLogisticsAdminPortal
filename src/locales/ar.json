@@ -196,7 +196,11 @@
     "taxNumber": "الرقم الضريبي",
     "accountType": "نوع الحساب",
     "allAccountTypes": "كل أنواع الحساب",
-    "commissionRate": "نسبة العمولة"
+    "commissionRate": "نسبة العمولة",
+    "nameAr": "الاسم بالعربية",
+    "contactSection": "بيانات التواصل",
+    "companySection": "بيانات الشركة",
+    "accountSection": "بيانات الحساب"
   },
   "providers": {
     "title": "مقدمو الخدمة",
@@ -248,6 +252,8 @@
     "cargoDescription": "الوصف",
     "requiredDate": "التاريخ المطلوب",
     "publishedAt": "تاريخ النشر",
+    "scheduleSection": "الجدول",
+    "routeSection": "المسار",
     "quotations": "عروض الأسعار",
     "noQuotations": "لم تُقدَّم عروض أسعار بعد.",
     "cancel": "إلغاء الطلب",

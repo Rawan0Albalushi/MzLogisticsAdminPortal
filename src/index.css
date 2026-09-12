@@ -315,6 +315,13 @@ html[dir='rtl'] .mz-nav-link.is-active {
   flex-shrink: 0;
 }
 
+.mz-avatar--lg {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
+  border-radius: 16px;
+}
+
 .mz-user-menu__panel {
   position: absolute;
   inset-inline-end: 0;
@@ -907,6 +914,10 @@ table.mz-table {
   gap: 12px;
 }
 
+.mz-grid-2--equal {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .mz-dl {
   display: grid;
   grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
@@ -922,6 +933,110 @@ table.mz-table {
   font-weight: 500;
   overflow-wrap: anywhere;
   max-width: 64ch;
+}
+
+.mz-stack {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
+.mz-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--mz-border);
+}
+
+.mz-profile__body {
+  min-width: 0;
+}
+
+.mz-profile__name {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.mz-profile__aka {
+  margin-top: 2px;
+  color: var(--mz-muted);
+  font-size: 13px;
+}
+
+.mz-profile__contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mz-profile__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #f7f9fa;
+  border: 1px solid var(--mz-border);
+  color: var(--mz-ink);
+  font-size: 12px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+a.mz-profile__chip:hover {
+  border-color: #b7c4cd;
+  color: var(--mz-info);
+}
+
+.mz-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.mz-info-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: #f7f9fa;
+  border: 1px solid var(--mz-border);
+  border-radius: 10px;
+}
+
+.mz-info-field--wide {
+  grid-column: 1 / -1;
+}
+
+.mz-info-field__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--mz-muted);
+}
+
+.mz-info-field__value {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.mz-info-field--empty .mz-info-field__value {
+  color: var(--mz-muted);
+  font-weight: 500;
+}
+
+.mz-notes {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .mz-section {

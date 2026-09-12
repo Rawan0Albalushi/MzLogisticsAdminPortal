@@ -13,9 +13,17 @@ import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
-import { displayValue, formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDate, formatMoney, formatNumber, initials, organizationName } from '@/shared/utils/format.ts'
+
+function quantityValue(quantity?: string | number | null, unit?: string | null) {
+  if (quantity == null || quantity === '') {
+    return null
+  }
+  const amount = formatNumber(quantity)
+  return unit ? `${amount} ${unit}` : amount
+}
 
 export function ShipmentDetailPage() {
   const { id = '' } = useParams()
@@ -48,6 +56,14 @@ export function ShipmentDetailPage() {
 
   const shipment = query.data
   const quotations = shipment.quotations ?? []
+  const customerName = organizationName(shipment.customer)
+  const canCancel =
+    hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) && shipment.status !== 'cancelled' && shipment.status !== 'awarded'
+  const customerLink = shipment.customer ? (
+    <Link className="mz-link" to={`/customers/${shipment.customer.id}`}>
+      {customerName}
+    </Link>
+  ) : null
 
   const columns: Column<Quotation>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
@@ -73,33 +89,108 @@ export function ShipmentDetailPage() {
         subtitle={t('shipments.detailTitle')}
         crumbs={[{ label: t('shipments.title'), to: '/shipments' }, { label: shipment.reference }]}
         actions={
-          hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) && shipment.status !== 'cancelled' && shipment.status !== 'awarded' ? (
-            <button type="button" className="mz-btn mz-btn--danger" onClick={() => setConfirmCancel(true)}>
-              {t('shipments.cancel')}
-            </button>
-          ) : null
+          <>
+            <StatusBadge status={shipment.status} />
+            {canCancel ? (
+              <button type="button" className="mz-btn mz-btn--danger" onClick={() => setConfirmCancel(true)}>
+                {t('shipments.cancel')}
+              </button>
+            ) : null}
+          </>
         }
       />
       {error ? <div className="mz-alert mz-section-alert">{error}</div> : null}
-      <section className="mz-card">
+
+      <div className="mz-grid-2">
+        <section className="mz-card">
+          <div className="mz-card__body">
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(shipment.cargo_type || shipment.reference)}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{shipment.reference}</h2>
+                {shipment.cargo_type ? <p className="mz-profile__aka">{shipment.cargo_type}</p> : null}
+                <div className="mz-profile__contacts">
+                  <StatusBadge status={shipment.status} />
+                  {shipment.customer ? (
+                    <Link className="mz-profile__chip" to={`/customers/${shipment.customer.id}`}>
+                      {customerName}
+                    </Link>
+                  ) : null}
+                  {shipment.pickup_city || shipment.delivery_city ? (
+                    <span className="mz-profile__chip">
+                      {displayValue(shipment.pickup_city)} → {displayValue(shipment.delivery_city)}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <h2 className="mz-card__title">{t('shipments.cargo')}</h2>
+            <InfoGrid
+              fields={[
+                { label: t('shipments.cargoType'), value: shipment.cargo_type },
+                { label: t('common.quantity'), value: quantityValue(shipment.quantity, shipment.quantity_unit) },
+                { label: t('common.weight'), value: shipment.weight_tons == null || shipment.weight_tons === '' ? null : formatNumber(shipment.weight_tons) },
+                { label: t('common.volume'), value: shipment.volume_cbm == null || shipment.volume_cbm === '' ? null : formatNumber(shipment.volume_cbm) },
+                { label: t('shipments.cargoDescription'), value: shipment.cargo_description, wide: true },
+              ]}
+            />
+          </div>
+        </section>
+
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('shipments.scheduleSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('common.customer'), value: customerLink },
+                  { label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
+                  { label: t('shipments.requiredDate'), value: shipment.required_date ? formatDate(shipment.required_date) : null },
+                  { label: t('shipments.publishedAt'), value: shipment.published_at ? formatDate(shipment.published_at) : null },
+                  { label: t('common.createdAt'), value: shipment.created_at ? formatDate(shipment.created_at) : null },
+                ]}
+              />
+            </div>
+          </section>
+          {shipment.notes ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <h2 className="mz-card__title">{t('common.notes')}</h2>
+                <p className="mz-notes">{shipment.notes}</p>
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+
+      <section className="mz-card mz-section">
         <div className="mz-card__body">
-          <DetailList
-            items={[
-              { label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
-              { label: t('common.customer'), value: organizationName(shipment.customer) },
-              { label: t('shipments.cargoType'), value: displayValue(shipment.cargo_type) },
-              { label: t('shipments.cargoDescription'), value: displayValue(shipment.cargo_description) },
-              { label: t('common.weight'), value: displayValue(shipment.weight_tons) },
-              { label: t('common.volume'), value: displayValue(shipment.volume_cbm) },
-              { label: t('common.quantity'), value: `${displayValue(shipment.quantity)} ${displayValue(shipment.quantity_unit)}` },
-              { label: t('common.pickup'), value: `${displayValue(shipment.pickup_city)} — ${displayValue(shipment.pickup_address)}` },
-              { label: t('common.delivery'), value: `${displayValue(shipment.delivery_city)} — ${displayValue(shipment.delivery_address)}` },
-              { label: t('shipments.requiredDate'), value: formatDate(shipment.required_date) },
-              { label: t('common.notes'), value: displayValue(shipment.notes) },
-            ]}
-          />
+          <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
+          <div className="mz-grid-2 mz-grid-2--equal">
+            <div>
+              <h3 className="mz-card__title">{t('common.pickup')}</h3>
+              <InfoGrid
+                fields={[
+                  { label: t('common.city'), value: shipment.pickup_city },
+                  { label: t('common.address'), value: shipment.pickup_address, wide: true },
+                ]}
+              />
+            </div>
+            <div>
+              <h3 className="mz-card__title">{t('common.delivery')}</h3>
+              <InfoGrid
+                fields={[
+                  { label: t('common.city'), value: shipment.delivery_city },
+                  { label: t('common.address'), value: shipment.delivery_address, wide: true },
+                ]}
+              />
+            </div>
+          </div>
         </div>
       </section>
+
       <section className="mz-section">
         <h2 className="mz-card__title">{t('shipments.quotations')}</h2>
         {quotations.length === 0 ? (
