@@ -8,7 +8,8 @@ import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { DetailList } from '@/shared/components/DetailList.tsx'
 import { TripTimeline } from '@/features/trips/TripTimeline.tsx'
-import { displayValue, formatCoords, formatDateTime, mapUrl } from '@/shared/utils/format.ts'
+import { LocationMap } from '@/shared/components/LocationMap.tsx'
+import { displayValue, formatCoords, formatDateTime } from '@/shared/utils/format.ts'
 
 export function TripDetailPage() {
   const { id = '' } = useParams()
@@ -24,7 +25,6 @@ export function TripDetailPage() {
   }
 
   const trip = query.data
-  const liveMap = mapUrl(trip.current_lat, trip.current_lng)
 
   return (
     <>
@@ -74,13 +74,34 @@ export function TripDetailPage() {
               { label: t('trips.receiverName'), value: displayValue(trip.proof_of_delivery?.receiver_name) },
             ]}
           />
-          {liveMap ? (
-            <p style={{ marginTop: 14 }}>
-              <a className="mz-link" href={liveMap} target="_blank" rel="noreferrer">
-                {t('tracking.openMap')}
-              </a>
-            </p>
-          ) : null}
+        </div>
+      </section>
+      <section className="mz-card mz-section">
+        <div className="mz-card__body">
+          <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
+          <div className="mz-grid-2 mz-grid-2--equal">
+            <LocationMap
+              label={t('common.pickup')}
+              address={trip.pickup_address}
+              city={trip.pickup_city}
+              lat={trip.pickup_lat}
+              lng={trip.pickup_lng}
+            />
+            <LocationMap
+              label={t('common.delivery')}
+              address={trip.delivery_address}
+              city={trip.delivery_city}
+              lat={trip.delivery_lat}
+              lng={trip.delivery_lng}
+            />
+          </div>
+          <div className="mz-section">
+            <LocationMap
+              label={t('common.location')}
+              lat={trip.current_lat}
+              lng={trip.current_lng}
+            />
+          </div>
         </div>
       </section>
     </>

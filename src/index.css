@@ -1324,6 +1324,36 @@ html[dir='rtl'] .mz-timeline__step::after {
   font-size: 13px;
 }
 
+.mz-map {
+  display: grid;
+  gap: 8px;
+}
+
+.mz-map__address {
+  color: var(--mz-ink);
+  font-weight: 600;
+}
+
+.mz-map__frame {
+  width: 100%;
+  min-height: 220px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--mz-surface);
+}
+
+.mz-map__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mz-map__empty {
+  color: var(--mz-muted);
+}
+
 .mz-quick-links {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));

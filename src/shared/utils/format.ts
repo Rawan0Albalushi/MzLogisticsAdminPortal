@@ -149,8 +149,26 @@ export function greetingKey(date = new Date()): 'dashboard.greetingMorning' | 'd
 }
 
 export function mapUrl(lat?: number | null, lng?: number | null): string | null {
+  return googleMapUrl(lat, lng)
+}
+
+export function googleMapUrl(lat?: number | null, lng?: number | null): string | null {
   if (lat === null || lat === undefined || lng === null || lng === undefined) {
     return null
   }
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=12/${lat}/${lng}`
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+}
+
+export function googleDirectionsUrl(lat?: number | null, lng?: number | null): string | null {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) {
+    return null
+  }
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+}
+
+export function googleMapEmbedUrl(lat?: number | null, lng?: number | null): string | null {
+  if (lat === null || lat === undefined || lng === null || lng === undefined) {
+    return null
+  }
+  return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`
 }

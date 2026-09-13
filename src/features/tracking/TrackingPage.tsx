@@ -88,7 +88,7 @@ export function TrackingPage() {
                 {href ? (
                   <p style={{ marginTop: 10 }}>
                     <a className="mz-link" href={href} target="_blank" rel="noreferrer">
-                      {t('tracking.openMap')}
+                      {t('common.openInGoogleMaps')}
                     </a>
                   </p>
                 ) : (

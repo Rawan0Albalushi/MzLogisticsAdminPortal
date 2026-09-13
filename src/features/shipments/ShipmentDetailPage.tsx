@@ -15,6 +15,7 @@ import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { displayValue, formatDate, formatMoney, formatNumber, initials, organizationName } from '@/shared/utils/format.ts'
 
 function quantityValue(quantity?: string | number | null, unit?: string | null) {
@@ -169,24 +170,20 @@ export function ShipmentDetailPage() {
         <div className="mz-card__body">
           <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
           <div className="mz-grid-2 mz-grid-2--equal">
-            <div>
-              <h3 className="mz-card__title">{t('common.pickup')}</h3>
-              <InfoGrid
-                fields={[
-                  { label: t('common.city'), value: shipment.pickup_city },
-                  { label: t('common.address'), value: shipment.pickup_address, wide: true },
-                ]}
-              />
-            </div>
-            <div>
-              <h3 className="mz-card__title">{t('common.delivery')}</h3>
-              <InfoGrid
-                fields={[
-                  { label: t('common.city'), value: shipment.delivery_city },
-                  { label: t('common.address'), value: shipment.delivery_address, wide: true },
-                ]}
-              />
-            </div>
+            <LocationMap
+              label={t('common.pickup')}
+              address={shipment.pickup_address}
+              city={shipment.pickup_city}
+              lat={shipment.pickup_lat}
+              lng={shipment.pickup_lng}
+            />
+            <LocationMap
+              label={t('common.delivery')}
+              address={shipment.delivery_address}
+              city={shipment.delivery_city}
+              lat={shipment.delivery_lat}
+              lng={shipment.delivery_lng}
+            />
           </div>
         </div>
       </section>
