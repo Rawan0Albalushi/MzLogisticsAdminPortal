@@ -11,7 +11,10 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
-import { displayValue, formatDateTime, formatMoney, formatNumber, formatPercent, initials, organizationName } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { displayValue, formatDateTime, formatMoney, formatNumber, formatPercent, organizationName } from '@/shared/utils/format.ts'
 
 function numericValue(value?: string | number | null) {
   if (value == null || value === '') {
@@ -100,9 +103,7 @@ export function JobDetailPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-profile">
-              <div className="mz-avatar mz-avatar--lg" aria-hidden>
-                {initials(job.provider ? providerName : job.reference)}
-              </div>
+              <IconWell name="jobs" size="lg" />
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{job.reference}</h2>
                 <p className="mz-profile__aka">{formatMoney(job.total_price, currency)}</p>
@@ -110,33 +111,37 @@ export function JobDetailPage() {
                   <StatusBadge status={job.status} />
                   {job.customer ? (
                     <Link className="mz-profile__chip" to={`/customers/${job.customer.id}`}>
+                      <AppIcon name="customers" />
                       {customerName}
                     </Link>
                   ) : null}
                   {job.provider ? (
                     <Link className="mz-profile__chip" to={`/providers/${job.provider.id}`}>
+                      <AppIcon name="providers" />
                       {providerName}
                     </Link>
                   ) : null}
-                  {routeLabel ? <span className="mz-profile__chip">{routeLabel}</span> : null}
+                  {routeLabel ? (
+                    <span className="mz-profile__chip">
+                      <AppIcon name="trips" />
+                      {routeLabel}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <h2 className="mz-card__title">{t('jobs.partiesSection')}</h2>
+            <SectionTitle icon="users" title={t('jobs.partiesSection')} />
             <InfoGrid
               fields={[
-                { label: t('quotations.price'), value: formatMoney(job.total_price, currency) },
-                { label: t('common.customer'), value: customerLink },
-                { label: t('common.provider'), value: providerLink },
-                { label: t('common.shipment'), value: shipmentLink },
-                { label: t('common.quotation'), value: quotationLink },
+                { icon: 'payments', label: t('quotations.price'), value: formatMoney(job.total_price, currency) },
+                { icon: 'customers', label: t('common.customer'), value: customerLink },
+                { icon: 'providers', label: t('common.provider'), value: providerLink },
+                { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },
+                { icon: 'quotations', label: t('common.quotation'), value: quotationLink },
               ]}
             />
             <div className="mz-section">
-              <div className="mz-card__head">
-                <h2 className="mz-card__title">{t('jobs.progress')}</h2>
-                <span>{formatPercent(progress)}</span>
-              </div>
+              <SectionTitle icon="reports" title={t('jobs.progress')} extra={formatPercent(progress)} />
               <div className="mz-progress" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
                 <span style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
               </div>
@@ -147,24 +152,24 @@ export function JobDetailPage() {
         <div className="mz-stack">
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('jobs.quantitiesSection')}</h2>
+              <SectionTitle icon="quantity" title={t('jobs.quantitiesSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('jobs.totalQuantity'), value: numericValue(job.total_quantity) },
-                  { label: t('jobs.deliveredQuantity'), value: numericValue(job.delivered_quantity) },
+                  { icon: 'quantity', label: t('jobs.totalQuantity'), value: numericValue(job.total_quantity) },
+                  { icon: 'delivery', label: t('jobs.deliveredQuantity'), value: numericValue(job.delivered_quantity) },
                 ]}
               />
             </div>
           </section>
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('jobs.scheduleSection')}</h2>
+              <SectionTitle icon="calendar" title={t('jobs.scheduleSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('jobs.startedAt'), value: job.started_at ? formatDateTime(job.started_at) : null },
-                  { label: t('jobs.completedAt'), value: job.completed_at ? formatDateTime(job.completed_at) : null },
-                  { label: t('common.createdAt'), value: job.created_at ? formatDateTime(job.created_at) : null },
-                  { label: t('common.status'), value: <StatusBadge status={job.status} /> },
+                  { icon: 'clock', label: t('jobs.startedAt'), value: job.started_at ? formatDateTime(job.started_at) : null },
+                  { icon: 'verify', label: t('jobs.completedAt'), value: job.completed_at ? formatDateTime(job.completed_at) : null },
+                  { icon: 'calendar', label: t('common.createdAt'), value: job.created_at ? formatDateTime(job.created_at) : null },
+                  { icon: 'roles', label: t('common.status'), value: <StatusBadge status={job.status} /> },
                 ]}
               />
             </div>
@@ -175,9 +180,10 @@ export function JobDetailPage() {
       {shipment ? (
         <section className="mz-card mz-section">
           <div className="mz-card__body">
-            <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
+            <SectionTitle icon="trips" title={t('shipments.routeSection')} />
             <div className="mz-grid-2 mz-grid-2--equal">
               <LocationMap
+                icon="pickup"
                 label={t('common.pickup')}
                 address={shipment.pickup_address}
                 city={shipment.pickup_city}
@@ -185,6 +191,7 @@ export function JobDetailPage() {
                 lng={shipment.pickup_lng}
               />
               <LocationMap
+                icon="delivery"
                 label={t('common.delivery')}
                 address={shipment.delivery_address}
                 city={shipment.delivery_city}
@@ -197,7 +204,7 @@ export function JobDetailPage() {
       ) : null}
 
       <section className="mz-section">
-        <h2 className="mz-card__title">{t('jobs.nestedTrips')}</h2>
+        <SectionTitle icon="trips" title={t('jobs.nestedTrips')} />
         {trips.length === 0 ? (
           <div className="mz-card">
             <EmptyState title={t('jobs.noTrips')} />

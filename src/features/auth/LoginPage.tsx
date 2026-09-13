@@ -4,6 +4,7 @@ import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { getApiMessage } from '@/core/api/client.ts'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
 
 const DEMO_ACCOUNTS = [
   'superadmin@mzlogistics.om',
@@ -36,26 +37,37 @@ export function LoginPage() {
   return (
     <div className="mz-login">
       <section className="mz-login__brand">
-        <div>
+        <div className="mz-login__brand-copy">
           <div className="mz-mark">MZ</div>
           <p className="mz-hero__kicker">{t('app.portal')}</p>
           <h1>{t('app.name')}</h1>
           <p>{t('app.tagline')}</p>
         </div>
         <ul className="mz-login__points">
-          <li>{t('dashboard.shipmentsOpen')}</li>
-          <li>{t('nav.tracking')}</li>
-          <li>{t('nav.settlements')}</li>
+          <li>
+            <IconWell name="shipments" size="sm" />
+            <span>{t('dashboard.shipmentsOpen')}</span>
+          </li>
+          <li>
+            <IconWell name="tracking" size="sm" />
+            <span>{t('nav.tracking')}</span>
+          </li>
+          <li>
+            <IconWell name="settlements" size="sm" />
+            <span>{t('nav.settlements')}</span>
+          </li>
         </ul>
       </section>
       <section className="mz-login__panel">
         <div className="mz-login__card">
-          <div className="mz-login__lang">
-            <LanguageSwitcher />
+          <div className="mz-login__card-head">
+            <h2>{t('auth.title')}</h2>
+            <div className="mz-login__lang">
+              <LanguageSwitcher />
+            </div>
+            <p className="mz-login__hint">{t('auth.subtitle')}</p>
           </div>
-          <h2>{t('auth.title')}</h2>
-          <p className="mz-login__hint">{t('auth.subtitle')}</p>
-          <form className="mz-form" onSubmit={(event) => void onSubmit(event)}>
+          <form className="mz-form mz-login__form" onSubmit={(event) => void onSubmit(event)}>
             {error ? <div className="mz-alert">{error}</div> : null}
             <FormField label={t('auth.email')} htmlFor="email" required>
               <input
@@ -79,22 +91,22 @@ export function LoginPage() {
                 required
               />
             </FormField>
-            <button type="submit" className="mz-btn mz-btn--primary" disabled={busy}>
+            <button type="submit" className="mz-btn mz-btn--primary mz-login__submit" disabled={busy}>
               {busy ? t('auth.submitting') : t('auth.submit')}
             </button>
           </form>
           <div className="mz-demo">
             <strong>{t('auth.demoTitle')}</strong>
-            <p style={{ marginTop: 6 }}>
+            <ul className="mz-demo__accounts">
               {DEMO_ACCOUNTS.map((account) => (
-                <span key={account}>
+                <li key={account}>
                   <code>{account}</code>
-                  <br />
-                </span>
+                </li>
               ))}
-            </p>
-            <p style={{ marginTop: 8 }}>
-              {t('auth.demoPassword')}: <code>Password123!</code>
+            </ul>
+            <p className="mz-demo__password">
+              <span>{t('auth.demoPassword')}</span>
+              <code>Password123!</code>
             </p>
           </div>
         </div>

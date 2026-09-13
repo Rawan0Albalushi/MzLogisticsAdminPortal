@@ -7,7 +7,10 @@ import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
-import { displayValue, enumString, formatDate, initials, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
 
 function ContactValue({ value, href }: { value?: string | null; href: string }) {
   if (!value) {
@@ -71,43 +74,50 @@ export function CustomerDetailPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-profile">
-              <div className="mz-avatar mz-avatar--lg" aria-hidden>
-                {initials(primaryName)}
-              </div>
+              <IconWell name="customers" size="lg" />
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{primaryName}</h2>
                 {secondaryName ? <p className="mz-profile__aka">{secondaryName}</p> : null}
                 <div className="mz-profile__contacts">
                   {org.email ? (
                     <a className="mz-profile__chip" href={`mailto:${org.email}`} dir="ltr">
+                      <AppIcon name="email" />
                       {org.email}
                     </a>
                   ) : null}
                   {org.phone ? (
                     <a className="mz-profile__chip" href={`tel:${org.phone}`} dir="ltr">
+                      <AppIcon name="phone" />
                       {org.phone}
                     </a>
                   ) : null}
-                  {org.city ? <span className="mz-profile__chip">{org.city}</span> : null}
+                  {org.city ? (
+                    <span className="mz-profile__chip">
+                      <AppIcon name="city" />
+                      {org.city}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <h2 className="mz-card__title">{t('customers.contactSection')}</h2>
+            <SectionTitle icon="phone" title={t('customers.contactSection')} />
             <InfoGrid
               fields={[
                 {
+                  icon: 'email',
                   label: t('common.email'),
                   value: org.email ? <ContactValue value={org.email} href={`mailto:${org.email}`} /> : null,
                   dir: 'ltr',
                 },
                 {
+                  icon: 'phone',
                   label: t('common.phone'),
                   value: org.phone ? <ContactValue value={org.phone} href={`tel:${org.phone}`} /> : null,
                   dir: 'ltr',
                 },
-                { label: t('common.city'), value: org.city },
-                { label: t('common.country'), value: org.country },
-                { label: t('common.address'), value: org.address, wide: true },
+                { icon: 'city', label: t('common.city'), value: org.city },
+                { icon: 'tracking', label: t('common.country'), value: org.country },
+                { icon: 'city', label: t('common.address'), value: org.address, wide: true },
               ]}
             />
           </div>
@@ -116,11 +126,11 @@ export function CustomerDetailPage() {
           {isCompany ? (
             <section className="mz-card">
               <div className="mz-card__body">
-                <h2 className="mz-card__title">{t('customers.companySection')}</h2>
+                <SectionTitle icon="providers" title={t('customers.companySection')} />
                 <InfoGrid
                   fields={[
-                    { label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
-                    { label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
+                    { icon: 'invoices', label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
+                    { icon: 'quotations', label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
                   ]}
                 />
               </div>
@@ -128,14 +138,14 @@ export function CustomerDetailPage() {
           ) : null}
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('customers.accountSection')}</h2>
+              <SectionTitle icon="roles" title={t('customers.accountSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('common.name'), value: org.name, dir: org.name && /[A-Za-z]/.test(org.name) ? 'ltr' : undefined },
-                  { label: t('customers.nameAr'), value: org.name_ar },
-                  { label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
-                  { label: t('common.status'), value: <StatusBadge status={org.status} /> },
-                  { label: t('common.createdAt'), value: formatDate(org.created_at) },
+                  { icon: 'profile', label: t('common.name'), value: org.name, dir: org.name && /[A-Za-z]/.test(org.name) ? 'ltr' : undefined },
+                  { icon: 'profile', label: t('customers.nameAr'), value: org.name_ar },
+                  { icon: 'users', label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
+                  { icon: 'roles', label: t('common.status'), value: <StatusBadge status={org.status} /> },
+                  { icon: 'calendar', label: t('common.createdAt'), value: formatDate(org.created_at) },
                 ]}
               />
             </div>

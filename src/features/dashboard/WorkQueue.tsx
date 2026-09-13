@@ -4,6 +4,8 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import type { IconName } from '@/shared/icons/NavIcons.tsx'
 
 export interface WorkQueueItem {
   id: number
@@ -20,16 +22,20 @@ interface WorkQueueProps {
   isLoading?: boolean
   isError?: boolean
   onRetry?: () => void
+  icon?: IconName
 }
 
-export function WorkQueue({ title, viewAllTo, items, isLoading, isError, onRetry }: WorkQueueProps) {
+export function WorkQueue({ title, viewAllTo, items, isLoading, isError, onRetry, icon }: WorkQueueProps) {
   const { t } = useTranslation()
 
   return (
     <article className="mz-card mz-queue-card">
       <div className="mz-card__body">
         <div className="mz-card__head">
-          <h2 className="mz-card__title">{title}</h2>
+          <div className="mz-card__title-row">
+            {icon ? <IconWell name={icon} size="sm" /> : null}
+            <h2 className="mz-card__title">{title}</h2>
+          </div>
           <Link className="mz-link" to={viewAllTo}>
             {t('dashboard.viewAll')}
           </Link>

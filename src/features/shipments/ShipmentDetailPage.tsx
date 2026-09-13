@@ -16,7 +16,10 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
-import { displayValue, formatDate, formatMoney, formatNumber, initials, organizationName } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { displayValue, formatDate, formatMoney, formatNumber, organizationName } from '@/shared/utils/format.ts'
 
 function quantityValue(quantity?: string | number | null, unit?: string | null) {
   if (quantity == null || quantity === '') {
@@ -106,9 +109,7 @@ export function ShipmentDetailPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-profile">
-              <div className="mz-avatar mz-avatar--lg" aria-hidden>
-                {initials(shipment.cargo_type || shipment.reference)}
-              </div>
+              <IconWell name="shipments" size="lg" />
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{shipment.reference}</h2>
                 {shipment.cargo_type ? <p className="mz-profile__aka">{shipment.cargo_type}</p> : null}
@@ -116,25 +117,27 @@ export function ShipmentDetailPage() {
                   <StatusBadge status={shipment.status} />
                   {shipment.customer ? (
                     <Link className="mz-profile__chip" to={`/customers/${shipment.customer.id}`}>
+                      <AppIcon name="customers" />
                       {customerName}
                     </Link>
                   ) : null}
                   {shipment.pickup_city || shipment.delivery_city ? (
                     <span className="mz-profile__chip">
+                      <AppIcon name="trips" />
                       {displayValue(shipment.pickup_city)} → {displayValue(shipment.delivery_city)}
                     </span>
                   ) : null}
                 </div>
               </div>
             </div>
-            <h2 className="mz-card__title">{t('shipments.cargo')}</h2>
+            <SectionTitle icon="shipments" title={t('shipments.cargo')} />
             <InfoGrid
               fields={[
-                { label: t('shipments.cargoType'), value: shipment.cargo_type },
-                { label: t('common.quantity'), value: quantityValue(shipment.quantity, shipment.quantity_unit) },
-                { label: t('common.weight'), value: shipment.weight_tons == null || shipment.weight_tons === '' ? null : formatNumber(shipment.weight_tons) },
-                { label: t('common.volume'), value: shipment.volume_cbm == null || shipment.volume_cbm === '' ? null : formatNumber(shipment.volume_cbm) },
-                { label: t('shipments.cargoDescription'), value: shipment.cargo_description, wide: true },
+                { icon: 'shipments', label: t('shipments.cargoType'), value: shipment.cargo_type },
+                { icon: 'quantity', label: t('common.quantity'), value: quantityValue(shipment.quantity, shipment.quantity_unit) },
+                { icon: 'quantity', label: t('common.weight'), value: shipment.weight_tons == null || shipment.weight_tons === '' ? null : formatNumber(shipment.weight_tons) },
+                { icon: 'quantity', label: t('common.volume'), value: shipment.volume_cbm == null || shipment.volume_cbm === '' ? null : formatNumber(shipment.volume_cbm) },
+                { icon: 'notes', label: t('shipments.cargoDescription'), value: shipment.cargo_description, wide: true },
               ]}
             />
           </div>
@@ -143,14 +146,14 @@ export function ShipmentDetailPage() {
         <div className="mz-stack">
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('shipments.scheduleSection')}</h2>
+              <SectionTitle icon="calendar" title={t('shipments.scheduleSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('common.customer'), value: customerLink },
-                  { label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
-                  { label: t('shipments.requiredDate'), value: shipment.required_date ? formatDate(shipment.required_date) : null },
-                  { label: t('shipments.publishedAt'), value: shipment.published_at ? formatDate(shipment.published_at) : null },
-                  { label: t('common.createdAt'), value: shipment.created_at ? formatDate(shipment.created_at) : null },
+                  { icon: 'customers', label: t('common.customer'), value: customerLink },
+                  { icon: 'roles', label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
+                  { icon: 'calendar', label: t('shipments.requiredDate'), value: shipment.required_date ? formatDate(shipment.required_date) : null },
+                  { icon: 'clock', label: t('shipments.publishedAt'), value: shipment.published_at ? formatDate(shipment.published_at) : null },
+                  { icon: 'clock', label: t('common.createdAt'), value: shipment.created_at ? formatDate(shipment.created_at) : null },
                 ]}
               />
             </div>
@@ -158,7 +161,7 @@ export function ShipmentDetailPage() {
           {shipment.notes ? (
             <section className="mz-card">
               <div className="mz-card__body">
-                <h2 className="mz-card__title">{t('common.notes')}</h2>
+                <SectionTitle icon="notes" title={t('common.notes')} />
                 <p className="mz-notes">{shipment.notes}</p>
               </div>
             </section>
@@ -168,9 +171,10 @@ export function ShipmentDetailPage() {
 
       <section className="mz-card mz-section">
         <div className="mz-card__body">
-          <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
+          <SectionTitle icon="trips" title={t('shipments.routeSection')} />
           <div className="mz-grid-2 mz-grid-2--equal">
             <LocationMap
+              icon="pickup"
               label={t('common.pickup')}
               address={shipment.pickup_address}
               city={shipment.pickup_city}
@@ -178,6 +182,7 @@ export function ShipmentDetailPage() {
               lng={shipment.pickup_lng}
             />
             <LocationMap
+              icon="delivery"
               label={t('common.delivery')}
               address={shipment.delivery_address}
               city={shipment.delivery_city}
@@ -189,7 +194,7 @@ export function ShipmentDetailPage() {
       </section>
 
       <section className="mz-section">
-        <h2 className="mz-card__title">{t('shipments.quotations')}</h2>
+        <SectionTitle icon="quotations" title={t('shipments.quotations')} />
         {quotations.length === 0 ? (
           <div className="mz-card">
             <EmptyState title={t('shipments.noQuotations')} />

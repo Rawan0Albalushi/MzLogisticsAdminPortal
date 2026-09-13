@@ -167,9 +167,9 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
               ×
             </span>
           ) : null}
-          <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-            <rect x="1.5" y="2.5" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" />
-            <path d="M1.5 6h13M5 1v3M11 1v3" fill="none" stroke="currentColor" />
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+            <rect x="3.6" y="5.2" width="16.8" height="15" rx="2" />
+            <path d="M3.6 9.4h16.8M8 3.8v3M16 3.8v3" />
           </svg>
         </span>
       </button>

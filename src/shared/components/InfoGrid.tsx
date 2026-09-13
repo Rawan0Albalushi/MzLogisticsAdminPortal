@@ -1,11 +1,13 @@
 import { displayValue } from '@/shared/utils/format.ts'
 import type { ReactNode } from 'react'
+import { AppIcon, type IconName } from '@/shared/icons/NavIcons.tsx'
 
 export interface InfoField {
   label: string
   value?: ReactNode
   wide?: boolean
   dir?: 'ltr' | 'rtl'
+  icon?: IconName
 }
 
 function isEmpty(value: ReactNode): boolean {
@@ -28,7 +30,10 @@ export function InfoGrid({ fields }: { fields: InfoField[] }) {
               .filter(Boolean)
               .join(' ')}
           >
-            <dt className="mz-info-field__label">{field.label}</dt>
+            <dt className="mz-info-field__label">
+              {field.icon ? <AppIcon name={field.icon} /> : null}
+              {field.label}
+            </dt>
             <dd className="mz-info-field__value" dir={field.dir}>
               {empty ? displayValue(null) : field.value}
             </dd>

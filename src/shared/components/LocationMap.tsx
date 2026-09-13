@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next'
 import { formatCoords, googleMapEmbedUrl, googleMapUrl } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import type { IconName } from '@/shared/icons/NavIcons.tsx'
 
 type LocationMapProps = {
   lat?: number | null
@@ -7,9 +9,10 @@ type LocationMapProps = {
   label?: string
   address?: string | null
   city?: string | null
+  icon?: IconName
 }
 
-export function LocationMap({ lat, lng, label, address, city }: LocationMapProps) {
+export function LocationMap({ lat, lng, label, address, city, icon }: LocationMapProps) {
   const { t } = useTranslation()
   const href = googleMapUrl(lat, lng)
   const embed = googleMapEmbedUrl(lat, lng)
@@ -17,7 +20,7 @@ export function LocationMap({ lat, lng, label, address, city }: LocationMapProps
 
   return (
     <div className="mz-map">
-      {label ? <h3 className="mz-card__title">{label}</h3> : null}
+      {label ? <SectionTitle icon={icon ?? 'tracking'} title={label} /> : null}
       {line ? <p className="mz-map__address">{line}</p> : null}
       {href && embed ? (
         <>

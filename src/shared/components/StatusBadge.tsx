@@ -50,5 +50,10 @@ export function StatusBadge({ status }: { status?: string | null }) {
   if (!status) {
     return <span className="mz-badge mz-badge--neutral">{t('common.noValue')}</span>
   }
-  return <span className={`mz-badge mz-badge--${tone(status)}`}>{t(`status.${status}`, { defaultValue: status })}</span>
+  return (
+    <span className={`mz-badge mz-badge--${tone(status)}`}>
+      <i className="mz-badge__dot" aria-hidden="true" />
+      {t(`status.${status}`, { defaultValue: status })}
+    </span>
+  )
 }

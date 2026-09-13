@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { formatDate, initials } from '@/shared/utils/format.ts'
 
 interface TopBarProps {
@@ -30,13 +31,14 @@ export function TopBar({ onMenu }: TopBarProps) {
     <header className="mz-topbar">
       <div className="mz-topbar__start">
         <button type="button" className="mz-icon-btn" onClick={onMenu} aria-label={t('common.openMenu')}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M4 7h16M4 12h16M4 17h16" />
-          </svg>
+          <AppIcon name="menu" width={16} height={16} />
         </button>
         <div className="mz-topbar__clock">
-          <strong>{formatDate(new Date().toISOString())}</strong>
-          <span>{t('app.portal')}</span>
+          <AppIcon name="calendar" width={14} height={14} />
+          <div>
+            <strong>{formatDate(new Date().toISOString())}</strong>
+            <span>{t('app.portal')}</span>
+          </div>
         </div>
       </div>
       <div className="mz-topbar__end">
@@ -58,6 +60,7 @@ export function TopBar({ onMenu }: TopBarProps) {
           {open ? (
             <div className="mz-user-menu__panel" role="menu">
               <Link to="/settings" role="menuitem" onClick={() => setOpen(false)}>
+                <AppIcon name="profile" width={16} height={16} />
                 {t('common.profile')}
               </Link>
               <button
@@ -68,6 +71,7 @@ export function TopBar({ onMenu }: TopBarProps) {
                   void logout()
                 }}
               >
+                <AppIcon name="logout" width={16} height={16} />
                 {t('common.logout')}
               </button>
             </div>

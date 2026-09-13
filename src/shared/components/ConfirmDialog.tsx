@@ -32,7 +32,7 @@ export function ConfirmDialog({
   }
 
   return (
-    <div className="mz-dialog-backdrop" role="presentation" onClick={onClose}>
+    <div className="mz-dialog-backdrop mz-dialog-backdrop--in" role="presentation" onClick={onClose}>
       <div
         className="mz-dialog"
         role="dialog"

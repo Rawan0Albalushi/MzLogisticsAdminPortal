@@ -14,7 +14,10 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
-import { commissionRateToPercentInput, displayValue, formatCommissionRate, formatDate, initials, organizationName } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { commissionRateToPercentInput, displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
 
 function ContactValue({ value, href }: { value?: string | null; href: string }) {
   if (!value) {
@@ -127,9 +130,7 @@ export function ProviderDetailPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-profile">
-              <div className="mz-avatar mz-avatar--lg" aria-hidden>
-                {initials(primaryName)}
-              </div>
+              <IconWell name="providers" size="lg" />
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{primaryName}</h2>
                 {secondaryName ? <p className="mz-profile__aka">{secondaryName}</p> : null}
@@ -137,34 +138,43 @@ export function ProviderDetailPage() {
                   <StatusBadge status={org.status} />
                   {org.email ? (
                     <a className="mz-profile__chip" href={`mailto:${org.email}`} dir="ltr">
+                      <AppIcon name="email" />
                       {org.email}
                     </a>
                   ) : null}
                   {org.phone ? (
                     <a className="mz-profile__chip" href={`tel:${org.phone}`} dir="ltr">
+                      <AppIcon name="phone" />
                       {org.phone}
                     </a>
                   ) : null}
-                  {org.city ? <span className="mz-profile__chip">{org.city}</span> : null}
+                  {org.city ? (
+                    <span className="mz-profile__chip">
+                      <AppIcon name="city" />
+                      {org.city}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <h2 className="mz-card__title">{t('customers.contactSection')}</h2>
+            <SectionTitle icon="phone" title={t('customers.contactSection')} />
             <InfoGrid
               fields={[
                 {
+                  icon: 'email',
                   label: t('common.email'),
                   value: org.email ? <ContactValue value={org.email} href={`mailto:${org.email}`} /> : null,
                   dir: 'ltr',
                 },
                 {
+                  icon: 'phone',
                   label: t('common.phone'),
                   value: org.phone ? <ContactValue value={org.phone} href={`tel:${org.phone}`} /> : null,
                   dir: 'ltr',
                 },
-                { label: t('common.city'), value: org.city },
-                { label: t('common.country'), value: org.country },
-                { label: t('common.address'), value: org.address, wide: true },
+                { icon: 'city', label: t('common.city'), value: org.city },
+                { icon: 'tracking', label: t('common.country'), value: org.country },
+                { icon: 'city', label: t('common.address'), value: org.address, wide: true },
               ]}
             />
           </div>
@@ -172,24 +182,25 @@ export function ProviderDetailPage() {
         <div className="mz-stack">
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('customers.companySection')}</h2>
+              <SectionTitle icon="providers" title={t('customers.companySection')} />
               <InfoGrid
                 fields={[
-                  { label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
-                  { label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
-                  { label: t('common.createdAt'), value: formatDate(org.created_at) },
-                  { label: t('common.notes'), value: org.verification_notes, wide: true },
+                  { icon: 'invoices', label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
+                  { icon: 'quotations', label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
+                  { icon: 'calendar', label: t('common.createdAt'), value: formatDate(org.created_at) },
+                  { icon: 'notes', label: t('common.notes'), value: org.verification_notes, wide: true },
                 ]}
               />
             </div>
           </section>
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('providers.commissionTitle')}</h2>
+              <SectionTitle icon="commission" title={t('providers.commissionTitle')} />
               <InfoGrid
                 fields={[
-                  { label: t('providers.commissionRate'), value: formatCommissionRate(effectiveRate) },
+                  { icon: 'commission', label: t('providers.commissionRate'), value: formatCommissionRate(effectiveRate) },
                   {
+                    icon: 'settings',
                     label: t('providers.commissionSource'),
                     value: usesDefault ? t('providers.commissionDefault') : t('providers.commissionCustom'),
                   },
@@ -232,7 +243,7 @@ export function ProviderDetailPage() {
           {hasPermission(PERMISSIONS.PROVIDERS_VERIFY) ? (
             <section className="mz-card">
               <div className="mz-card__body">
-                <h2 className="mz-card__title">{t('providers.verifyTitle')}</h2>
+                <SectionTitle icon="verify" title={t('providers.verifyTitle')} />
                 <p className="mz-notes" style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>
                   {t('providers.verifyHint')}
                 </p>

@@ -12,6 +12,9 @@ import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { formatCommissionRate, formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
 import { WorkQueue } from '@/features/dashboard/WorkQueue.tsx'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import type { IconName } from '@/shared/icons/NavIcons.tsx'
 
 function count(value: number | undefined): number {
   return value ?? 0
@@ -69,30 +72,35 @@ export function DashboardPage() {
       title: t('dashboard.shortcutShipments'),
       hint: t('dashboard.shortcutShipmentsHint'),
       permission: PERMISSIONS.SHIPMENTS_VIEW,
+      icon: 'shipments' as const,
     },
     {
       to: '/jobs?status=pending_dispatch',
       title: t('dashboard.shortcutJobs'),
       hint: t('dashboard.shortcutJobsHint'),
       permission: PERMISSIONS.JOBS_VIEW,
+      icon: 'dispatch' as const,
     },
     {
       to: '/tracking',
       title: t('dashboard.shortcutTracking'),
       hint: t('dashboard.shortcutTrackingHint'),
       permission: PERMISSIONS.TRACKING_VIEW,
+      icon: 'tracking' as const,
     },
     {
       to: '/settlements?status=pending',
       title: t('dashboard.shortcutSettlements'),
       hint: t('dashboard.shortcutSettlementsHint'),
       permission: PERMISSIONS.SETTLEMENTS_VIEW,
+      icon: 'settlements' as const,
     },
     {
       to: '/providers?status=pending',
       title: t('dashboard.shortcutProviders'),
       hint: t('dashboard.shortcutProvidersHint'),
       permission: PERMISSIONS.PROVIDERS_VIEW,
+      icon: 'verify' as const,
     },
   ].filter((item) => hasPermission(item.permission))
 
@@ -124,6 +132,7 @@ export function DashboardPage() {
               void providers.refetch()
             }}
           >
+            <AppIcon name="refresh" width={15} height={15} />
             {t('common.refresh')}
           </button>
         </div>
@@ -137,6 +146,7 @@ export function DashboardPage() {
           <div className="mz-attention">
             {attention.map((item) => (
               <Link key={item.to} className={`mz-attention__item mz-attention__item--${item.tone}`} to={item.to}>
+                <IconWell name={item.icon} size="md" />
                 <div className="mz-attention__copy">
                   <strong>{item.label}</strong>
                   <span>{t('dashboard.viewAll')}</span>
@@ -264,6 +274,7 @@ export function DashboardPage() {
           {canViewShipments ? (
             <WorkQueue
               title={t('dashboard.openQueue')}
+              icon="shipments"
               viewAllTo="/shipments?status=published"
               isLoading={shipments.isLoading}
               isError={shipments.isError}
@@ -280,6 +291,7 @@ export function DashboardPage() {
           {canViewJobs ? (
             <WorkQueue
               title={t('dashboard.activeJobsQueue')}
+              icon="jobs"
               viewAllTo="/jobs"
               isLoading={jobs.isLoading}
               isError={jobs.isError}
@@ -296,6 +308,7 @@ export function DashboardPage() {
           {canViewTrips ? (
             <WorkQueue
               title={t('dashboard.liveTripsQueue')}
+              icon="trips"
               viewAllTo="/tracking"
               isLoading={trips.isLoading}
               isError={trips.isError}
@@ -316,6 +329,7 @@ export function DashboardPage() {
         <section>
           <WorkQueue
             title={t('dashboard.providersPending')}
+            icon="providers"
             viewAllTo="/providers?status=pending"
             isLoading={providers.isLoading}
             isError={providers.isError}
@@ -339,8 +353,11 @@ export function DashboardPage() {
           <div className="mz-quick-links">
             {shortcuts.map((item) => (
               <Link key={item.to} className="mz-quick-link" to={item.to}>
-                <strong>{item.title}</strong>
-                <span>{item.hint}</span>
+                <IconWell name={item.icon} size="lg" />
+                <span className="mz-quick-link__copy">
+                  <strong>{item.title}</strong>
+                  <span>{item.hint}</span>
+                </span>
               </Link>
             ))}
           </div>
@@ -362,6 +379,7 @@ function attentionItems(
       count: count(stats.quotations_pending),
       permission: PERMISSIONS.QUOTATIONS_VIEW,
       tone: 'warning' as const,
+      icon: 'quotations' as IconName,
     },
     {
       to: '/jobs?status=pending_dispatch',
@@ -369,6 +387,7 @@ function attentionItems(
       count: count(stats.jobs_pending_dispatch),
       permission: PERMISSIONS.JOBS_VIEW,
       tone: 'warning' as const,
+      icon: 'jobs' as IconName,
     },
     {
       to: '/trips?status=unassigned',
@@ -376,6 +395,7 @@ function attentionItems(
       count: count(stats.trips_unassigned),
       permission: PERMISSIONS.TRIPS_VIEW,
       tone: 'danger' as const,
+      icon: 'trips' as IconName,
     },
     {
       to: '/providers?status=pending',
@@ -383,6 +403,7 @@ function attentionItems(
       count: count(stats.providers_pending),
       permission: PERMISSIONS.PROVIDERS_VIEW,
       tone: 'warning' as const,
+      icon: 'providers' as IconName,
     },
     {
       to: '/customers?status=pending',
@@ -390,6 +411,7 @@ function attentionItems(
       count: count(stats.customers_pending),
       permission: PERMISSIONS.CUSTOMERS_VIEW,
       tone: 'info' as const,
+      icon: 'customers' as IconName,
     },
     {
       to: '/payments?status=pending',
@@ -397,6 +419,7 @@ function attentionItems(
       count: count(stats.payments_pending),
       permission: PERMISSIONS.PAYMENTS_VIEW,
       tone: 'warning' as const,
+      icon: 'payments' as IconName,
     },
     {
       to: '/settlements?status=pending',
@@ -404,6 +427,7 @@ function attentionItems(
       count: count(stats.settlements_pending),
       permission: PERMISSIONS.SETTLEMENTS_VIEW,
       tone: 'info' as const,
+      icon: 'settlements' as IconName,
     },
   ].filter((item) => item.count > 0 && hasPermission(item.permission))
 }

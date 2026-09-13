@@ -13,7 +13,7 @@ interface KpiCardProps {
 }
 
 export function KpiCard({ label, value, hint, to, tone = 'default', icon }: KpiCardProps) {
-  const className = `mz-kpi mz-kpi--${tone}${to ? ' mz-kpi--link' : ''}`
+  const className = `mz-kpi mz-kpi--${tone}${to ? ' mz-kpi--link' : ''}${icon ? ' mz-kpi--has-icon' : ''}`
   const body = (
     <>
       <div className="mz-kpi__top">

@@ -140,6 +140,10 @@ export function ReportsPage() {
               void payments.refetch()
             }}
           >
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+              <path d="M19.4 12a7.4 7.4 0 1 1-2.1-5.2" />
+              <path d="M19.6 4.8v4.4h-4.4" />
+            </svg>
             {t('common.refresh')}
           </button>
         }

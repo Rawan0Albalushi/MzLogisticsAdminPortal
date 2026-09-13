@@ -13,7 +13,10 @@ import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { WALLET_TRANSACTION_TYPES } from '@/core/constants/statuses.ts'
-import { displayValue, formatCommissionRate, formatDateTime, formatMoney, initials, organizationName } from '@/shared/utils/format.ts'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { IconWell } from '@/shared/components/IconWell.tsx'
+import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { displayValue, formatCommissionRate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
 
 export function WalletDetailPage() {
   const { id = '' } = useParams()
@@ -101,29 +104,33 @@ export function WalletDetailPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-profile">
-              <div className="mz-avatar mz-avatar--lg" aria-hidden>
-                {initials(wallet.organization ? providerName : t('wallets.title'))}
-              </div>
+              <IconWell name="wallets" size="lg" />
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{providerName}</h2>
                 <p className="mz-profile__aka">{formatMoney(wallet.available_balance, currency)}</p>
                 <div className="mz-profile__contacts">
                   {wallet.organization ? (
                     <Link className="mz-profile__chip" to={`/providers/${wallet.organization.id}`}>
+                      <AppIcon name="providers" />
                       {providerName}
                     </Link>
                   ) : null}
-                  {wallet.organization?.city ? <span className="mz-profile__chip">{wallet.organization.city}</span> : null}
+                  {wallet.organization?.city ? (
+                    <span className="mz-profile__chip">
+                      <AppIcon name="city" />
+                      {wallet.organization.city}
+                    </span>
+                  ) : null}
                 </div>
               </div>
             </div>
-            <h2 className="mz-card__title">{t('wallets.balancesSection')}</h2>
+            <SectionTitle icon="wallets" title={t('wallets.balancesSection')} />
             <InfoGrid
               fields={[
-                { label: t('wallets.pending'), value: formatMoney(wallet.pending_balance, currency) },
-                { label: t('wallets.available'), value: formatMoney(wallet.available_balance, currency) },
-                { label: t('wallets.reserved'), value: formatMoney(wallet.reserved_balance, currency) },
-                { label: t('wallets.outstanding'), value: formatMoney(wallet.outstanding_balance, currency) },
+                { icon: 'clock', label: t('wallets.pending'), value: formatMoney(wallet.pending_balance, currency) },
+                { icon: 'payments', label: t('wallets.available'), value: formatMoney(wallet.available_balance, currency) },
+                { icon: 'roles', label: t('wallets.reserved'), value: formatMoney(wallet.reserved_balance, currency) },
+                { icon: 'settlements', label: t('wallets.outstanding'), value: formatMoney(wallet.outstanding_balance, currency) },
               ]}
             />
           </div>
@@ -132,28 +139,29 @@ export function WalletDetailPage() {
         <div className="mz-stack">
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('wallets.lifetimeSection')}</h2>
+              <SectionTitle icon="reports" title={t('wallets.lifetimeSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('wallets.lifetimeEarned'), value: formatMoney(wallet.lifetime_earned, currency) },
-                  { label: t('wallets.lifetimeWithdrawn'), value: formatMoney(wallet.lifetime_withdrawn, currency) },
+                  { icon: 'commission', label: t('wallets.lifetimeEarned'), value: formatMoney(wallet.lifetime_earned, currency) },
+                  { icon: 'settlements', label: t('wallets.lifetimeWithdrawn'), value: formatMoney(wallet.lifetime_withdrawn, currency) },
                 ]}
               />
             </div>
           </section>
           <section className="mz-card">
             <div className="mz-card__body">
-              <h2 className="mz-card__title">{t('customers.accountSection')}</h2>
+              <SectionTitle icon="providers" title={t('customers.accountSection')} />
               <InfoGrid
                 fields={[
-                  { label: t('common.provider'), value: providerLink },
+                  { icon: 'providers', label: t('common.provider'), value: providerLink },
                   {
+                    icon: 'commission',
                     label: t('providers.commissionRate'),
                     value: formatCommissionRate(
                       wallet.organization?.effective_commission_rate ?? wallet.organization?.commission_rate,
                     ),
                   },
-                  { label: t('common.currency'), value: wallet.currency },
+                  { icon: 'payments', label: t('common.currency'), value: wallet.currency },
                 ]}
               />
             </div>
@@ -161,7 +169,7 @@ export function WalletDetailPage() {
         </div>
       </div>
 
-      <h2 className="mz-section-label">{t('wallets.ledger')}</h2>
+      <SectionTitle icon="invoices" title={t('wallets.ledger')} />
       <FilterBar>
         <SearchInput
           value={list.search}
