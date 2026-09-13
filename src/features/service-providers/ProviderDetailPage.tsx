@@ -11,14 +11,26 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
-import { commissionRateToPercentInput, displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { commissionRateToPercentInput, displayValue, formatCommissionRate, formatDate, initials, organizationName } from '@/shared/utils/format.ts'
+
+function ContactValue({ value, href }: { value?: string | null; href: string }) {
+  if (!value) {
+    return displayValue(null)
+  }
+
+  return (
+    <a className="mz-link" href={href}>
+      {value}
+    </a>
+  )
+}
 
 export function ProviderDetailPage() {
   const { id = '' } = useParams()
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { hasPermission } = useAuth()
   const catalog = useCatalog()
   const queryClient = useQueryClient()
@@ -84,6 +96,14 @@ export function ProviderDetailPage() {
   const defaultRate = catalog.data?.commission_rate ?? 0.1
   const effectiveRate = org.effective_commission_rate ?? org.commission_rate ?? defaultRate
   const usesDefault = org.uses_default_commission ?? org.commission_rate == null
+  const primaryName = organizationName(org)
+  const secondaryName = i18n.language.startsWith('ar')
+    ? org.name && org.name !== primaryName
+      ? org.name
+      : null
+    : org.name_ar && org.name_ar !== primaryName
+      ? org.name_ar
+      : null
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -98,72 +118,124 @@ export function ProviderDetailPage() {
   return (
     <>
       <PageHeader
-        title={organizationName(org)}
+        title={primaryName}
         subtitle={t('providers.detailTitle')}
-        crumbs={[{ label: t('providers.title'), to: '/providers' }, { label: organizationName(org) }]}
+        crumbs={[{ label: t('providers.title'), to: '/providers' }, { label: primaryName }]}
+        actions={<StatusBadge status={org.status} />}
       />
       <div className="mz-grid-2">
         <section className="mz-card">
           <div className="mz-card__body">
-            <DetailList
-              items={[
-                { label: t('common.status'), value: <StatusBadge status={org.status} /> },
-                { label: t('common.email'), value: displayValue(org.email) },
-                { label: t('common.phone'), value: displayValue(org.phone) },
-                { label: t('common.city'), value: displayValue(org.city) },
-                { label: t('common.address'), value: displayValue(org.address) },
-                { label: t('customers.commercialRegister'), value: displayValue(org.commercial_register) },
-                { label: t('customers.taxNumber'), value: displayValue(org.tax_number) },
-                { label: t('providers.commissionRate'), value: formatCommissionRate(effectiveRate) },
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(primaryName)}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{primaryName}</h2>
+                {secondaryName ? <p className="mz-profile__aka">{secondaryName}</p> : null}
+                <div className="mz-profile__contacts">
+                  <StatusBadge status={org.status} />
+                  {org.email ? (
+                    <a className="mz-profile__chip" href={`mailto:${org.email}`} dir="ltr">
+                      {org.email}
+                    </a>
+                  ) : null}
+                  {org.phone ? (
+                    <a className="mz-profile__chip" href={`tel:${org.phone}`} dir="ltr">
+                      {org.phone}
+                    </a>
+                  ) : null}
+                  {org.city ? <span className="mz-profile__chip">{org.city}</span> : null}
+                </div>
+              </div>
+            </div>
+            <h2 className="mz-card__title">{t('customers.contactSection')}</h2>
+            <InfoGrid
+              fields={[
                 {
-                  label: t('providers.commissionSource'),
-                  value: usesDefault ? t('providers.commissionDefault') : t('providers.commissionCustom'),
+                  label: t('common.email'),
+                  value: org.email ? <ContactValue value={org.email} href={`mailto:${org.email}`} /> : null,
+                  dir: 'ltr',
                 },
-                { label: t('common.notes'), value: displayValue(org.verification_notes) },
-                { label: t('common.createdAt'), value: formatDate(org.created_at) },
+                {
+                  label: t('common.phone'),
+                  value: org.phone ? <ContactValue value={org.phone} href={`tel:${org.phone}`} /> : null,
+                  dir: 'ltr',
+                },
+                { label: t('common.city'), value: org.city },
+                { label: t('common.country'), value: org.country },
+                { label: t('common.address'), value: org.address, wide: true },
               ]}
             />
           </div>
         </section>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {canManageCommission ? (
-            <section className="mz-card">
-              <div className="mz-card__body">
-                <h2 className="mz-card__title">{t('providers.commissionTitle')}</h2>
-                <p style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>{t('providers.commissionHint')}</p>
-                <form className="mz-form" onSubmit={onSaveCommission}>
-                  {commissionFeedback ? <div className="mz-alert mz-alert--ok">{commissionFeedback}</div> : null}
-                  {commissionError ? <div className="mz-alert">{commissionError}</div> : null}
-                  <FormField
-                    label={t('providers.commissionRate')}
-                    htmlFor="provider-commission-rate"
-                    hint={t('providers.commissionFieldHint', { rate: formatCommissionRate(defaultRate) })}
-                  >
-                    <input
-                      id="provider-commission-rate"
-                      className="mz-input"
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      inputMode="decimal"
-                      placeholder={formatCommissionRate(defaultRate)}
-                      value={ratePercent}
-                      onChange={(event) => setRatePercent(event.target.value)}
-                    />
-                  </FormField>
-                  <button type="submit" className="mz-btn mz-btn--primary" disabled={commissionMutation.isPending}>
-                    {commissionMutation.isPending ? t('common.saving') : t('providers.saveCommission')}
-                  </button>
-                </form>
-              </div>
-            </section>
-          ) : null}
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('customers.companySection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
+                  { label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
+                  { label: t('common.createdAt'), value: formatDate(org.created_at) },
+                  { label: t('common.notes'), value: org.verification_notes, wide: true },
+                ]}
+              />
+            </div>
+          </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('providers.commissionTitle')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('providers.commissionRate'), value: formatCommissionRate(effectiveRate) },
+                  {
+                    label: t('providers.commissionSource'),
+                    value: usesDefault ? t('providers.commissionDefault') : t('providers.commissionCustom'),
+                  },
+                ]}
+              />
+              {canManageCommission ? (
+                <>
+                  <p className="mz-notes mz-section" style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>
+                    {t('providers.commissionHint')}
+                  </p>
+                  <form className="mz-form" onSubmit={onSaveCommission}>
+                    {commissionFeedback ? <div className="mz-alert mz-alert--ok">{commissionFeedback}</div> : null}
+                    {commissionError ? <div className="mz-alert">{commissionError}</div> : null}
+                    <FormField
+                      label={t('providers.commissionRate')}
+                      htmlFor="provider-commission-rate"
+                      hint={t('providers.commissionFieldHint', { rate: formatCommissionRate(defaultRate) })}
+                    >
+                      <input
+                        id="provider-commission-rate"
+                        className="mz-input"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        inputMode="decimal"
+                        placeholder={formatCommissionRate(defaultRate)}
+                        value={ratePercent}
+                        onChange={(event) => setRatePercent(event.target.value)}
+                      />
+                    </FormField>
+                    <button type="submit" className="mz-btn mz-btn--primary" disabled={commissionMutation.isPending}>
+                      {commissionMutation.isPending ? t('common.saving') : t('providers.saveCommission')}
+                    </button>
+                  </form>
+                </>
+              ) : null}
+            </div>
+          </section>
           {hasPermission(PERMISSIONS.PROVIDERS_VERIFY) ? (
             <section className="mz-card">
               <div className="mz-card__body">
                 <h2 className="mz-card__title">{t('providers.verifyTitle')}</h2>
-                <p style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>{t('providers.verifyHint')}</p>
+                <p className="mz-notes" style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>
+                  {t('providers.verifyHint')}
+                </p>
                 <form className="mz-form" onSubmit={onSubmit}>
                   {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
                   {error ? <div className="mz-alert">{error}</div> : null}

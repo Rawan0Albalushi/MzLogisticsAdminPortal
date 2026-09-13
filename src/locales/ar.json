@@ -108,6 +108,11 @@
     "verify": "تحقق",
     "progress": "التقدم",
     "quantity": "الكمية",
+    "quantityUnits": {
+      "tons": "طن",
+      "pallets": "طبالي",
+      "units": "وحدات"
+    },
     "weight": "الوزن (طن)",
     "volume": "الحجم (م³)",
     "pickup": "التحميل",
@@ -289,7 +294,15 @@
     "duration": "المدة (أيام)",
     "conditions": "الشروط",
     "validUntil": "صالح حتى",
-    "additionalCosts": "تكاليف إضافية"
+    "additionalCosts": "تكاليف إضافية",
+    "basePrice": "السعر الأساسي",
+    "offerSection": "العرض",
+    "executionSection": "خطة التنفيذ",
+    "validitySection": "الصلاحية",
+    "validityState": "حالة الصلاحية",
+    "shipmentSection": "طلب الشحن",
+    "validityActive": "ما زال ساريًا",
+    "validityExpired": "انتهت صلاحية العرض"
   },
   "jobs": {
     "title": "المهام",
@@ -301,7 +314,10 @@
     "startedAt": "بدأت",
     "completedAt": "اكتملت",
     "nestedTrips": "رحلات هذه المهمة",
-    "noTrips": "لا توجد رحلات لهذه المهمة."
+    "noTrips": "لا توجد رحلات لهذه المهمة.",
+    "partiesSection": "الأطراف",
+    "quantitiesSection": "الكميات",
+    "scheduleSection": "الجدول"
   },
   "trips": {
     "title": "الرحلات",
@@ -321,7 +337,11 @@
     "completedAt": "الاكتمال",
     "pod": "إثبات التسليم",
     "receiverName": "المستلم",
-    "noLocation": "لا توجد إحداثيات مباشرة بعد"
+    "noLocation": "لا توجد إحداثيات مباشرة بعد",
+    "assignmentSection": "التعيين",
+    "quantitiesSection": "الكميات",
+    "scheduleSection": "الجدول",
+    "liveSection": "الحالة المباشرة"
   },
   "tracking": {
     "title": "التتبع المباشر",
@@ -408,7 +428,9 @@
     "outstanding": "الالتزام القائم",
     "lifetimeEarned": "إجمالي المكتسب",
     "lifetimeWithdrawn": "إجمالي المسحوب",
-    "ledger": "دفتر الحركات"
+    "ledger": "دفتر الحركات",
+    "balancesSection": "الأرصدة",
+    "lifetimeSection": "الإجماليات"
   },
   "invoices": {
     "title": "الفواتير",
@@ -446,12 +468,29 @@
   },
   "reports": {
     "title": "التقارير",
-    "subtitle": "ملخص تشغيلي ومالي من بيانات المنصة المباشرة.",
+    "subtitle": "ملخص تشغيلي ومالي مباشر من سجلات المنصة.",
     "operations": "العمليات",
     "finance": "المالية",
+    "directory": "الدليل",
+    "mix": "التركيب",
+    "activity": "النشاط الأخير",
+    "activityHint": "أحدث السجلات. ضيّق نطاق التاريخ لمراجعة فترة محددة.",
     "recentShipments": "أحدث طلبات الشحن",
     "recentJobs": "أحدث المهام",
-    "recentPayments": "أحدث المدفوعات"
+    "recentPayments": "أحدث المدفوعات",
+    "shipmentMix": "طلبات الشحن",
+    "jobMix": "المهام",
+    "walletMix": "محافظ المزودين",
+    "shipmentsClosed": "مغلقة أو مرسى",
+    "jobsInProgress": "قيد التنفيذ",
+    "openShare": "حصة الشحنات المفتوحة",
+    "openShareHint": "الطلبات المنشورة من إجمالي طلبات الشحن",
+    "completionShare": "اكتمال المهام",
+    "completionShareHint": "المهام المكتملة من مجموع المهام النشطة والمكتملة",
+    "commissionShare": "حصة العمولة",
+    "commissionShareHint": "عمولة المنصة من المدفوعات المكتملة",
+    "availableShare": "الجاهز للصرف",
+    "availableShareHint": "الرصيد المتاح من إجمالي التزام المزودين"
   },
   "settings": {
     "title": "الملف والإعدادات",

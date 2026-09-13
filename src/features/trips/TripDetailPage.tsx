@@ -6,10 +6,17 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { TripTimeline } from '@/features/trips/TripTimeline.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
-import { displayValue, formatCoords, formatDateTime } from '@/shared/utils/format.ts'
+import { displayValue, formatCoords, formatDateTime, formatNumber, initials } from '@/shared/utils/format.ts'
+
+function numericValue(value?: string | number | null) {
+  if (value == null || value === '') {
+    return null
+  }
+  return formatNumber(value)
+}
 
 export function TripDetailPage() {
   const { id = '' } = useParams()
@@ -25,6 +32,17 @@ export function TripDetailPage() {
   }
 
   const trip = query.data
+  const pod = trip.proof_of_delivery
+  const routeLabel =
+    trip.pickup_city || trip.delivery_city
+      ? `${displayValue(trip.pickup_city)} → ${displayValue(trip.delivery_city)}`
+      : null
+
+  const jobLink = trip.job ? (
+    <Link className="mz-link" to={`/jobs/${trip.job.id}`}>
+      {trip.job.reference}
+    </Link>
+  ) : null
 
   return (
     <>
@@ -32,50 +50,112 @@ export function TripDetailPage() {
         title={trip.reference}
         subtitle={t('trips.detailTitle')}
         crumbs={[{ label: t('trips.title'), to: '/trips' }, { label: trip.reference }]}
+        actions={<StatusBadge status={trip.status} />}
       />
+
       <section className="mz-card">
         <div className="mz-card__body">
           <h2 className="mz-card__title">{t('trips.timeline')}</h2>
           <TripTimeline status={trip.status} />
         </div>
       </section>
+
+      <div className="mz-grid-2 mz-section">
+        <section className="mz-card">
+          <div className="mz-card__body">
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(trip.driver?.name || trip.truck?.plate_number || trip.reference)}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{trip.reference}</h2>
+                {routeLabel ? <p className="mz-profile__aka">{routeLabel}</p> : null}
+                <div className="mz-profile__contacts">
+                  <StatusBadge status={trip.status} />
+                  {trip.job ? (
+                    <Link className="mz-profile__chip" to={`/jobs/${trip.job.id}`}>
+                      {trip.job.reference}
+                    </Link>
+                  ) : null}
+                  {trip.driver?.name ? <span className="mz-profile__chip">{trip.driver.name}</span> : null}
+                  {trip.truck?.plate_number ? (
+                    <span className="mz-profile__chip" dir="ltr">
+                      {trip.truck.plate_number}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <h2 className="mz-card__title">{t('trips.assignmentSection')}</h2>
+            <InfoGrid
+              fields={[
+                { label: t('common.job'), value: jobLink },
+                { label: t('trips.sequence'), value: numericValue(trip.sequence) },
+                { label: t('common.driver'), value: trip.driver?.name },
+                { label: t('common.truck'), value: trip.truck?.plate_number, dir: 'ltr' },
+              ]}
+            />
+          </div>
+        </section>
+
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('trips.quantitiesSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('trips.plannedQuantity'), value: numericValue(trip.planned_quantity) },
+                  { label: t('trips.deliveredQuantity'), value: numericValue(trip.delivered_quantity) },
+                ]}
+              />
+            </div>
+          </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('trips.liveSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('common.location'), value: formatCoords(trip.current_lat, trip.current_lng), dir: 'ltr' },
+                  { label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
+                  { label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' },
+                ]}
+              />
+            </div>
+          </section>
+          {pod?.receiver_name || pod?.notes ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <h2 className="mz-card__title">{t('trips.pod')}</h2>
+                <InfoGrid
+                  fields={[
+                    { label: t('trips.receiverName'), value: pod.receiver_name },
+                    { label: t('common.notes'), value: pod.notes, wide: true },
+                  ]}
+                />
+              </div>
+            </section>
+          ) : null}
+        </div>
+      </div>
+
       <section className="mz-card mz-section">
         <div className="mz-card__body">
-          <DetailList
-            items={[
-              { label: t('common.status'), value: <StatusBadge status={trip.status} /> },
-              {
-                label: t('common.job'),
-                value: trip.job ? (
-                  <Link className="mz-link" to={`/jobs/${trip.job.id}`}>
-                    {trip.job.reference}
-                  </Link>
-                ) : (
-                  t('common.noValue')
-                ),
-              },
-              { label: t('trips.sequence'), value: displayValue(trip.sequence) },
-              { label: t('common.driver'), value: displayValue(trip.driver?.name) },
-              { label: t('common.truck'), value: displayValue(trip.truck?.plate_number) },
-              { label: t('common.pickup'), value: `${displayValue(trip.pickup_city)} — ${displayValue(trip.pickup_address)}` },
-              { label: t('common.delivery'), value: `${displayValue(trip.delivery_city)} — ${displayValue(trip.delivery_address)}` },
-              { label: t('trips.plannedQuantity'), value: displayValue(trip.planned_quantity) },
-              { label: t('trips.deliveredQuantity'), value: displayValue(trip.delivered_quantity) },
-              { label: t('common.location'), value: formatCoords(trip.current_lat, trip.current_lng) },
-              { label: t('common.eta'), value: formatDateTime(trip.eta_at) },
-              { label: t('trips.otp'), value: displayValue(trip.otp_code) },
-              { label: t('trips.assignedAt'), value: formatDateTime(trip.assigned_at) },
-              { label: t('trips.arrivedPickupAt'), value: formatDateTime(trip.arrived_pickup_at) },
-              { label: t('trips.loadedAt'), value: formatDateTime(trip.loaded_at) },
-              { label: t('trips.inTransitAt'), value: formatDateTime(trip.in_transit_at) },
-              { label: t('trips.arrivedAt'), value: formatDateTime(trip.arrived_at) },
-              { label: t('trips.deliveredAt'), value: formatDateTime(trip.delivered_at) },
-              { label: t('trips.completedAt'), value: formatDateTime(trip.completed_at) },
-              { label: t('trips.receiverName'), value: displayValue(trip.proof_of_delivery?.receiver_name) },
+          <h2 className="mz-card__title">{t('trips.scheduleSection')}</h2>
+          <InfoGrid
+            fields={[
+              { label: t('trips.assignedAt'), value: trip.assigned_at ? formatDateTime(trip.assigned_at) : null },
+              { label: t('trips.arrivedPickupAt'), value: trip.arrived_pickup_at ? formatDateTime(trip.arrived_pickup_at) : null },
+              { label: t('trips.loadedAt'), value: trip.loaded_at ? formatDateTime(trip.loaded_at) : null },
+              { label: t('trips.inTransitAt'), value: trip.in_transit_at ? formatDateTime(trip.in_transit_at) : null },
+              { label: t('trips.arrivedAt'), value: trip.arrived_at ? formatDateTime(trip.arrived_at) : null },
+              { label: t('trips.deliveredAt'), value: trip.delivered_at ? formatDateTime(trip.delivered_at) : null },
+              { label: t('trips.completedAt'), value: trip.completed_at ? formatDateTime(trip.completed_at) : null },
+              { label: t('common.createdAt'), value: trip.created_at ? formatDateTime(trip.created_at) : null },
             ]}
           />
         </div>
       </section>
+
       <section className="mz-card mz-section">
         <div className="mz-card__body">
           <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
@@ -96,11 +176,7 @@ export function TripDetailPage() {
             />
           </div>
           <div className="mz-section">
-            <LocationMap
-              label={t('common.location')}
-              lat={trip.current_lat}
-              lng={trip.current_lng}
-            />
+            <LocationMap label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
           </div>
         </div>
       </section>

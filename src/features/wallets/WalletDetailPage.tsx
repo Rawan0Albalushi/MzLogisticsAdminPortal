@@ -6,14 +6,14 @@ import type { WalletTransaction } from '@/core/api/types.ts'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { WALLET_TRANSACTION_TYPES } from '@/core/constants/statuses.ts'
-import { displayValue, formatCommissionRate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatCommissionRate, formatDateTime, formatMoney, initials, organizationName } from '@/shared/utils/format.ts'
 
 export function WalletDetailPage() {
   const { id = '' } = useParams()
@@ -46,6 +46,14 @@ export function WalletDetailPage() {
   }
 
   const wallet = walletQuery.data
+  const providerName = organizationName(wallet.organization)
+  const currency = wallet.currency ?? undefined
+  const providerLink = wallet.organization ? (
+    <Link className="mz-link" to={`/providers/${wallet.organization.id}`}>
+      {providerName}
+    </Link>
+  ) : null
+
   const columns: Column<WalletTransaction>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
     {
@@ -84,31 +92,75 @@ export function WalletDetailPage() {
   return (
     <>
       <PageHeader
-        title={t('wallets.detailTitle', { name: organizationName(wallet.organization) })}
+        title={t('wallets.detailTitle', { name: providerName })}
         subtitle={t('wallets.detailSubtitle')}
-        crumbs={[{ label: t('wallets.title'), to: '/wallets' }, { label: organizationName(wallet.organization) }]}
+        crumbs={[{ label: t('wallets.title'), to: '/wallets' }, { label: providerName }]}
       />
-      <section className="mz-card">
-        <div className="mz-card__body">
-          <DetailList
-            items={[
-              { label: t('common.provider'), value: organizationName(wallet.organization) },
-              {
-                label: t('providers.commissionRate'),
-                value: formatCommissionRate(
-                  wallet.organization?.effective_commission_rate ?? wallet.organization?.commission_rate,
-                ),
-              },
-              { label: t('wallets.pending'), value: formatMoney(wallet.pending_balance, wallet.currency ?? undefined) },
-              { label: t('wallets.available'), value: formatMoney(wallet.available_balance, wallet.currency ?? undefined) },
-              { label: t('wallets.reserved'), value: formatMoney(wallet.reserved_balance, wallet.currency ?? undefined) },
-              { label: t('wallets.outstanding'), value: formatMoney(wallet.outstanding_balance, wallet.currency ?? undefined) },
-              { label: t('wallets.lifetimeEarned'), value: formatMoney(wallet.lifetime_earned, wallet.currency ?? undefined) },
-              { label: t('wallets.lifetimeWithdrawn'), value: formatMoney(wallet.lifetime_withdrawn, wallet.currency ?? undefined) },
-            ]}
-          />
+
+      <div className="mz-grid-2">
+        <section className="mz-card">
+          <div className="mz-card__body">
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(wallet.organization ? providerName : t('wallets.title'))}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{providerName}</h2>
+                <p className="mz-profile__aka">{formatMoney(wallet.available_balance, currency)}</p>
+                <div className="mz-profile__contacts">
+                  {wallet.organization ? (
+                    <Link className="mz-profile__chip" to={`/providers/${wallet.organization.id}`}>
+                      {providerName}
+                    </Link>
+                  ) : null}
+                  {wallet.organization?.city ? <span className="mz-profile__chip">{wallet.organization.city}</span> : null}
+                </div>
+              </div>
+            </div>
+            <h2 className="mz-card__title">{t('wallets.balancesSection')}</h2>
+            <InfoGrid
+              fields={[
+                { label: t('wallets.pending'), value: formatMoney(wallet.pending_balance, currency) },
+                { label: t('wallets.available'), value: formatMoney(wallet.available_balance, currency) },
+                { label: t('wallets.reserved'), value: formatMoney(wallet.reserved_balance, currency) },
+                { label: t('wallets.outstanding'), value: formatMoney(wallet.outstanding_balance, currency) },
+              ]}
+            />
+          </div>
+        </section>
+
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('wallets.lifetimeSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('wallets.lifetimeEarned'), value: formatMoney(wallet.lifetime_earned, currency) },
+                  { label: t('wallets.lifetimeWithdrawn'), value: formatMoney(wallet.lifetime_withdrawn, currency) },
+                ]}
+              />
+            </div>
+          </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('customers.accountSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('common.provider'), value: providerLink },
+                  {
+                    label: t('providers.commissionRate'),
+                    value: formatCommissionRate(
+                      wallet.organization?.effective_commission_rate ?? wallet.organization?.commission_rate,
+                    ),
+                  },
+                  { label: t('common.currency'), value: wallet.currency },
+                ]}
+              />
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
+
       <h2 className="mz-section-label">{t('wallets.ledger')}</h2>
       <FilterBar>
         <SearchInput

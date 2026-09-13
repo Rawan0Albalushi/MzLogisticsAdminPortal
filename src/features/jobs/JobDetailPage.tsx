@@ -8,9 +8,17 @@ import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
-import { displayValue, formatDateTime, formatMoney, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { LocationMap } from '@/shared/components/LocationMap.tsx'
+import { displayValue, formatDateTime, formatMoney, formatNumber, formatPercent, initials, organizationName } from '@/shared/utils/format.ts'
+
+function numericValue(value?: string | number | null) {
+  if (value == null || value === '') {
+    return null
+  }
+  return formatNumber(value)
+}
 
 export function JobDetailPage() {
   const { id = '' } = useParams()
@@ -27,7 +35,40 @@ export function JobDetailPage() {
 
   const job = query.data
   const trips = job.trips ?? []
+  const shipment = job.shipment
+  const quotation = job.quotation
   const progress = job.progress_percent ?? 0
+  const customerName = organizationName(job.customer)
+  const providerName = organizationName(job.provider)
+  const currency = job.currency ?? undefined
+  const routeLabel =
+    shipment?.pickup_city || shipment?.delivery_city
+      ? `${displayValue(shipment?.pickup_city)} → ${displayValue(shipment?.delivery_city)}`
+      : null
+
+  const customerLink = job.customer ? (
+    <Link className="mz-link" to={`/customers/${job.customer.id}`}>
+      {customerName}
+    </Link>
+  ) : null
+
+  const providerLink = job.provider ? (
+    <Link className="mz-link" to={`/providers/${job.provider.id}`}>
+      {providerName}
+    </Link>
+  ) : null
+
+  const shipmentLink = shipment ? (
+    <Link className="mz-link" to={`/shipments/${shipment.id}`}>
+      {shipment.reference}
+    </Link>
+  ) : null
+
+  const quotationLink = quotation ? (
+    <Link className="mz-link" to={`/quotations/${quotation.id}`}>
+      {quotation.reference}
+    </Link>
+  ) : null
 
   const columns: Column<Trip>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
@@ -52,42 +93,109 @@ export function JobDetailPage() {
         title={job.reference}
         subtitle={t('jobs.detailTitle')}
         crumbs={[{ label: t('jobs.title'), to: '/jobs' }, { label: job.reference }]}
+        actions={<StatusBadge status={job.status} />}
       />
-      <section className="mz-card">
-        <div className="mz-card__body">
-          <DetailList
-            items={[
-              { label: t('common.status'), value: <StatusBadge status={job.status} /> },
-              { label: t('common.customer'), value: organizationName(job.customer) },
-              { label: t('common.provider'), value: organizationName(job.provider) },
-              {
-                label: t('common.shipment'),
-                value: job.shipment ? (
-                  <Link className="mz-link" to={`/shipments/${job.shipment.id}`}>
-                    {job.shipment.reference}
-                  </Link>
-                ) : (
-                  t('common.noValue')
-                ),
-              },
-              { label: t('quotations.price'), value: formatMoney(job.total_price, job.currency ?? undefined) },
-              { label: t('jobs.totalQuantity'), value: displayValue(job.total_quantity) },
-              { label: t('jobs.deliveredQuantity'), value: displayValue(job.delivered_quantity) },
-              { label: t('jobs.startedAt'), value: formatDateTime(job.started_at) },
-              { label: t('jobs.completedAt'), value: formatDateTime(job.completed_at) },
-            ]}
-          />
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <strong>{t('jobs.progress')}</strong>
-              <span>{formatPercent(progress)}</span>
+
+      <div className="mz-grid-2">
+        <section className="mz-card">
+          <div className="mz-card__body">
+            <div className="mz-profile">
+              <div className="mz-avatar mz-avatar--lg" aria-hidden>
+                {initials(job.provider ? providerName : job.reference)}
+              </div>
+              <div className="mz-profile__body">
+                <h2 className="mz-profile__name">{job.reference}</h2>
+                <p className="mz-profile__aka">{formatMoney(job.total_price, currency)}</p>
+                <div className="mz-profile__contacts">
+                  <StatusBadge status={job.status} />
+                  {job.customer ? (
+                    <Link className="mz-profile__chip" to={`/customers/${job.customer.id}`}>
+                      {customerName}
+                    </Link>
+                  ) : null}
+                  {job.provider ? (
+                    <Link className="mz-profile__chip" to={`/providers/${job.provider.id}`}>
+                      {providerName}
+                    </Link>
+                  ) : null}
+                  {routeLabel ? <span className="mz-profile__chip">{routeLabel}</span> : null}
+                </div>
+              </div>
             </div>
-            <div className="mz-progress" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
-              <span style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+            <h2 className="mz-card__title">{t('jobs.partiesSection')}</h2>
+            <InfoGrid
+              fields={[
+                { label: t('quotations.price'), value: formatMoney(job.total_price, currency) },
+                { label: t('common.customer'), value: customerLink },
+                { label: t('common.provider'), value: providerLink },
+                { label: t('common.shipment'), value: shipmentLink },
+                { label: t('common.quotation'), value: quotationLink },
+              ]}
+            />
+            <div className="mz-section">
+              <div className="mz-card__head">
+                <h2 className="mz-card__title">{t('jobs.progress')}</h2>
+                <span>{formatPercent(progress)}</span>
+              </div>
+              <div className="mz-progress" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+                <span style={{ width: `${Math.min(100, Math.max(0, progress))}%` }} />
+              </div>
             </div>
           </div>
+        </section>
+
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('jobs.quantitiesSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('jobs.totalQuantity'), value: numericValue(job.total_quantity) },
+                  { label: t('jobs.deliveredQuantity'), value: numericValue(job.delivered_quantity) },
+                ]}
+              />
+            </div>
+          </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <h2 className="mz-card__title">{t('jobs.scheduleSection')}</h2>
+              <InfoGrid
+                fields={[
+                  { label: t('jobs.startedAt'), value: job.started_at ? formatDateTime(job.started_at) : null },
+                  { label: t('jobs.completedAt'), value: job.completed_at ? formatDateTime(job.completed_at) : null },
+                  { label: t('common.createdAt'), value: job.created_at ? formatDateTime(job.created_at) : null },
+                  { label: t('common.status'), value: <StatusBadge status={job.status} /> },
+                ]}
+              />
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
+
+      {shipment ? (
+        <section className="mz-card mz-section">
+          <div className="mz-card__body">
+            <h2 className="mz-card__title">{t('shipments.routeSection')}</h2>
+            <div className="mz-grid-2 mz-grid-2--equal">
+              <LocationMap
+                label={t('common.pickup')}
+                address={shipment.pickup_address}
+                city={shipment.pickup_city}
+                lat={shipment.pickup_lat}
+                lng={shipment.pickup_lng}
+              />
+              <LocationMap
+                label={t('common.delivery')}
+                address={shipment.delivery_address}
+                city={shipment.delivery_city}
+                lat={shipment.delivery_lat}
+                lng={shipment.delivery_lng}
+              />
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section className="mz-section">
         <h2 className="mz-card__title">{t('jobs.nestedTrips')}</h2>
         {trips.length === 0 ? (

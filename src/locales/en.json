@@ -108,6 +108,11 @@
     "verify": "Verify",
     "progress": "Progress",
     "quantity": "Quantity",
+    "quantityUnits": {
+      "tons": "tons",
+      "pallets": "pallets",
+      "units": "units"
+    },
     "weight": "Weight (t)",
     "volume": "Volume (m³)",
     "pickup": "Pickup",
@@ -289,7 +294,15 @@
     "duration": "Duration (days)",
     "conditions": "Conditions",
     "validUntil": "Valid until",
-    "additionalCosts": "Additional costs"
+    "additionalCosts": "Additional costs",
+    "basePrice": "Base price",
+    "offerSection": "Offer",
+    "executionSection": "Execution plan",
+    "validitySection": "Validity",
+    "validityState": "Validity status",
+    "shipmentSection": "Shipment request",
+    "validityActive": "Still valid",
+    "validityExpired": "Validity expired"
   },
   "jobs": {
     "title": "Jobs",
@@ -301,7 +314,10 @@
     "startedAt": "Started",
     "completedAt": "Completed",
     "nestedTrips": "Trips in this job",
-    "noTrips": "No trips have been created for this job."
+    "noTrips": "No trips have been created for this job.",
+    "partiesSection": "Parties",
+    "quantitiesSection": "Quantities",
+    "scheduleSection": "Schedule"
   },
   "trips": {
     "title": "Trips",
@@ -321,7 +337,11 @@
     "completedAt": "Completed",
     "pod": "Proof of delivery",
     "receiverName": "Receiver",
-    "noLocation": "No live coordinates yet"
+    "noLocation": "No live coordinates yet",
+    "assignmentSection": "Assignment",
+    "quantitiesSection": "Quantities",
+    "scheduleSection": "Schedule",
+    "liveSection": "Live status"
   },
   "tracking": {
     "title": "Live tracking",
@@ -408,7 +428,9 @@
     "outstanding": "Outstanding",
     "lifetimeEarned": "Lifetime earned",
     "lifetimeWithdrawn": "Lifetime withdrawn",
-    "ledger": "Ledger"
+    "ledger": "Ledger",
+    "balancesSection": "Balances",
+    "lifetimeSection": "Lifetime totals"
   },
   "invoices": {
     "title": "Invoices",
@@ -446,12 +468,29 @@
   },
   "reports": {
     "title": "Reports",
-    "subtitle": "Operational and finance snapshot from live platform data.",
+    "subtitle": "Live operational and finance snapshot from platform records.",
     "operations": "Operations",
     "finance": "Finance",
+    "directory": "Directory",
+    "mix": "Composition",
+    "activity": "Recent activity",
+    "activityHint": "Latest records. Narrow the date range to review a period.",
     "recentShipments": "Recent shipment requests",
     "recentJobs": "Recent jobs",
-    "recentPayments": "Recent payments"
+    "recentPayments": "Recent payments",
+    "shipmentMix": "Shipment requests",
+    "jobMix": "Jobs",
+    "walletMix": "Provider wallets",
+    "shipmentsClosed": "Closed or awarded",
+    "jobsInProgress": "In progress",
+    "openShare": "Open shipment share",
+    "openShareHint": "Published requests as a share of all shipment requests",
+    "completionShare": "Job completion",
+    "completionShareHint": "Completed jobs as a share of active and completed work",
+    "commissionShare": "Commission take",
+    "commissionShareHint": "Platform commission as a share of completed payments",
+    "availableShare": "Ready to pay out",
+    "availableShareHint": "Available wallet balance as a share of provider outstanding"
   },
   "settings": {
     "title": "Profile & settings",

@@ -12,7 +12,7 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
-import { DetailList } from '@/shared/components/DetailList.tsx'
+import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
@@ -246,8 +246,8 @@ export function SettlementsPage() {
             </select>
           </FormField>
           {form.provider_organization_id ? (
-            <DetailList
-              items={[
+            <InfoGrid
+              fields={[
                 {
                   label: t('settlements.commissionRate'),
                   value: t('settlements.commissionRateValue', { rate: (commissionRate * 100).toFixed(1) }),
