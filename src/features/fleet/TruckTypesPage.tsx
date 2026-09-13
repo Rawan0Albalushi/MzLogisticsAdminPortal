@@ -1,10 +1,14 @@
-import { useState, type FormEvent } from 'react'
+import { useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { createTruckType, deleteTruckType, fetchTruckTypes, updateTruckType } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import type { CatalogTruckType } from '@/core/api/types.ts'
+import { ACTIVE_STATUSES } from '@/core/constants/statuses.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
+import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
+import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
@@ -21,6 +25,7 @@ const emptyForm = {
 
 export function TruckTypesPage() {
   const { t, i18n } = useTranslation()
+  const list = useListQuery()
   const queryClient = useQueryClient()
   const query = useQuery({
     queryKey: ['truck-types'],
@@ -32,6 +37,32 @@ export function TruckTypesPage() {
   const [form, setForm] = useState(emptyForm)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+
+  const filteredRows = useMemo(() => {
+    const items = query.data ?? []
+    const term = list.search.trim().toLowerCase()
+    return items.filter((row) => {
+      if (term) {
+        const haystack = `${row.name} ${row.name_ar} ${row.code}`.toLowerCase()
+        if (!haystack.includes(term)) {
+          return false
+        }
+      }
+      if (list.status === 'active' && !row.is_active) {
+        return false
+      }
+      if (list.status === 'inactive' && row.is_active) {
+        return false
+      }
+      if (list.type === 'platform' && !row.is_platform) {
+        return false
+      }
+      if (list.type === 'provider' && row.is_platform) {
+        return false
+      }
+      return true
+    })
+  }, [list.search, list.status, list.type, query.data])
 
   function typeName(row: CatalogTruckType) {
     return i18n.language.startsWith('ar') && row.name_ar ? row.name_ar : row.name
@@ -167,9 +198,26 @@ export function TruckTypesPage() {
       />
       {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
       {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
+      <FilterBar>
+        <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
+        <StatusFilter
+          value={list.status}
+          options={[...ACTIVE_STATUSES]}
+          onChange={(value) => list.setFilter('status', value)}
+          allLabel={t('common.allStatuses')}
+          label={(status) => t(`status.${status}`)}
+        />
+        <StatusFilter
+          value={list.type}
+          options={['platform', 'provider']}
+          onChange={(value) => list.setFilter('type', value)}
+          allLabel={t('common.allSources')}
+          label={(value) => (value === 'platform' ? t('truckTypes.platform') : t('truckTypes.providerOwned'))}
+        />
+      </FilterBar>
       <DataTable
         columns={columns}
-        rows={query.data ?? []}
+        rows={filteredRows}
         rowKey={(row) => row.id}
         isLoading={query.isLoading}
         isError={query.isError}

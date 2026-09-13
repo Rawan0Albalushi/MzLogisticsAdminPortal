@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchTrips } from '@/core/api/services.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
@@ -18,8 +19,15 @@ export function TrackingPage() {
   const list = useListQuery()
   const status = list.status || 'in_transit'
   const query = useQuery({
-    queryKey: ['tracking', status, list.page],
-    queryFn: () => fetchTrips({ status, page: list.page, per_page: 24 }),
+    queryKey: ['tracking', status, list.search, list.city, list.page],
+    queryFn: () =>
+      fetchTrips({
+        status,
+        search: list.search,
+        city: list.city,
+        page: list.page,
+        per_page: 24,
+      }),
   })
 
   if (query.isLoading) {
@@ -46,6 +54,12 @@ export function TrackingPage() {
     <>
       <PageHeader title={t('tracking.title')} subtitle={t('tracking.subtitle')} />
       <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
+        <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />
         <StatusFilter
           value={status}
           options={TRACK_STATUSES}

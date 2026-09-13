@@ -7,7 +7,8 @@ import type { Settlement } from '@/core/api/types.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
@@ -43,8 +44,15 @@ export function SettlementsPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState(() => emptyForm())
   const query = useQuery({
-    queryKey: ['settlements', list.status, list.page],
-    queryFn: () => fetchSettlements({ status: list.status, page: list.page }),
+    queryKey: ['settlements', list.search, list.status, list.dateFrom, list.dateTo, list.page],
+    queryFn: () =>
+      fetchSettlements({
+        search: list.search,
+        status: list.status,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page: list.page,
+      }),
   })
   const providersQuery = useQuery({
     queryKey: ['providers', 'settlement-options'],
@@ -169,12 +177,22 @@ export function SettlementsPage() {
       {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
       {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
       <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
         <StatusFilter
           value={list.status}
           options={['pending', 'processing', 'completed']}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
         />
       </FilterBar>
       <DataTable

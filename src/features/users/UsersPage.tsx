@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { fetchUsers } from '@/core/api/services.ts'
+import { fetchAccessCatalog, fetchUsers } from '@/core/api/services.ts'
 import type { AuthUser } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
@@ -9,14 +9,14 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { ACTIVE_STATUSES, USER_TYPES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDateTime } from '@/shared/utils/format.ts'
-
-const TYPES = ['platform', 'customer', 'provider', 'driver']
-const STATUSES = ['active', 'inactive']
 
 export function UsersPage() {
   const { t } = useTranslation()
   const list = useListQuery()
+  const access = useQuery({ queryKey: ['access-catalog'], queryFn: fetchAccessCatalog })
+  const roles = access.data?.roles.map((role) => role.name) ?? []
   const query = useQuery({
     queryKey: ['users', list.search, list.type, list.status, list.role, list.page],
     queryFn: () =>
@@ -71,18 +71,27 @@ export function UsersPage() {
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter
           value={list.type}
-          options={TYPES}
+          options={[...USER_TYPES]}
           onChange={(value) => list.setFilter('type', value)}
           allLabel={t('users.allTypes')}
           label={(value) => t(`status.${value}`)}
         />
         <StatusFilter
           value={list.status}
-          options={STATUSES}
+          options={[...ACTIVE_STATUSES]}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(value) => t(`status.${value}`)}
         />
+        {roles.length > 0 ? (
+          <StatusFilter
+            value={list.role}
+            options={roles}
+            onChange={(value) => list.setFilter('role', value)}
+            allLabel={t('common.allRoles')}
+            label={(value) => t(`roles.${value}`, { defaultValue: value })}
+          />
+        ) : null}
       </FilterBar>
       <DataTable
         columns={columns}

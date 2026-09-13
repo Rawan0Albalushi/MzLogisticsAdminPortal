@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { fetchWallet, fetchWalletTransactions } from '@/core/api/services.ts'
 import type { WalletTransaction } from '@/core/api/types.ts'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DetailList } from '@/shared/components/DetailList.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
@@ -10,6 +12,7 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { WALLET_TRANSACTION_TYPES } from '@/core/constants/statuses.ts'
 import { displayValue, formatCommissionRate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
 
 export function WalletDetailPage() {
@@ -22,8 +25,15 @@ export function WalletDetailPage() {
     enabled: Boolean(id),
   })
   const ledgerQuery = useQuery({
-    queryKey: ['wallet', id, 'transactions', list.page],
-    queryFn: () => fetchWalletTransactions(id, { page: list.page }),
+    queryKey: ['wallet', id, 'transactions', list.search, list.type, list.dateFrom, list.dateTo, list.page],
+    queryFn: () =>
+      fetchWalletTransactions(id, {
+        search: list.search,
+        type: list.type,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page: list.page,
+      }),
     enabled: Boolean(id),
   })
 
@@ -100,6 +110,25 @@ export function WalletDetailPage() {
         </div>
       </section>
       <h2 className="mz-section-label">{t('wallets.ledger')}</h2>
+      <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
+        <StatusFilter
+          value={list.type}
+          options={[...WALLET_TRANSACTION_TYPES]}
+          onChange={(value) => list.setFilter('type', value)}
+          allLabel={t('common.allTypes')}
+          label={(type) => t(`status.${type}`, { defaultValue: type })}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
+        />
+      </FilterBar>
       <DataTable
         columns={columns}
         rows={ledgerQuery.data?.items ?? []}

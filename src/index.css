@@ -706,6 +706,135 @@ html[dir='rtl'] .mz-userchip {
   min-width: 160px;
 }
 
+.mz-date-range {
+  position: relative;
+}
+
+.mz-date-range__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 240px;
+  min-height: 36px;
+  padding: 8px 10px;
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  background: var(--mz-card);
+  color: var(--mz-ink);
+  cursor: pointer;
+}
+
+.mz-date-range__trigger.is-empty {
+  color: var(--mz-muted);
+}
+
+.mz-date-range__trigger:focus {
+  outline: 2px solid rgb(201 137 44 / 35%);
+  border-color: var(--mz-amber);
+}
+
+.mz-date-range__icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mz-muted);
+}
+
+.mz-date-range__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.mz-date-range__clear:hover {
+  color: var(--mz-ink);
+  background: var(--mz-surface);
+}
+
+.mz-date-range__popover {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  width: 276px;
+  padding: 12px;
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  background: var(--mz-card);
+  box-shadow: var(--mz-shadow);
+}
+
+.mz-date-range__nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mz-date-range__nav strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mz-date-range__nav button {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  background: var(--mz-card);
+  color: var(--mz-ink);
+  cursor: pointer;
+}
+
+.mz-date-range__week,
+.mz-date-range__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.mz-date-range__hint {
+  margin: 0 0 8px;
+  color: var(--mz-muted);
+  font-size: 12px;
+}
+
+.mz-date-range__week {
+  margin-bottom: 4px;
+  color: var(--mz-muted);
+  font-size: 11px;
+}
+
+.mz-date-range__day {
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mz-ink);
+  cursor: pointer;
+}
+
+.mz-date-range__day.is-in {
+  background: var(--mz-amber-soft);
+}
+
+.mz-date-range__day.is-start,
+.mz-date-range__day.is-end {
+  background: var(--mz-amber);
+  color: #fff;
+}
+
+.mz-date-range__day.is-today:not(.is-start):not(.is-end) {
+  box-shadow: inset 0 0 0 1px var(--mz-amber);
+}
+
 .mz-textarea {
   width: 100%;
   min-height: 88px;

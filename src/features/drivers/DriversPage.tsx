@@ -3,19 +3,20 @@ import { useTranslation } from 'react-i18next'
 import { fetchDrivers } from '@/core/api/services.ts'
 import type { AuthUser } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar } from '@/shared/components/FilterBar.tsx'
+import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { DRIVER_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDate, formatDateTime } from '@/shared/utils/format.ts'
 
 export function DriversPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['drivers', list.search, list.page],
-    queryFn: () => fetchDrivers({ search: list.search, page: list.page }),
+    queryKey: ['drivers', list.search, list.status, list.page],
+    queryFn: () => fetchDrivers({ search: list.search, status: list.status, page: list.page }),
   })
 
   const columns: Column<AuthUser>[] = [
@@ -33,6 +34,13 @@ export function DriversPage() {
       <PageHeader title={t('drivers.title')} subtitle={t('drivers.subtitle')} />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
+        <StatusFilter
+          value={list.status}
+          options={[...DRIVER_LIST_STATUSES]}
+          onChange={(value) => list.setFilter('status', value)}
+          allLabel={t('common.allStatuses')}
+          label={(status) => t(`status.${status}`)}
+        />
       </FilterBar>
       <DataTable
         columns={columns}

@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next'
 import { fetchWallets } from '@/core/api/services.ts'
 import type { Wallet } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
+import { FilterBar } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { formatCommissionRate, formatMoney, organizationName } from '@/shared/utils/format.ts'
@@ -11,8 +13,8 @@ export function WalletsPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['wallets', list.page],
-    queryFn: () => fetchWallets({ page: list.page }),
+    queryKey: ['wallets', list.search, list.page],
+    queryFn: () => fetchWallets({ search: list.search, page: list.page }),
   })
 
   const columns: Column<Wallet>[] = [
@@ -33,6 +35,13 @@ export function WalletsPage() {
   return (
     <>
       <PageHeader title={t('wallets.title')} subtitle={t('wallets.subtitle')} />
+      <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
+      </FilterBar>
       <DataTable
         columns={columns}
         rows={query.data?.items ?? []}

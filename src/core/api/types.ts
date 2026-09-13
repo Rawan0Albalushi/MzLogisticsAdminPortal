@@ -376,6 +376,10 @@ export interface ListQuery {
   account_type?: string
   job_id?: number | string
   organization_id?: number | string
+  date_from?: string
+  date_to?: string
+  city?: string
+  method?: string
 }
 
 export interface CreateStaffUserInput {

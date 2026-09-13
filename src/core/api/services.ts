@@ -41,6 +41,10 @@ function toParams(query: ListQuery = {}): Record<string, string | number> {
   if (query.account_type) params.account_type = query.account_type
   if (query.job_id) params.job_id = query.job_id
   if (query.organization_id) params.organization_id = query.organization_id
+  if (query.date_from) params.date_from = query.date_from
+  if (query.date_to) params.date_to = query.date_to
+  if (query.city) params.city = query.city
+  if (query.method) params.method = query.method
   return params
 }
 

@@ -3,20 +3,28 @@ import { useTranslation } from 'react-i18next'
 import { fetchInvoices } from '@/core/api/services.ts'
 import type { Invoice } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { INVOICE_STATUSES, INVOICE_TYPES } from '@/core/constants/statuses.ts'
 import { formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
-
-const TYPES = ['customer', 'provider', 'commission']
 
 export function InvoicesPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['invoices', list.type, list.status, list.page],
-    queryFn: () => fetchInvoices({ type: list.type, status: list.status, page: list.page }),
+    queryKey: ['invoices', list.search, list.type, list.status, list.dateFrom, list.dateTo, list.page],
+    queryFn: () =>
+      fetchInvoices({
+        search: list.search,
+        type: list.type,
+        status: list.status,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page: list.page,
+      }),
   })
 
   const columns: Column<Invoice>[] = [
@@ -33,19 +41,29 @@ export function InvoicesPage() {
     <>
       <PageHeader title={t('invoices.title')} subtitle={t('invoices.subtitle')} />
       <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
         <StatusFilter
           value={list.type}
-          options={TYPES}
+          options={[...INVOICE_TYPES]}
           onChange={(value) => list.setFilter('type', value)}
           allLabel={t('common.allTypes')}
           label={(type) => t(`status.${type}`)}
         />
         <StatusFilter
           value={list.status}
-          options={['issued', 'paid', 'void']}
+          options={[...INVOICE_STATUSES]}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
         />
       </FilterBar>
       <DataTable

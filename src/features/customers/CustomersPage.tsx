@@ -6,7 +6,7 @@ import { fetchCustomers } from '@/core/api/services.ts'
 import { CUSTOMER_ACCOUNT_TYPES, ORGANIZATION_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
@@ -17,12 +17,15 @@ export function CustomersPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['customers', list.search, list.status, list.accountType, list.page],
+    queryKey: ['customers', list.search, list.status, list.accountType, list.city, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
       fetchCustomers({
         search: list.search,
         status: list.status,
         account_type: list.accountType,
+        city: list.city,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
         page: list.page,
       }),
   })
@@ -67,6 +70,7 @@ export function CustomersPage() {
       <PageHeader title={t('customers.title')} subtitle={t('customers.subtitle')} />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
+        <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />
         <StatusFilter
           value={list.accountType}
           options={[...CUSTOMER_ACCOUNT_TYPES]}
@@ -80,6 +84,11 @@ export function CustomersPage() {
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
         />
       </FilterBar>
       <DataTable

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchProviders } from '@/core/api/services.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
@@ -17,8 +17,16 @@ export function ProvidersPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['providers', list.search, list.status, list.page],
-    queryFn: () => fetchProviders({ search: list.search, status: list.status, page: list.page }),
+    queryKey: ['providers', list.search, list.status, list.city, list.dateFrom, list.dateTo, list.page],
+    queryFn: () =>
+      fetchProviders({
+        search: list.search,
+        status: list.status,
+        city: list.city,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page: list.page,
+      }),
   })
 
   const columns: Column<Organization>[] = [
@@ -56,12 +64,18 @@ export function ProvidersPage() {
       <PageHeader title={t('providers.title')} subtitle={t('providers.subtitle')} />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
+        <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />
         <StatusFilter
           value={list.status}
           options={STATUSES}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
         />
       </FilterBar>
       <DataTable

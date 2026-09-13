@@ -4,19 +4,19 @@ import { fetchTrucks } from '@/core/api/services.ts'
 import type { Truck } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { TRUCK_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
-
-const STATUSES = ['available', 'assigned', 'maintenance', 'inactive']
 
 export function FleetPage() {
   const { t } = useTranslation()
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['trucks', list.status, list.page],
-    queryFn: () => fetchTrucks({ status: list.status, page: list.page }),
+    queryKey: ['trucks', list.search, list.status, list.page],
+    queryFn: () => fetchTrucks({ search: list.search, status: list.status, page: list.page }),
   })
 
   const columns: Column<Truck>[] = [
@@ -34,9 +34,14 @@ export function FleetPage() {
     <>
       <PageHeader title={t('fleet.title')} subtitle={t('fleet.subtitle')} />
       <FilterBar>
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
         <StatusFilter
           value={list.status}
-          options={STATUSES}
+          options={[...TRUCK_LIST_STATUSES]}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}

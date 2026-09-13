@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchShipments } from '@/core/api/services.ts'
 import type { Shipment } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
-import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
@@ -18,8 +18,16 @@ export function ShipmentsPage() {
   const catalog = useCatalog()
   const statuses = catalog.data?.shipment_statuses ?? ['draft', 'published', 'awarded', 'cancelled', 'expired']
   const query = useQuery({
-    queryKey: ['shipments', list.search, list.status, list.page],
-    queryFn: () => fetchShipments({ search: list.search, status: list.status, page: list.page }),
+    queryKey: ['shipments', list.search, list.status, list.city, list.dateFrom, list.dateTo, list.page],
+    queryFn: () =>
+      fetchShipments({
+        search: list.search,
+        status: list.status,
+        city: list.city,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page: list.page,
+      }),
   })
 
   const columns: Column<Shipment>[] = [
@@ -52,13 +60,23 @@ export function ShipmentsPage() {
     <>
       <PageHeader title={t('shipments.title')} subtitle={t('shipments.subtitle')} />
       <FilterBar>
-        <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
+        <SearchInput
+          value={list.search}
+          onChange={(value) => list.setFilter('search', value)}
+          placeholder={t('common.searchReference')}
+        />
+        <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />
         <StatusFilter
           value={list.status}
           options={statuses}
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <DateRangeFilter
+          from={list.dateFrom}
+          to={list.dateTo}
+          onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
         />
       </FilterBar>
       <DataTable
