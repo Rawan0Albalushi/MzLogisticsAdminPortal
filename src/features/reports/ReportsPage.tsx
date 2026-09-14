@@ -447,7 +447,7 @@ export function ReportsPage() {
           <div className="mz-panel__head">
             <h2>{t('reports.finance')}</h2>
             {catalog.data?.commission_rate != null ? (
-              <span style={{ color: 'var(--mz-muted)', fontSize: 13 }}>
+              <span style={{ color: 'var(--mz-muted)', fontSize: 15 }}>
                 {t('dashboard.defaultCommissionRate', { rate: formatCommissionRate(catalog.data.commission_rate) })}
               </span>
             ) : null}

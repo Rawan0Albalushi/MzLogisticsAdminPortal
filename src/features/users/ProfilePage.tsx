@@ -76,7 +76,7 @@ export function ProfilePage() {
           <div className="mz-card__body">
             <h2 className="mz-card__title">{t('settings.platformCommission')}</h2>
             <p style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>{t('settings.platformCommissionHint')}</p>
-            <p style={{ fontSize: 22, fontWeight: 700, margin: '0 0 12px' }}>
+            <p style={{ fontSize: 26, fontWeight: 700, margin: '0 0 12px' }}>
               {formatCommissionRate(catalog.data.commission_rate)}
             </p>
             {hasPermission(PERMISSIONS.PROVIDERS_VIEW) ? (

@@ -38,9 +38,10 @@ export function LoginPage() {
     <div className="mz-login">
       <section className="mz-login__brand">
         <div className="mz-login__brand-copy">
-          <div className="mz-mark">MZ</div>
-          <p className="mz-hero__kicker">{t('app.portal')}</p>
-          <h1>{t('app.name')}</h1>
+          <div className="mz-login__brand-head">
+            <div className="mz-mark">MZ</div>
+            <h1>{t('app.portal')}</h1>
+          </div>
           <p>{t('app.tagline')}</p>
         </div>
         <ul className="mz-login__points">

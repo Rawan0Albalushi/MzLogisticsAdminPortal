@@ -19,14 +19,13 @@ export function Sidebar({ open, onNavigate }: SidebarProps) {
   return (
     <aside className={`mz-sidebar ${open ? 'is-open' : ''}`}>
       <div className="mz-sidebar__brand">
-        <div className="mz-mark">MZ</div>
-        <div className="mz-sidebar__titles">
-          <div className="mz-sidebar__name">{t('app.name')}</div>
-          <div className="mz-sidebar__portal">{t('app.portal')}</div>
+        <div className="mz-sidebar__brand-row">
+          <div className="mz-mark">MZ</div>
+          <div className="mz-sidebar__name">{t('app.portal')}</div>
+          <button type="button" className="mz-sidebar__close" onClick={onNavigate} aria-label={t('common.closeMenu')}>
+            <AppIcon name="close" width={14} height={14} />
+          </button>
         </div>
-        <button type="button" className="mz-sidebar__close" onClick={onNavigate} aria-label={t('common.closeMenu')}>
-          <AppIcon name="close" width={14} height={14} />
-        </button>
       </div>
       <nav className="mz-sidebar__nav">
         {navGroups.map((group) => {
