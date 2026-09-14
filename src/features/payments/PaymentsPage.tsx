@@ -11,6 +11,9 @@ import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { PAYMENT_METHODS } from '@/core/constants/statuses.ts'
 import { displayValue, formatDateTime, formatMoney } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function PaymentsPage() {
   const { t } = useTranslation()
@@ -43,7 +46,52 @@ export function PaymentsPage() {
 
   return (
     <>
-      <PageHeader title={t('payments.title')} subtitle={t('payments.subtitle')} />
+      <PageHeader
+        title={t('payments.title')}
+        subtitle={t('payments.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchPayments({
+                  search: list.search,
+                  status: list.status,
+                  method: list.method,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('payments.title'),
+                subtitle: t('payments.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.amount'),
+                  t('common.commission'),
+                  t('payments.providerAmount'),
+                  t('payments.method'),
+                  t('payments.gateway'),
+                  t('payments.paidAt'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  formatMoney(row.amount, row.currency ?? undefined),
+                  formatMoney(row.commission_amount, row.currency ?? undefined),
+                  formatMoney(row.provider_amount, row.currency ?? undefined),
+                  displayValue(row.method),
+                  displayValue(row.gateway),
+                  formatDateTime(row.paid_at),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

@@ -280,9 +280,25 @@ export async function fetchAccessCatalog(): Promise<AccessCatalog> {
   return unwrapData(data)
 }
 
-export async function updateRolePermissions(role: string, permissions: string[]): Promise<AccessRole> {
-  const { data } = await api.patch<ApiSuccess<AccessRole>>(`/roles/${encodeURIComponent(role)}`, { permissions })
+export async function createRole(payload: { name: string; permissions: string[] }): Promise<AccessRole> {
+  const { data } = await api.post<ApiSuccess<AccessRole>>('/roles', payload)
   return unwrapData(data)
+}
+
+export async function updateRolePermissions(
+  role: string,
+  permissions: string[],
+  name?: string,
+): Promise<AccessRole> {
+  const { data } = await api.patch<ApiSuccess<AccessRole>>(`/roles/${encodeURIComponent(role)}`, {
+    permissions,
+    ...(name ? { name } : {}),
+  })
+  return unwrapData(data)
+}
+
+export async function deleteRole(role: string): Promise<void> {
+  await api.delete(`/roles/${encodeURIComponent(role)}`)
 }
 
 export async function cancelShipment(id: string | number): Promise<Shipment> {

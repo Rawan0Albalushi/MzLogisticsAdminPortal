@@ -10,6 +10,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { DRIVER_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDate, formatDateTime } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function DriversPage() {
   const { t } = useTranslation()
@@ -31,7 +34,42 @@ export function DriversPage() {
 
   return (
     <>
-      <PageHeader title={t('drivers.title')} subtitle={t('drivers.subtitle')} />
+      <PageHeader
+        title={t('drivers.title')}
+        subtitle={t('drivers.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchDrivers({ search: list.search, status: list.status, page, per_page: perPage }),
+              )
+              return createListReport({
+                title: t('drivers.title'),
+                subtitle: t('drivers.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.name'),
+                  t('common.email'),
+                  t('common.phone'),
+                  t('drivers.license'),
+                  t('drivers.licenseExpiry'),
+                  t('common.status'),
+                  t('drivers.lastLogin'),
+                ],
+                rows: items.map((row) => [
+                  row.name,
+                  row.email,
+                  displayValue(row.phone),
+                  displayValue(row.driver_profile?.license_number),
+                  formatDate(row.driver_profile?.license_expires_at),
+                  reportStatus(t, row.driver_profile?.status),
+                  formatDateTime(row.last_login_at),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter

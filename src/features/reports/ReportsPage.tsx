@@ -17,6 +17,9 @@ import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { displayValue, formatCommissionRate, formatDate, formatMoney, formatNumber, formatPercent, organizationName } from '@/shared/utils/format.ts'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { MixBar } from '@/features/reports/MixBar.tsx'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createReportDocument, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 function count(value: number | undefined): number {
   return value ?? 0
@@ -130,22 +133,195 @@ export function ReportsPage() {
         title={t('reports.title')}
         subtitle={t('reports.subtitle')}
         actions={
-          <button
-            type="button"
-            className="mz-btn mz-btn--ghost"
-            onClick={() => {
-              void dashboard.refetch()
-              void shipments.refetch()
-              void jobs.refetch()
-              void payments.refetch()
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-              <path d="M19.4 12a7.4 7.4 0 1 1-2.1-5.2" />
-              <path d="M19.6 4.8v4.4h-4.4" />
-            </svg>
-            {t('common.refresh')}
-          </button>
+          <>
+            <DownloadReportButton
+              build={async () => {
+                const [shipmentRows, jobRows, paymentRows] = await Promise.all([
+                  canViewShipments
+                    ? fetchAllPages((page, perPage) =>
+                        fetchShipments({ page, per_page: perPage, date_from: list.dateFrom, date_to: list.dateTo }),
+                      )
+                    : Promise.resolve([]),
+                  canViewJobs
+                    ? fetchAllPages((page, perPage) =>
+                        fetchJobs({ page, per_page: perPage, date_from: list.dateFrom, date_to: list.dateTo }),
+                      )
+                    : Promise.resolve([]),
+                  canViewPayments
+                    ? fetchAllPages((page, perPage) =>
+                        fetchPayments({ page, per_page: perPage, date_from: list.dateFrom, date_to: list.dateTo }),
+                      )
+                    : Promise.resolve([]),
+                ])
+
+                return createReportDocument({
+                  title: t('reports.title'),
+                  subtitle: t('reports.subtitle'),
+                  filters: listReportFilters(t, { dateFrom: list.dateFrom, dateTo: list.dateTo }),
+                  sections: [
+                    {
+                      title: t('reports.operations'),
+                      metrics: [
+                        ...(canViewShipments
+                          ? [
+                              { label: t('dashboard.shipmentsOpen'), value: formatNumber(stats.shipments_open) },
+                              { label: t('dashboard.shipmentsTotal'), value: formatNumber(stats.shipments_total) },
+                              { label: t('reports.openShare'), value: formatPercent(openShare) },
+                            ]
+                          : []),
+                        ...(canViewQuotations
+                          ? [{ label: t('dashboard.quotationsPending'), value: formatNumber(stats.quotations_pending) }]
+                          : []),
+                        ...(canViewJobs
+                          ? [
+                              { label: t('dashboard.jobsActive'), value: formatNumber(stats.jobs_active) },
+                              { label: t('dashboard.jobsCompleted'), value: formatNumber(stats.jobs_completed) },
+                              { label: t('reports.completionShare'), value: formatPercent(completionShare) },
+                            ]
+                          : []),
+                        ...(canViewTrips
+                          ? [
+                              { label: t('dashboard.tripsInTransit'), value: formatNumber(stats.trips_in_transit) },
+                              { label: t('dashboard.tripsUnassigned'), value: formatNumber(stats.trips_unassigned) },
+                            ]
+                          : []),
+                      ],
+                    },
+                    {
+                      title: t('reports.finance'),
+                      metrics: [
+                        ...(canViewPayments
+                          ? [
+                              { label: t('dashboard.paymentsCompleted'), value: formatMoney(stats.payments_completed_amount) },
+                              { label: t('dashboard.commission'), value: formatMoney(stats.commission_amount) },
+                              { label: t('reports.commissionShare'), value: formatPercent(commissionShare) },
+                              { label: t('dashboard.paymentsPending'), value: formatNumber(stats.payments_pending) },
+                            ]
+                          : []),
+                        ...(canViewWallets
+                          ? [
+                              { label: t('dashboard.providerReceivable'), value: formatMoney(stats.provider_receivable) },
+                              { label: t('dashboard.walletAvailable'), value: formatMoney(stats.wallet_available ?? 0) },
+                              { label: t('reports.availableShare'), value: formatPercent(availableShare) },
+                            ]
+                          : []),
+                        ...(canViewSettlements
+                          ? [{ label: t('dashboard.settlementsPending'), value: formatNumber(stats.settlements_pending) }]
+                          : []),
+                        ...(canViewInvoices
+                          ? [{ label: t('dashboard.invoicesUnpaid'), value: formatNumber(count(stats.invoices_unpaid)) }]
+                          : []),
+                      ],
+                    },
+                    ...(canViewProviders || canViewCustomers
+                      ? [
+                          {
+                            title: t('reports.directory'),
+                            metrics: [
+                              ...(canViewProviders
+                                ? [{ label: t('dashboard.providersPending'), value: formatNumber(stats.providers_pending) }]
+                                : []),
+                              ...(canViewCustomers
+                                ? [{ label: t('dashboard.customersPending'), value: formatNumber(stats.customers_pending) }]
+                                : []),
+                            ],
+                          },
+                        ]
+                      : []),
+                    ...(canViewShipments
+                      ? [
+                          {
+                            title: t('reports.recentShipments'),
+                            table: {
+                              columns: [
+                                t('common.reference'),
+                                t('common.customer'),
+                                t('shipments.cargoType'),
+                                t('shipments.routeSection'),
+                                t('shipments.requiredDate'),
+                                t('common.status'),
+                              ],
+                              rows: shipmentRows.map((row) => [
+                                row.reference,
+                                organizationName(row.customer),
+                                displayValue(row.cargo_type),
+                                `${displayValue(row.pickup_city)} → ${displayValue(row.delivery_city)}`,
+                                formatDate(row.required_date),
+                                reportStatus(t, row.status),
+                              ]),
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(canViewJobs
+                      ? [
+                          {
+                            title: t('reports.recentJobs'),
+                            table: {
+                              columns: [
+                                t('common.reference'),
+                                t('common.customer'),
+                                t('common.provider'),
+                                t('quotations.price'),
+                                t('common.status'),
+                              ],
+                              rows: jobRows.map((row) => [
+                                row.reference,
+                                organizationName(row.customer),
+                                organizationName(row.provider),
+                                formatMoney(row.total_price, row.currency ?? undefined),
+                                reportStatus(t, row.status),
+                              ]),
+                            },
+                          },
+                        ]
+                      : []),
+                    ...(canViewPayments
+                      ? [
+                          {
+                            title: t('reports.recentPayments'),
+                            table: {
+                              columns: [
+                                t('common.reference'),
+                                t('common.amount'),
+                                t('common.commission'),
+                                t('payments.method'),
+                                t('payments.paidAt'),
+                                t('common.status'),
+                              ],
+                              rows: paymentRows.map((row) => [
+                                row.reference,
+                                formatMoney(row.amount, row.currency ?? undefined),
+                                formatMoney(row.commission_amount, row.currency ?? undefined),
+                                displayValue(row.method),
+                                formatDate(row.paid_at),
+                                reportStatus(t, row.status),
+                              ]),
+                            },
+                          },
+                        ]
+                      : []),
+                  ],
+                })
+              }}
+            />
+            <button
+              type="button"
+              className="mz-btn mz-btn--ghost"
+              onClick={() => {
+                void dashboard.refetch()
+                void shipments.refetch()
+                void jobs.refetch()
+                void payments.refetch()
+              }}
+            >
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                <path d="M19.4 12a7.4 7.4 0 1 1-2.1-5.2" />
+                <path d="M19.6 4.8v4.4h-4.4" />
+              </svg>
+              {t('common.refresh')}
+            </button>
+          </>
         }
       />
 

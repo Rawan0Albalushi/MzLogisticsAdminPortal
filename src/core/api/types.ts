@@ -67,6 +67,7 @@ export interface AuthUser {
   organization_id?: number | null
   organization?: Organization | null
   roles?: string[]
+  role_labels?: string[]
   permissions?: string[]
   driver_profile?: DriverProfile | null
   last_login_at?: string | null
@@ -292,6 +293,9 @@ export interface Settlement {
   net_amount?: string | number | null
   currency?: string | null
   status: string
+  source?: 'platform' | 'provider' | string | null
+  requested_by?: number | null
+  requester?: { id: number; name: string } | null
   period_start?: string | null
   period_end?: string | null
   settled_at?: string | null
@@ -355,15 +359,23 @@ export interface PaymentMethodInput {
 }
 
 export interface AccessRole {
+  id: number
   name: string
+  display_name: string
   users_count: number
   permissions: string[]
+  is_system: boolean
+  can_manage: boolean
+  can_delete: boolean
+  scope?: string | null
+  organization_id?: number | null
 }
 
 export interface AccessCatalog {
   roles: AccessRole[]
   permissions: string[]
   platform_roles: string[]
+  assignable_roles?: string[]
 }
 
 export interface ListQuery {

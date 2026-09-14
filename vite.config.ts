@@ -7,6 +7,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
+      exceljs: fileURLToPath(new URL('./node_modules/exceljs/dist/exceljs.min.js', import.meta.url)),
     },
+  },
+  optimizeDeps: {
+    include: ['exceljs'],
   },
 })

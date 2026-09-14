@@ -11,6 +11,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function ShipmentsPage() {
   const { t } = useTranslation()
@@ -58,7 +61,50 @@ export function ShipmentsPage() {
 
   return (
     <>
-      <PageHeader title={t('shipments.title')} subtitle={t('shipments.subtitle')} />
+      <PageHeader
+        title={t('shipments.title')}
+        subtitle={t('shipments.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchShipments({
+                  search: list.search,
+                  status: list.status,
+                  city: list.city,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('shipments.title'),
+                subtitle: t('shipments.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.customer'),
+                  t('shipments.cargoType'),
+                  t('common.pickup'),
+                  t('common.delivery'),
+                  t('shipments.requiredDate'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  organizationName(row.customer),
+                  displayValue(row.cargo_type),
+                  displayValue(row.pickup_city),
+                  displayValue(row.delivery_city),
+                  formatDate(row.required_date),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

@@ -41,6 +41,7 @@ export type IconName =
   | 'city'
   | 'pickup'
   | 'delivery'
+  | 'download'
 
 function Glyph({ children, ...props }: SVGProps<SVGSVGElement>) {
   return (
@@ -376,6 +377,13 @@ const glyphs: Record<IconName, ReactNode> = {
       <path d="M12 21s6.6-5.8 6.6-10.4A6.6 6.6 0 0 0 5.4 10.6C5.4 15.2 12 21 12 21z" fill="currentColor" opacity="0.16" />
       <path d="M12 21s6.6-5.8 6.6-10.4A6.6 6.6 0 0 0 5.4 10.6C5.4 15.2 12 21 12 21z" />
       <path d="M12 7.8v5.4M9.8 11.2 12 13.4 14.2 11.2" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v10.4" />
+      <path d="m8.4 11.2 3.6 3.6 3.6-3.6" />
+      <path d="M5 17.6v1.2A1.2 1.2 0 0 0 6.2 20h11.6A1.2 1.2 0 0 0 19 18.8v-1.2" />
     </>
   ),
 }

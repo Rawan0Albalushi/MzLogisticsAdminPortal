@@ -10,6 +10,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { INVOICE_STATUSES, INVOICE_TYPES } from '@/core/constants/statuses.ts'
 import { formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function InvoicesPage() {
   const { t } = useTranslation()
@@ -39,7 +42,50 @@ export function InvoicesPage() {
 
   return (
     <>
-      <PageHeader title={t('invoices.title')} subtitle={t('invoices.subtitle')} />
+      <PageHeader
+        title={t('invoices.title')}
+        subtitle={t('invoices.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchInvoices({
+                  search: list.search,
+                  type: list.type,
+                  status: list.status,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('invoices.title'),
+                subtitle: t('invoices.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.type'),
+                  t('settings.organization'),
+                  t('common.amount'),
+                  t('invoices.issuedAt'),
+                  t('invoices.dueAt'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  reportStatus(t, row.type),
+                  organizationName(row.organization),
+                  formatMoney(row.amount, row.currency ?? undefined),
+                  formatDate(row.issued_at),
+                  formatDate(row.due_at),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

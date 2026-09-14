@@ -10,6 +10,9 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 const STATUSES = ['pending', 'active', 'suspended', 'rejected']
 
@@ -61,7 +64,48 @@ export function ProvidersPage() {
 
   return (
     <>
-      <PageHeader title={t('providers.title')} subtitle={t('providers.subtitle')} />
+      <PageHeader
+        title={t('providers.title')}
+        subtitle={t('providers.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchProviders({
+                  search: list.search,
+                  status: list.status,
+                  city: list.city,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('providers.title'),
+                subtitle: t('providers.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.name'),
+                  t('customers.commercialRegister'),
+                  t('common.city'),
+                  t('providers.commissionRate'),
+                  t('common.status'),
+                  t('common.createdAt'),
+                ],
+                rows: items.map((row) => [
+                  organizationName(row),
+                  displayValue(row.commercial_register),
+                  displayValue(row.city),
+                  formatCommissionRate(row.effective_commission_rate ?? row.commission_rate),
+                  reportStatus(t, row.status),
+                  formatDate(row.created_at),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />

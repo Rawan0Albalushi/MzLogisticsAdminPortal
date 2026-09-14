@@ -480,6 +480,64 @@ html[dir='rtl'] .mz-userchip {
   flex-shrink: 0;
 }
 
+.mz-report-menu {
+  position: relative;
+}
+
+.mz-report-menu__list {
+  position: absolute;
+  inset-inline-end: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--mz-border);
+  border-radius: 12px;
+  background: var(--mz-card);
+  box-shadow: var(--mz-shadow);
+}
+
+.mz-report-menu__hint,
+.mz-report-menu__error {
+  margin: 0 8px 8px;
+  color: var(--mz-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.mz-report-menu__error {
+  position: absolute;
+  inset-inline-start: 0;
+  top: calc(100% + 6px);
+  color: var(--mz-danger);
+  white-space: nowrap;
+}
+
+.mz-report-menu__list button {
+  display: flex;
+  width: 100%;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--mz-ink);
+  font: inherit;
+  font-weight: 600;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mz-report-menu__list button:hover:not(:disabled) {
+  background: var(--mz-row-hover);
+}
+
+.mz-report-menu__list button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .mz-page-header h1 {
   font-size: 26px;
   font-weight: 650;
@@ -1481,10 +1539,17 @@ html[dir='rtl'] .mz-timeline__step::after {
 
 .mz-dialog {
   width: min(520px, 100%);
+  max-height: min(88vh, 900px);
+  display: flex;
+  flex-direction: column;
   background: var(--mz-card);
   border: 1px solid var(--mz-border);
   border-radius: var(--mz-radius);
   box-shadow: 0 16px 40px rgb(var(--mz-ink-rgb) / 16%);
+}
+
+.mz-dialog--wide {
+  width: min(760px, 100%);
 }
 
 .mz-dialog-backdrop--in .mz-dialog {
@@ -1502,6 +1567,7 @@ html[dir='rtl'] .mz-timeline__step::after {
 
 .mz-dialog__body {
   padding: 16px;
+  overflow: auto;
 }
 
 .mz-dialog__foot {
@@ -2141,6 +2207,36 @@ html[dir='rtl'] .mz-queue-list__row:hover {
 .mz-role-list__item span {
   font-size: 11px;
   color: var(--mz-muted);
+}
+
+.mz-role-list__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mz-role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--mz-surface);
+  color: var(--mz-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.mz-role-badge--custom {
+  background: color-mix(in srgb, var(--mz-accent, #0f766e) 12%, white);
+  color: var(--mz-accent, #0f766e);
+}
+
+.mz-role-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .mz-role-list__item:hover,
@@ -2940,6 +3036,21 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   .mz-hero__meta .mz-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  .mz-page-header__actions .mz-report-menu,
+  .mz-hero__meta .mz-report-menu {
+    width: 100%;
+  }
+
+  .mz-page-header__actions .mz-report-menu .mz-btn,
+  .mz-hero__meta .mz-report-menu .mz-btn {
+    width: 100%;
+  }
+
+  .mz-report-menu__list {
+    inset-inline: 0;
+    min-width: 0;
   }
 
   .mz-live {

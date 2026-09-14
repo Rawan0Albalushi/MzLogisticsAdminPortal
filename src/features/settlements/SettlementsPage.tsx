@@ -17,11 +17,23 @@ import { FormField } from '@/shared/components/FormField.tsx'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 function localIsoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${date.getFullYear()}-${month}-${day}`
+}
+
+function settlementOrigin(t: (key: string) => string, row: Settlement): string {
+  if (row.source === 'provider') {
+    return row.requester?.name
+      ? `${t('settlements.sourceProvider')} · ${row.requester.name}`
+      : t('settlements.sourceProvider')
+  }
+  return t('settlements.sourcePlatform')
 }
 
 function emptyForm() {
@@ -121,6 +133,7 @@ export function SettlementsPage() {
   const columns: Column<Settlement>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider_organization) },
+    { id: 'origin', header: t('settlements.origin'), cell: (row) => settlementOrigin(t, row) },
     { id: 'amount', header: t('settlements.payoutAmount'), cell: (row) => formatMoney(row.net_amount ?? row.amount, row.currency ?? undefined) },
     { id: 'period', header: t('common.period'), cell: (row) => `${formatDate(row.period_start)} – ${formatDate(row.period_end)}` },
     { id: 'settled', header: t('settlements.settledAt'), cell: (row) => formatDate(row.settled_at) },
@@ -167,11 +180,50 @@ export function SettlementsPage() {
         title={t('settlements.title')}
         subtitle={t('settlements.subtitle')}
         actions={
-          canManage ? (
-            <button type="button" className="mz-btn mz-btn--primary" onClick={() => setCreateOpen(true)}>
-              {t('settlements.create')}
-            </button>
-          ) : null
+          <>
+            <DownloadReportButton
+              build={async () => {
+                const items = await fetchAllPages((page, perPage) =>
+                  fetchSettlements({
+                    search: list.search,
+                    status: list.status,
+                    date_from: list.dateFrom,
+                    date_to: list.dateTo,
+                    page,
+                    per_page: perPage,
+                  }),
+                )
+                return createListReport({
+                  title: t('settlements.title'),
+                  subtitle: t('settlements.subtitle'),
+                  filters: listReportFilters(t, list),
+                  columns: [
+                    t('common.reference'),
+                    t('common.provider'),
+                    t('settlements.origin'),
+                    t('settlements.payoutAmount'),
+                    t('common.period'),
+                    t('settlements.settledAt'),
+                    t('common.status'),
+                  ],
+                  rows: items.map((row) => [
+                    row.reference,
+                    organizationName(row.provider_organization),
+                    settlementOrigin(t, row),
+                    formatMoney(row.net_amount ?? row.amount, row.currency ?? undefined),
+                    `${formatDate(row.period_start)} – ${formatDate(row.period_end)}`,
+                    formatDate(row.settled_at),
+                    reportStatus(t, row.status),
+                  ]),
+                })
+              }}
+            />
+            {canManage ? (
+              <button type="button" className="mz-btn mz-btn--primary" onClick={() => setCreateOpen(true)}>
+                {t('settlements.create')}
+              </button>
+            ) : null}
+          </>
         }
       />
       {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}

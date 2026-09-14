@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchAccessCatalog, updateRolePermissions } from '@/core/api/services.ts'
+import { createRole, deleteRole, fetchAccessCatalog, updateRolePermissions } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
-import { PERMISSION_GROUPS } from '@/core/constants/permissions.ts'
+import { PERMISSION_GROUPS, PERMISSIONS } from '@/core/constants/permissions.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
+import { FormField } from '@/shared/components/FormField.tsx'
+import { roleLabel } from '@/features/users/roleLabel.ts'
 
 export function RolesPage() {
   const { t } = useTranslation()
@@ -16,9 +19,13 @@ export function RolesPage() {
   const query = useQuery({ queryKey: ['access-catalog'], queryFn: fetchAccessCatalog })
   const [selected, setSelected] = useState('')
   const [checked, setChecked] = useState<string[]>([])
+  const [createOpen, setCreateOpen] = useState(false)
+  const [createName, setCreateName] = useState('')
+  const [createChecked, setCreateChecked] = useState<string[]>([PERMISSIONS.DASHBOARD_VIEW])
+  const [deleteOpen, setDeleteOpen] = useState(false)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
-  const canEdit = hasPermission('roles.manage')
+  const canCreate = hasPermission('roles.manage')
 
   useEffect(() => {
     if (!query.data || selected) {
@@ -31,12 +38,20 @@ export function RolesPage() {
     () => query.data?.roles.find((role) => role.name === selected),
     [query.data, selected],
   )
+  const canEdit = Boolean(current?.can_manage)
+  const permissionGroups = useMemo(() => {
+    const available = new Set(query.data?.permissions ?? [])
+    return PERMISSION_GROUPS.map((group) => ({
+      ...group,
+      keys: group.keys.filter((key) => available.has(key)),
+    })).filter((group) => group.keys.length > 0)
+  }, [query.data?.permissions])
 
   useEffect(() => {
     setChecked(current?.permissions ?? [])
   }, [current])
 
-  const mutation = useMutation({
+  const saveMutation = useMutation({
     mutationFn: () => updateRolePermissions(selected, checked),
     onSuccess: async () => {
       setError('')
@@ -50,6 +65,38 @@ export function RolesPage() {
     },
   })
 
+  const createMutation = useMutation({
+    mutationFn: () => createRole({ name: createName.trim(), permissions: createChecked }),
+    onSuccess: async (role) => {
+      setError('')
+      setFeedback(t('rolesPage.createSuccess'))
+      setCreateOpen(false)
+      setCreateName('')
+      setCreateChecked([PERMISSIONS.DASHBOARD_VIEW])
+      setSelected(role.name)
+      await queryClient.invalidateQueries({ queryKey: ['access-catalog'] })
+    },
+    onError: (err) => {
+      setFeedback('')
+      setError(getApiMessage(err, t('rolesPage.createFailed')))
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteRole(selected),
+    onSuccess: async () => {
+      setError('')
+      setFeedback(t('rolesPage.deleteSuccess'))
+      setDeleteOpen(false)
+      setSelected('')
+      await queryClient.invalidateQueries({ queryKey: ['access-catalog'] })
+    },
+    onError: (err) => {
+      setFeedback('')
+      setError(getApiMessage(err, t('rolesPage.deleteFailed')))
+    },
+  })
+
   if (query.isLoading) {
     return <LoadingState />
   }
@@ -58,25 +105,36 @@ export function RolesPage() {
     return <ErrorState onRetry={() => void query.refetch()} />
   }
 
-  function toggle(permission: string) {
-    setChecked((current) =>
-      current.includes(permission) ? current.filter((item) => item !== permission) : [...current, permission],
-    )
+  function toggle(list: string[], permission: string) {
+    return list.includes(permission) ? list.filter((item) => item !== permission) : [...list, permission]
   }
 
-  function toggleGroup(keys: readonly string[]) {
-    const allOn = keys.every((key) => checked.includes(key))
-    setChecked((current) => {
-      if (allOn) {
-        return current.filter((item) => !keys.includes(item))
-      }
-      return [...new Set([...current, ...keys])]
-    })
+  function toggleGroup(list: string[], keys: readonly string[]) {
+    const allOn = keys.every((key) => list.includes(key))
+    if (allOn) {
+      return list.filter((item) => !keys.includes(item))
+    }
+    return [...new Set([...list, ...keys])]
+  }
+
+  function onCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    createMutation.mutate()
   }
 
   return (
     <>
-      <PageHeader title={t('rolesPage.title')} subtitle={t('rolesPage.subtitle')} />
+      <PageHeader
+        title={t('rolesPage.title')}
+        subtitle={t('rolesPage.subtitle')}
+        actions={
+          canCreate ? (
+            <button type="button" className="mz-btn mz-btn--primary" onClick={() => setCreateOpen(true)}>
+              {t('rolesPage.create')}
+            </button>
+          ) : null
+        }
+      />
       {feedback ? <div className="mz-alert mz-alert--ok mz-section-alert">{feedback}</div> : null}
       {error ? <div className="mz-alert mz-section-alert">{error}</div> : null}
 
@@ -92,9 +150,14 @@ export function RolesPage() {
                   className={`mz-role-list__item${selected === role.name ? ' is-active' : ''}`}
                   onClick={() => setSelected(role.name)}
                 >
-                  <strong>{t(`roles.${role.name}`, { defaultValue: role.name })}</strong>
-                  <span>
-                    {role.users_count} {t('rolesPage.users')}
+                  <strong>{roleLabel(role.name, query.data.roles, t)}</strong>
+                  <span className="mz-role-list__meta">
+                    <span>
+                      {role.users_count} {t('rolesPage.users')}
+                    </span>
+                    <span className={`mz-role-badge${role.is_system ? '' : ' mz-role-badge--custom'}`}>
+                      {role.is_system ? t('rolesPage.system') : t('rolesPage.custom')}
+                    </span>
                   </span>
                 </button>
               ))}
@@ -105,27 +168,34 @@ export function RolesPage() {
         <section className="mz-card">
           <div className="mz-card__body">
             <div className="mz-card__head">
-              <h2 className="mz-card__title">{t(`roles.${selected}`, { defaultValue: selected })}</h2>
-              {canEdit ? (
-                <button
-                  type="button"
-                  className="mz-btn mz-btn--primary"
-                  disabled={mutation.isPending || checked.length === 0}
-                  onClick={() => mutation.mutate()}
-                >
-                  {mutation.isPending ? t('common.saving') : t('common.save')}
-                </button>
-              ) : null}
+              <h2 className="mz-card__title">{roleLabel(selected, query.data.roles, t)}</h2>
+              <div className="mz-role-actions">
+                {current?.can_delete ? (
+                  <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setDeleteOpen(true)}>
+                    {t('common.delete')}
+                  </button>
+                ) : null}
+                {canEdit ? (
+                  <button
+                    type="button"
+                    className="mz-btn mz-btn--primary"
+                    disabled={saveMutation.isPending || checked.length === 0}
+                    onClick={() => saveMutation.mutate()}
+                  >
+                    {saveMutation.isPending ? t('common.saving') : t('common.save')}
+                  </button>
+                ) : null}
+              </div>
             </div>
-            <p className="mz-login__hint">{t('rolesPage.hint')}</p>
-            {PERMISSION_GROUPS.map((group) => (
+            <p className="mz-login__hint">{canEdit ? t('rolesPage.hint') : t('rolesPage.readOnly')}</p>
+            {permissionGroups.map((group) => (
               <fieldset key={group.id} className="mz-perm-group">
                 <legend>
                   <label className="mz-check">
                     <input
                       type="checkbox"
                       checked={group.keys.every((key) => checked.includes(key))}
-                      onChange={() => toggleGroup(group.keys)}
+                      onChange={() => setChecked((currentChecked) => toggleGroup(currentChecked, group.keys))}
                       disabled={!canEdit}
                     />
                     {t(`rolesPage.groups.${group.id}`)}
@@ -137,7 +207,7 @@ export function RolesPage() {
                       <input
                         type="checkbox"
                         checked={checked.includes(permission)}
-                        onChange={() => toggle(permission)}
+                        onChange={() => setChecked((currentChecked) => toggle(currentChecked, permission))}
                         disabled={!canEdit}
                       />
                       {t(`permissions.${permission}`, { defaultValue: permission })}
@@ -149,6 +219,72 @@ export function RolesPage() {
           </div>
         </section>
       </div>
+
+      <ConfirmDialog
+        open={createOpen}
+        title={t('rolesPage.createTitle')}
+        wide
+        confirmLabel={createMutation.isPending ? t('common.saving') : t('common.create')}
+        busy={createMutation.isPending}
+        disabled={createName.trim() === '' || createChecked.length === 0}
+        onConfirm={() => {
+          const formEl = document.getElementById('create-role-form') as HTMLFormElement | null
+          formEl?.requestSubmit()
+        }}
+        onClose={() => setCreateOpen(false)}
+      >
+        <form id="create-role-form" className="mz-form" onSubmit={onCreate}>
+          <p className="mz-login__hint">{t('rolesPage.createHint')}</p>
+          <FormField label={t('rolesPage.name')} htmlFor="role-name" required hint={t('rolesPage.nameHint')}>
+            <input
+              id="role-name"
+              className="mz-input"
+              value={createName}
+              onChange={(event) => setCreateName(event.target.value)}
+              required
+              maxLength={80}
+            />
+          </FormField>
+          {permissionGroups.map((group) => (
+            <fieldset key={group.id} className="mz-perm-group">
+              <legend>
+                <label className="mz-check">
+                  <input
+                    type="checkbox"
+                    checked={group.keys.every((key) => createChecked.includes(key))}
+                    onChange={() => setCreateChecked((currentChecked) => toggleGroup(currentChecked, group.keys))}
+                  />
+                  {t(`rolesPage.groups.${group.id}`)}
+                </label>
+              </legend>
+              <div className="mz-perm-grid">
+                {group.keys.map((permission) => (
+                  <label key={permission} className="mz-check">
+                    <input
+                      type="checkbox"
+                      checked={createChecked.includes(permission)}
+                      onChange={() => setCreateChecked((currentChecked) => toggle(currentChecked, permission))}
+                    />
+                    {t(`permissions.${permission}`, { defaultValue: permission })}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          ))}
+        </form>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title={t('rolesPage.deleteTitle')}
+        confirmLabel={t('common.delete')}
+        danger
+        busy={deleteMutation.isPending}
+        onConfirm={() => deleteMutation.mutate()}
+        onClose={() => setDeleteOpen(false)}
+      >
+        <p>{t('rolesPage.deleteBody')}</p>
+      </ConfirmDialog>
     </>
   )
 }

@@ -11,6 +11,7 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { ACTIVE_STATUSES, USER_TYPES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDateTime } from '@/shared/utils/format.ts'
+import { roleLabel } from '@/features/users/roleLabel.ts'
 
 export function UsersPage() {
   const { t } = useTranslation()
@@ -45,7 +46,9 @@ export function UsersPage() {
       id: 'role',
       header: t('settings.role'),
       cell: (row) =>
-        (row.roles ?? []).map((role) => t(`roles.${role}`, { defaultValue: role })).join(', ') || t('common.noValue'),
+        (row.roles ?? [])
+          .map((role, index) => roleLabel(role, access.data?.roles, t, row.role_labels?.[index]))
+          .join(', ') || t('common.noValue'),
     },
     { id: 'type', header: t('settings.userType'), cell: (row) => t(`status.${row.user_type}`, { defaultValue: row.user_type }) },
     {
@@ -89,7 +92,7 @@ export function UsersPage() {
             options={roles}
             onChange={(value) => list.setFilter('role', value)}
             allLabel={t('common.allRoles')}
-            label={(value) => t(`roles.${value}`, { defaultValue: value })}
+            label={(value) => roleLabel(value, access.data?.roles, t)}
           />
         ) : null}
       </FilterBar>

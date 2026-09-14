@@ -12,6 +12,9 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function CustomersPage() {
   const { t } = useTranslation()
@@ -67,7 +70,50 @@ export function CustomersPage() {
 
   return (
     <>
-      <PageHeader title={t('customers.title')} subtitle={t('customers.subtitle')} />
+      <PageHeader
+        title={t('customers.title')}
+        subtitle={t('customers.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchCustomers({
+                  search: list.search,
+                  status: list.status,
+                  account_type: list.accountType,
+                  city: list.city,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              const rows = items.filter((row) => isCustomerOrganization(row) || !enumString(row.type))
+              return createListReport({
+                title: t('customers.title'),
+                subtitle: t('customers.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.name'),
+                  t('customers.accountType'),
+                  t('common.email'),
+                  t('common.city'),
+                  t('common.status'),
+                  t('common.createdAt'),
+                ],
+                rows: rows.map((row) => [
+                  organizationName(row),
+                  reportStatus(t, enumString(row.account_type)),
+                  displayValue(row.email),
+                  displayValue(row.city),
+                  reportStatus(t, row.status),
+                  formatDate(row.created_at),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />

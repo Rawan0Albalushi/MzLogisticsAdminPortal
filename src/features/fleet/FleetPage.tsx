@@ -10,6 +10,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { TRUCK_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function FleetPage() {
   const { t } = useTranslation()
@@ -32,7 +35,44 @@ export function FleetPage() {
 
   return (
     <>
-      <PageHeader title={t('fleet.title')} subtitle={t('fleet.subtitle')} />
+      <PageHeader
+        title={t('fleet.title')}
+        subtitle={t('fleet.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchTrucks({ search: list.search, status: list.status, page, per_page: perPage }),
+              )
+              return createListReport({
+                title: t('fleet.title'),
+                subtitle: t('fleet.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('fleet.plate'),
+                  t('common.type'),
+                  t('fleet.capacity'),
+                  t('fleet.make'),
+                  t('common.provider'),
+                  t('fleet.assignedDriver'),
+                  t('fleet.insurance'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.plate_number,
+                  displayValue(row.type_label ?? row.type),
+                  displayValue(row.capacity_tons),
+                  `${displayValue(row.make)} ${displayValue(row.model)}`,
+                  organizationName(row.organization),
+                  displayValue(row.assigned_driver?.name),
+                  formatDate(row.insurance_expires_at),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

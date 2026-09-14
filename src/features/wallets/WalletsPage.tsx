@@ -8,6 +8,9 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { formatCommissionRate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function WalletsPage() {
   const { t } = useTranslation()
@@ -34,7 +37,44 @@ export function WalletsPage() {
 
   return (
     <>
-      <PageHeader title={t('wallets.title')} subtitle={t('wallets.subtitle')} />
+      <PageHeader
+        title={t('wallets.title')}
+        subtitle={t('wallets.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchWallets({ search: list.search, page, per_page: perPage }),
+              )
+              return createListReport({
+                title: t('wallets.title'),
+                subtitle: t('wallets.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.provider'),
+                  t('providers.commissionRate'),
+                  t('wallets.pending'),
+                  t('wallets.available'),
+                  t('wallets.reserved'),
+                  t('wallets.outstanding'),
+                  t('wallets.lifetimeEarned'),
+                  t('wallets.lifetimeWithdrawn'),
+                ],
+                rows: items.map((row) => [
+                  organizationName(row.organization),
+                  formatCommissionRate(row.organization?.effective_commission_rate ?? row.organization?.commission_rate),
+                  formatMoney(row.pending_balance, row.currency ?? undefined),
+                  formatMoney(row.available_balance, row.currency ?? undefined),
+                  formatMoney(row.reserved_balance, row.currency ?? undefined),
+                  formatMoney(row.outstanding_balance, row.currency ?? undefined),
+                  formatMoney(row.lifetime_earned, row.currency ?? undefined),
+                  formatMoney(row.lifetime_withdrawn, row.currency ?? undefined),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

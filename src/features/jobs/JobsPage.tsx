@@ -11,6 +11,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { formatMoney, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function JobsPage() {
   const { t } = useTranslation()
@@ -57,7 +60,47 @@ export function JobsPage() {
 
   return (
     <>
-      <PageHeader title={t('jobs.title')} subtitle={t('jobs.subtitle')} />
+      <PageHeader
+        title={t('jobs.title')}
+        subtitle={t('jobs.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchJobs({
+                  search: list.search,
+                  status: list.status,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('jobs.title'),
+                subtitle: t('jobs.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.customer'),
+                  t('common.provider'),
+                  t('quotations.price'),
+                  t('common.progress'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  organizationName(row.customer),
+                  organizationName(row.provider),
+                  formatMoney(row.total_price, row.currency ?? undefined),
+                  formatPercent(row.progress_percent),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

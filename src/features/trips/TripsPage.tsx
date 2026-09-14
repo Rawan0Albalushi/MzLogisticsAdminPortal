@@ -11,6 +11,9 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 const STATUSES = [...TRIP_TIMELINE, 'cancelled']
 
@@ -58,7 +61,50 @@ export function TripsPage() {
 
   return (
     <>
-      <PageHeader title={t('trips.title')} subtitle={t('trips.subtitle')} />
+      <PageHeader
+        title={t('trips.title')}
+        subtitle={t('trips.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchTrips({
+                  search: list.search,
+                  status: list.status,
+                  city: list.city,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('trips.title'),
+                subtitle: t('trips.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.job'),
+                  t('common.pickup'),
+                  t('common.delivery'),
+                  t('common.driver'),
+                  t('common.truck'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  displayValue(row.job?.reference),
+                  displayValue(row.pickup_city),
+                  displayValue(row.delivery_city),
+                  displayValue(row.driver?.name),
+                  displayValue(row.truck?.plate_number),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

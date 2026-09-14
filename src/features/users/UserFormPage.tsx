@@ -10,6 +10,7 @@ import { FormField } from '@/shared/components/FormField.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
+import { roleLabel } from '@/features/users/roleLabel.ts'
 
 const emptyCreate = {
   name: '',
@@ -57,7 +58,7 @@ export function UserFormPage() {
 
   const canChangeRole = isCreate || existing.data?.user_type === 'platform'
   const roles = canChangeRole
-    ? (access.data?.platform_roles ?? [])
+    ? (access.data?.assignable_roles ?? access.data?.platform_roles ?? [])
     : [form.role].filter(Boolean)
   const selectedRole = useMemo(
     () => access.data?.roles.find((role) => role.name === form.role),
@@ -181,7 +182,7 @@ export function UserFormPage() {
                 >
                   {roles.map((role) => (
                     <option key={role} value={role}>
-                      {t(`roles.${role}`, { defaultValue: role })}
+                      {roleLabel(role, access.data?.roles, t)}
                     </option>
                   ))}
                 </select>

@@ -11,6 +11,9 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { displayValue, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function QuotationsPage() {
   const { t } = useTranslation()
@@ -57,7 +60,47 @@ export function QuotationsPage() {
 
   return (
     <>
-      <PageHeader title={t('quotations.title')} subtitle={t('quotations.subtitle')} />
+      <PageHeader
+        title={t('quotations.title')}
+        subtitle={t('quotations.subtitle')}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchQuotations({
+                  search: list.search,
+                  status: list.status,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createListReport({
+                title: t('quotations.title'),
+                subtitle: t('quotations.subtitle'),
+                filters: listReportFilters(t, list),
+                columns: [
+                  t('common.reference'),
+                  t('common.provider'),
+                  t('quotations.price'),
+                  t('quotations.truckCount'),
+                  t('quotations.tripCount'),
+                  t('common.status'),
+                ],
+                rows: items.map((row) => [
+                  row.reference,
+                  organizationName(row.provider),
+                  formatMoney(row.total_price, row.currency ?? undefined),
+                  displayValue(row.truck_count),
+                  displayValue(row.trip_count),
+                  reportStatus(t, row.status),
+                ]),
+              })
+            }}
+          />
+        }
+      />
       <FilterBar>
         <SearchInput
           value={list.search}

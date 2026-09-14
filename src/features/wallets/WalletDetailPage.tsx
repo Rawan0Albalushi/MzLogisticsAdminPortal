@@ -17,6 +17,9 @@ import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { displayValue, formatCommissionRate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createReportDocument, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function WalletDetailPage() {
   const { id = '' } = useParams()
@@ -98,6 +101,61 @@ export function WalletDetailPage() {
         title={t('wallets.detailTitle', { name: providerName })}
         subtitle={t('wallets.detailSubtitle')}
         crumbs={[{ label: t('wallets.title'), to: '/wallets' }, { label: providerName }]}
+        actions={
+          <DownloadReportButton
+            build={async () => {
+              const items = await fetchAllPages((page, perPage) =>
+                fetchWalletTransactions(id, {
+                  search: list.search,
+                  type: list.type,
+                  date_from: list.dateFrom,
+                  date_to: list.dateTo,
+                  page,
+                  per_page: perPage,
+                }),
+              )
+              return createReportDocument({
+                title: t('wallets.detailTitle', { name: providerName }),
+                subtitle: t('wallets.detailSubtitle'),
+                filters: listReportFilters(t, list),
+                sections: [
+                  {
+                    title: t('wallets.balancesSection'),
+                    metrics: [
+                      { label: t('wallets.pending'), value: formatMoney(wallet.pending_balance, currency) },
+                      { label: t('wallets.available'), value: formatMoney(wallet.available_balance, currency) },
+                      { label: t('wallets.reserved'), value: formatMoney(wallet.reserved_balance, currency) },
+                      { label: t('wallets.outstanding'), value: formatMoney(wallet.outstanding_balance, currency) },
+                      { label: t('wallets.lifetimeEarned'), value: formatMoney(wallet.lifetime_earned, currency) },
+                      { label: t('wallets.lifetimeWithdrawn'), value: formatMoney(wallet.lifetime_withdrawn, currency) },
+                    ],
+                  },
+                  {
+                    title: t('wallets.ledger'),
+                    table: {
+                      columns: [
+                        t('common.reference'),
+                        t('common.type'),
+                        t('common.amount'),
+                        t('nav.jobs'),
+                        t('nav.payments'),
+                        t('common.createdAt'),
+                      ],
+                      rows: items.map((row) => [
+                        row.reference,
+                        reportStatus(t, row.type),
+                        formatMoney(row.amount, row.currency ?? undefined),
+                        displayValue(row.job?.reference),
+                        displayValue(row.payment?.reference),
+                        formatDateTime(row.created_at),
+                      ]),
+                    },
+                  },
+                ],
+              })
+            }}
+          />
+        }
       />
 
       <div className="mz-grid-2">

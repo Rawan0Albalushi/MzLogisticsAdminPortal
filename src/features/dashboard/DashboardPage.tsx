@@ -15,6 +15,8 @@ import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import type { IconName } from '@/shared/icons/NavIcons.tsx'
+import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
+import { createReportDocument } from '@/shared/reports/buildReport.ts'
 
 function count(value: number | undefined): number {
   return value ?? 0
@@ -121,6 +123,68 @@ export function DashboardPage() {
             <i />
             {t('dashboard.updatedAt', { time: formatDateTime(new Date(query.dataUpdatedAt).toISOString()) })}
           </span>
+          <DownloadReportButton
+            build={() =>
+              createReportDocument({
+                title: t('reports.snapshot'),
+                subtitle: t('dashboard.subtitle'),
+                sections: [
+                  {
+                    title: t('dashboard.attention'),
+                    metrics: attention.map((item) => ({
+                      label: item.label,
+                      value: formatNumber(item.count),
+                    })),
+                  },
+                  {
+                    title: t('reports.operations'),
+                    metrics: [
+                      ...(canViewShipments
+                        ? [
+                            { label: t('dashboard.shipmentsOpen'), value: formatNumber(stats.shipments_open) },
+                            { label: t('dashboard.shipmentsTotal'), value: formatNumber(stats.shipments_total) },
+                          ]
+                        : []),
+                      ...(canViewJobs
+                        ? [
+                            { label: t('dashboard.jobsActive'), value: formatNumber(stats.jobs_active) },
+                            { label: t('dashboard.jobsCompleted'), value: formatNumber(stats.jobs_completed) },
+                            { label: t('dashboard.jobsPendingDispatch'), value: formatNumber(stats.jobs_pending_dispatch) },
+                          ]
+                        : []),
+                      ...(canViewTrips
+                        ? [
+                            { label: t('dashboard.tripsInTransit'), value: formatNumber(stats.trips_in_transit) },
+                            { label: t('dashboard.tripsUnassigned'), value: formatNumber(stats.trips_unassigned) },
+                          ]
+                        : []),
+                    ],
+                  },
+                  {
+                    title: t('reports.finance'),
+                    metrics: [
+                      ...(hasPermission(PERMISSIONS.PAYMENTS_VIEW)
+                        ? [
+                            { label: t('dashboard.paymentsCompleted'), value: formatMoney(stats.payments_completed_amount) },
+                            { label: t('dashboard.commission'), value: formatMoney(stats.commission_amount) },
+                            { label: t('dashboard.paymentsPending'), value: formatNumber(stats.payments_pending) },
+                          ]
+                        : []),
+                      ...(hasPermission(PERMISSIONS.WALLETS_VIEW)
+                        ? [{ label: t('dashboard.providerReceivable'), value: formatMoney(stats.provider_receivable) }]
+                        : []),
+                      ...(hasPermission(PERMISSIONS.SETTLEMENTS_VIEW)
+                        ? [{ label: t('dashboard.settlementsPending'), value: formatNumber(stats.settlements_pending) }]
+                        : []),
+                      ...(hasPermission(PERMISSIONS.INVOICES_VIEW)
+                        ? [{ label: t('dashboard.invoicesUnpaid'), value: formatNumber(count(stats.invoices_unpaid)) }]
+                        : []),
+                    ],
+                  },
+                ],
+              })
+            }
+          />
           <button
             type="button"
             className="mz-btn mz-btn--ghost"

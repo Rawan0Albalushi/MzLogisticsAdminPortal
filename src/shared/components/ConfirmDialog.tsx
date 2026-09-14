@@ -10,6 +10,7 @@ interface ConfirmDialogProps {
   danger?: boolean
   busy?: boolean
   disabled?: boolean
+  wide?: boolean
   onConfirm: () => void
   onClose: () => void
 }
@@ -23,6 +24,7 @@ export function ConfirmDialog({
   danger,
   busy,
   disabled,
+  wide,
   onConfirm,
   onClose,
 }: ConfirmDialogProps) {
@@ -34,7 +36,7 @@ export function ConfirmDialog({
   return (
     <div className="mz-dialog-backdrop mz-dialog-backdrop--in" role="presentation" onClick={onClose}>
       <div
-        className="mz-dialog"
+        className={`mz-dialog${wide ? ' mz-dialog--wide' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="mz-dialog-title"
