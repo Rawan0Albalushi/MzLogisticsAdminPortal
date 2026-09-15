@@ -41,6 +41,7 @@ export interface Organization {
   commission_rate?: string | number | null
   effective_commission_rate?: string | number | null
   uses_default_commission?: boolean
+  payment_contract?: PaymentContract | null
   created_at?: string
   trucks_count?: number
   driver_profiles_count?: number
@@ -126,6 +127,7 @@ export interface Shipment {
   customer?: Organization | null
   quotations?: Quotation[]
   quotations_count?: number
+  payment_terms?: PaymentTerms
   created_at?: string
 }
 
@@ -176,6 +178,11 @@ export interface Truck {
   type?: string | null
   type_label?: string | null
   capacity_tons?: string | number | null
+  volume_cbm?: string | number | null
+  cargo_length_m?: string | number | null
+  cargo_width_m?: string | number | null
+  cargo_height_m?: string | number | null
+  axle_count?: number | null
   year?: number | null
   make?: string | null
   model?: string | null
@@ -253,6 +260,7 @@ export interface Invoice {
   organization?: Organization | null
   job?: TransportJob | null
   payment?: Payment | null
+  payable?: boolean
 }
 
 export interface Wallet {
@@ -411,6 +419,34 @@ export interface UpdateStaffUserInput {
   locale?: string
   is_active?: boolean
   role?: string
+}
+
+export interface PaymentTerms {
+  billing_trigger: string
+  due_days: number
+  billing_unit?: string
+  prepaid: boolean
+  per_trip?: boolean
+  contract_id?: number | null
+}
+
+export interface PaymentContract {
+  id: number
+  organization_id: number
+  billing_trigger: string
+  due_days: number
+  billing_unit?: string
+  prepaid: boolean
+  per_trip?: boolean
+  pending_billing_trigger?: string | null
+  pending_due_days?: number | null
+  pending_billing_unit?: string | null
+  pending_status?: string | null
+  approved_at?: string | null
+  rejected_at?: string | null
+  rejection_reason?: string | null
+  organization?: Organization | null
+  updated_at?: string
 }
 
 export interface CreateSettlementInput {

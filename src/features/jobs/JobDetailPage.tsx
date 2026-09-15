@@ -14,7 +14,7 @@ import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { displayValue, formatDateTime, formatMoney, formatNumber, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDateTime, formatMoney, formatNumber, formatPaymentTerms, formatPercent, organizationName } from '@/shared/utils/format.ts'
 
 function numericValue(value?: string | number | null) {
   if (value == null || value === '') {
@@ -138,6 +138,19 @@ export function JobDetailPage() {
                 { icon: 'providers', label: t('common.provider'), value: providerLink },
                 { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },
                 { icon: 'quotations', label: t('common.quotation'), value: quotationLink },
+                ...(shipment
+                  ? [
+                      {
+                        icon: 'payments' as const,
+                        label: t('paymentContract.title'),
+                        value: formatPaymentTerms(
+                          shipment.payment_terms?.billing_trigger,
+                          shipment.payment_terms?.due_days,
+                          shipment.payment_terms?.billing_unit,
+                        ),
+                      },
+                    ]
+                  : []),
               ]}
             />
             <div className="mz-section">

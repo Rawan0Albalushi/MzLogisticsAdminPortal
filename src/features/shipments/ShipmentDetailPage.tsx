@@ -158,6 +158,43 @@ export function ShipmentDetailPage() {
               />
             </div>
           </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <SectionTitle icon="payments" title={t('paymentContract.title')} />
+              <InfoGrid
+                fields={[
+                  {
+                    icon: 'payments',
+                    label: t('paymentContract.trigger'),
+                    value:
+                      !shipment.payment_terms?.billing_trigger || shipment.payment_terms.billing_trigger === 'on_award'
+                        ? t('paymentContract.onAward')
+                        : t('paymentContract.onDelivery'),
+                  },
+                  ...(shipment.payment_terms?.billing_trigger === 'on_delivery'
+                    ? [
+                        {
+                          icon: 'quantity' as const,
+                          label: t('paymentContract.unit'),
+                          value:
+                            shipment.payment_terms.billing_unit === 'trip'
+                              ? t('paymentContract.unitTrip')
+                              : t('paymentContract.unitJob'),
+                        },
+                        {
+                          icon: 'calendar' as const,
+                          label: t('paymentContract.dueDays'),
+                          value:
+                            !shipment.payment_terms.due_days
+                              ? t('paymentContract.dueImmediate')
+                              : t('paymentContract.netDays', { days: shipment.payment_terms.due_days }),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+            </div>
+          </section>
           {shipment.notes ? (
             <section className="mz-card">
               <div className="mz-card__body">

@@ -28,6 +28,7 @@ import type {
   VerifyOrganizationInput,
   Wallet,
   WalletTransaction,
+  PaymentContract,
 } from '@/core/api/types.ts'
 
 function toParams(query: ListQuery = {}): Record<string, string | number> {
@@ -92,6 +93,23 @@ export async function updateOrganizationCommission(
   payload: UpdateCommissionRateInput,
 ): Promise<Organization> {
   const { data } = await api.patch<ApiSuccess<Organization>>(`/organizations/${id}/commission-rate`, payload)
+  return unwrapData(data)
+}
+
+export async function fetchPendingPaymentContracts(query: ListQuery = {}) {
+  const { data } = await api.get<ApiSuccess<PaymentContract[]>>('/payment-contracts', { params: toParams(query) })
+  return unwrapList(data)
+}
+
+export async function approvePaymentContract(id: string | number): Promise<PaymentContract> {
+  const { data } = await api.post<ApiSuccess<PaymentContract>>(`/organizations/${id}/payment-contract/approve`)
+  return unwrapData(data)
+}
+
+export async function rejectPaymentContract(id: string | number, reason?: string): Promise<PaymentContract> {
+  const { data } = await api.post<ApiSuccess<PaymentContract>>(`/organizations/${id}/payment-contract/reject`, {
+    reason,
+  })
   return unwrapData(data)
 }
 

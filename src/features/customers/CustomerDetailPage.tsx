@@ -10,7 +10,7 @@ import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, enumString, formatDate, formatPaymentTerms, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
 
 function ContactValue({ value, href }: { value?: string | null; href: string }) {
   if (!value) {
@@ -146,6 +146,24 @@ export function CustomerDetailPage() {
                   { icon: 'users', label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
                   { icon: 'roles', label: t('common.status'), value: <StatusBadge status={org.status} /> },
                   { icon: 'calendar', label: t('common.createdAt'), value: formatDate(org.created_at) },
+                ]}
+              />
+            </div>
+          </section>
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <SectionTitle icon="invoices" title={t('paymentContract.title')} />
+              <InfoGrid
+                fields={[
+                  {
+                    icon: 'payments',
+                    label: t('paymentContract.current'),
+                    value: formatPaymentTerms(
+                      org.payment_contract?.billing_trigger,
+                      org.payment_contract?.due_days,
+                      org.payment_contract?.billing_unit,
+                    ),
+                  },
                 ]}
               />
             </div>

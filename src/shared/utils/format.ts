@@ -172,3 +172,23 @@ export function googleMapEmbedUrl(lat?: number | null, lng?: number | null): str
   }
   return `https://www.google.com/maps?q=${lat},${lng}&z=14&output=embed`
 }
+
+export function formatPaymentTerms(
+  trigger?: string | null,
+  dueDays?: number | null,
+  billingUnit?: string | null,
+): string {
+  if (!trigger || trigger === 'on_award') {
+    return i18n.t('paymentContract.onAward')
+  }
+  if (billingUnit === 'trip') {
+    if (!dueDays) {
+      return i18n.t('paymentContract.perTripImmediate')
+    }
+    return i18n.t('paymentContract.perTripNetDays', { days: dueDays })
+  }
+  if (!dueDays) {
+    return i18n.t('paymentContract.fullImmediate')
+  }
+  return i18n.t('paymentContract.fullNetDays', { days: dueDays })
+}
