@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { createRole, deleteRole, fetchAccessCatalog, updateRolePermissions } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { PERMISSION_GROUPS, PERMISSIONS } from '@/core/constants/permissions.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
@@ -43,7 +44,9 @@ export function RolesPage() {
     const available = new Set(query.data?.permissions ?? [])
     return PERMISSION_GROUPS.map((group) => ({
       ...group,
-      keys: group.keys.filter((key) => available.has(key)),
+      keys: group.keys.filter(
+        (key) => available.has(key) && (LIVE_TRACKING_ENABLED || key !== PERMISSIONS.TRACKING_VIEW),
+      ),
     })).filter((group) => group.keys.length > 0)
   }, [query.data?.permissions])
 

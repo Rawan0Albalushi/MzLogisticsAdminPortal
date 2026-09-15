@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchDashboard, fetchJobs, fetchProviders, fetchShipments, fetchTrips } from '@/core/api/services.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import type { DashboardStats } from '@/core/api/types.ts'
 import { KpiCard } from '@/shared/components/KpiCard.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
@@ -83,13 +84,17 @@ export function DashboardPage() {
       permission: PERMISSIONS.JOBS_VIEW,
       icon: 'dispatch' as const,
     },
-    {
-      to: '/tracking',
-      title: t('dashboard.shortcutTracking'),
-      hint: t('dashboard.shortcutTrackingHint'),
-      permission: PERMISSIONS.TRACKING_VIEW,
-      icon: 'tracking' as const,
-    },
+    ...(LIVE_TRACKING_ENABLED
+      ? [
+          {
+            to: '/tracking',
+            title: t('dashboard.shortcutTracking'),
+            hint: t('dashboard.shortcutTrackingHint'),
+            permission: PERMISSIONS.TRACKING_VIEW,
+            icon: 'tracking' as const,
+          },
+        ]
+      : []),
     {
       to: '/settlements?status=pending',
       title: t('dashboard.shortcutSettlements'),
@@ -263,7 +268,7 @@ export function DashboardPage() {
             label={t('dashboard.tripsInTransit')}
             value={formatNumber(stats.trips_in_transit)}
             hint={t('dashboard.tripsInTransitHint')}
-            to="/tracking"
+            to={LIVE_TRACKING_ENABLED ? '/tracking' : '/trips?status=in_transit'}
             tone={stats.trips_in_transit > 0 ? 'info' : 'default'}
           />
         ) : null}
@@ -371,9 +376,9 @@ export function DashboardPage() {
           ) : null}
           {canViewTrips ? (
             <WorkQueue
-              title={t('dashboard.liveTripsQueue')}
+              title={t(LIVE_TRACKING_ENABLED ? 'dashboard.liveTripsQueue' : 'dashboard.tripsInTransit')}
               icon="trips"
-              viewAllTo="/tracking"
+              viewAllTo={LIVE_TRACKING_ENABLED ? '/tracking' : '/trips?status=in_transit'}
               isLoading={trips.isLoading}
               isError={trips.isError}
               onRetry={() => void trips.refetch()}

@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { AppShell } from '@/app/layout/AppShell.tsx'
 import { GuestRoute, ProtectedRoute } from '@/app/layout/ProtectedRoute.tsx'
@@ -17,7 +18,6 @@ const ProvidersPage = lazy(() =>
 const ProviderDetailPage = lazy(() =>
   import('@/features/service-providers/ProviderDetailPage.tsx').then((m) => ({ default: m.ProviderDetailPage })),
 )
-const FleetPage = lazy(() => import('@/features/fleet/FleetPage.tsx').then((m) => ({ default: m.FleetPage })))
 const TruckTypesPage = lazy(() => import('@/features/fleet/TruckTypesPage.tsx').then((m) => ({ default: m.TruckTypesPage })))
 const DriversPage = lazy(() => import('@/features/drivers/DriversPage.tsx').then((m) => ({ default: m.DriversPage })))
 const ShipmentsPage = lazy(() => import('@/features/shipments/ShipmentsPage.tsx').then((m) => ({ default: m.ShipmentsPage })))
@@ -84,10 +84,7 @@ const router = createBrowserRouter([
               { path: '/providers/:id', element: withSuspense(<ProviderDetailPage />) },
             ],
           },
-          {
-            element: <ProtectedRoute permission={PERMISSIONS.FLEET_VIEW} />,
-            children: [{ path: '/fleet', element: withSuspense(<FleetPage />) }],
-          },
+          { path: '/fleet', element: <Navigate to="/" replace /> },
           {
             element: <ProtectedRoute permission={PERMISSIONS.FLEET_MANAGE} />,
             children: [{ path: '/truck-types', element: withSuspense(<TruckTypesPage />) }],
@@ -124,10 +121,12 @@ const router = createBrowserRouter([
               { path: '/trips/:id', element: withSuspense(<TripDetailPage />) },
             ],
           },
-          {
-            element: <ProtectedRoute permission={PERMISSIONS.TRACKING_VIEW} />,
-            children: [{ path: '/tracking', element: withSuspense(<TrackingPage />) }],
-          },
+          LIVE_TRACKING_ENABLED
+            ? {
+                element: <ProtectedRoute permission={PERMISSIONS.TRACKING_VIEW} />,
+                children: [{ path: '/tracking', element: withSuspense(<TrackingPage />) }],
+              }
+            : { path: '/tracking', element: <Navigate to="/trips" replace /> },
           {
             element: <ProtectedRoute permission={PERMISSIONS.PAYMENTS_VIEW} />,
             children: [{ path: '/payments', element: withSuspense(<PaymentsPage />) }],

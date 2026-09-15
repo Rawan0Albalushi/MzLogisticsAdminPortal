@@ -1,3 +1,4 @@
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import type { IconName } from '@/shared/icons/NavIcons.tsx'
 
@@ -22,7 +23,9 @@ export const navGroups: NavGroup[] = [
       { to: '/quotations', labelKey: 'nav.quotations', permission: PERMISSIONS.QUOTATIONS_VIEW, icon: 'quotations' },
       { to: '/jobs', labelKey: 'nav.jobs', permission: PERMISSIONS.JOBS_VIEW, icon: 'jobs' },
       { to: '/trips', labelKey: 'nav.trips', permission: PERMISSIONS.TRIPS_VIEW, icon: 'trips' },
-      { to: '/tracking', labelKey: 'nav.tracking', permission: PERMISSIONS.TRACKING_VIEW, icon: 'tracking' },
+      ...(LIVE_TRACKING_ENABLED
+        ? [{ to: '/tracking', labelKey: 'nav.tracking', permission: PERMISSIONS.TRACKING_VIEW, icon: 'tracking' as const }]
+        : []),
     ],
   },
   {
@@ -30,7 +33,6 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/customers', labelKey: 'nav.customers', permission: PERMISSIONS.CUSTOMERS_VIEW, icon: 'customers' },
       { to: '/providers', labelKey: 'nav.providers', permission: PERMISSIONS.PROVIDERS_VIEW, icon: 'providers' },
-      { to: '/fleet', labelKey: 'nav.fleet', permission: PERMISSIONS.FLEET_VIEW, icon: 'fleet' },
       { to: '/truck-types', labelKey: 'nav.truckTypes', permission: PERMISSIONS.FLEET_MANAGE, icon: 'truckTypes' },
       { to: '/drivers', labelKey: 'nav.drivers', permission: PERMISSIONS.DRIVERS_VIEW, icon: 'drivers' },
     ],

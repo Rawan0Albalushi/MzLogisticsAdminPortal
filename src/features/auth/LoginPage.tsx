@@ -50,8 +50,8 @@ export function LoginPage() {
             <span>{t('dashboard.shipmentsOpen')}</span>
           </li>
           <li>
-            <IconWell name="tracking" size="sm" />
-            <span>{t('nav.tracking')}</span>
+            <IconWell name="trips" size="sm" />
+            <span>{t('nav.trips')}</span>
           </li>
           <li>
             <IconWell name="settlements" size="sm" />

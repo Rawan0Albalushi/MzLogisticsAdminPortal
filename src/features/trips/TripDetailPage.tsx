@@ -12,6 +12,7 @@ import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { displayValue, formatCoords, formatDateTime, formatNumber } from '@/shared/utils/format.ts'
 
 function numericValue(value?: string | number | null) {
@@ -101,6 +102,9 @@ export function TripDetailPage() {
                 { icon: 'quantity', label: t('trips.sequence'), value: numericValue(trip.sequence) },
                 { icon: 'drivers', label: t('common.driver'), value: trip.driver?.name },
                 { icon: 'fleet', label: t('common.truck'), value: trip.truck?.plate_number, dir: 'ltr' },
+                ...(!LIVE_TRACKING_ENABLED
+                  ? [{ icon: 'roles' as const, label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' as const }]
+                  : []),
               ]}
             />
           </div>
@@ -118,18 +122,25 @@ export function TripDetailPage() {
               />
             </div>
           </section>
-          <section className="mz-card">
-            <div className="mz-card__body">
-              <SectionTitle icon="tracking" title={t('trips.liveSection')} />
-              <InfoGrid
-                fields={[
-                  { icon: 'tracking', label: t('common.location'), value: formatCoords(trip.current_lat, trip.current_lng), dir: 'ltr' },
-                  { icon: 'clock', label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
-                  { icon: 'roles', label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' },
-                ]}
-              />
-            </div>
-          </section>
+          {LIVE_TRACKING_ENABLED ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <SectionTitle icon="clock" title={t('trips.liveSection')} />
+                <InfoGrid
+                  fields={[
+                    {
+                      icon: 'tracking',
+                      label: t('common.location'),
+                      value: formatCoords(trip.current_lat, trip.current_lng),
+                      dir: 'ltr',
+                    },
+                    { icon: 'clock', label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
+                    { icon: 'roles', label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' },
+                  ]}
+                />
+              </div>
+            </section>
+          ) : null}
           {pod?.receiver_name || pod?.notes ? (
             <section className="mz-card">
               <div className="mz-card__body">
@@ -151,6 +162,9 @@ export function TripDetailPage() {
           <SectionTitle icon="calendar" title={t('trips.scheduleSection')} />
           <InfoGrid
             fields={[
+              ...(!LIVE_TRACKING_ENABLED
+                ? [{ icon: 'clock' as const, label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null }]
+                : []),
               { icon: 'dispatch', label: t('trips.assignedAt'), value: trip.assigned_at ? formatDateTime(trip.assigned_at) : null },
               { icon: 'pickup', label: t('trips.arrivedPickupAt'), value: trip.arrived_pickup_at ? formatDateTime(trip.arrived_pickup_at) : null },
               { icon: 'shipments', label: t('trips.loadedAt'), value: trip.loaded_at ? formatDateTime(trip.loaded_at) : null },
@@ -185,9 +199,11 @@ export function TripDetailPage() {
               lng={trip.delivery_lng}
             />
           </div>
-          <div className="mz-section">
-            <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
-          </div>
+          {LIVE_TRACKING_ENABLED ? (
+            <div className="mz-section">
+              <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
+            </div>
+          ) : null}
         </div>
       </section>
     </>

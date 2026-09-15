@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchDashboard, fetchJobs, fetchPayments, fetchShipments } from '@/core/api/services.ts'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import type { Payment, Shipment, TransportJob } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
@@ -385,7 +386,7 @@ export function ReportsPage() {
               label={t('dashboard.tripsInTransit')}
               value={formatNumber(stats.trips_in_transit)}
               hint={t('dashboard.tripsInTransitHint')}
-              to="/tracking"
+              to={LIVE_TRACKING_ENABLED ? '/tracking' : '/trips?status=in_transit'}
               tone={stats.trips_in_transit > 0 ? 'info' : 'default'}
             />
           ) : null}
