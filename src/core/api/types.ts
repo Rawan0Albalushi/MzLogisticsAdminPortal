@@ -218,6 +218,7 @@ export interface Trip {
   current_lat?: number | null
   current_lng?: number | null
   eta_at?: string | null
+  otp_required?: boolean
   otp_code?: string | null
   assigned_at?: string | null
   arrived_pickup_at?: string | null

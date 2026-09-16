@@ -103,7 +103,13 @@ export function TripDetailPage() {
                 { icon: 'drivers', label: t('common.driver'), value: trip.driver?.name },
                 { icon: 'fleet', label: t('common.truck'), value: trip.truck?.plate_number, dir: 'ltr' },
                 ...(!LIVE_TRACKING_ENABLED
-                  ? [{ icon: 'roles' as const, label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' as const }]
+                  ? [
+                      {
+                        icon: 'roles' as const,
+                        label: t('trips.otp'),
+                        value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired'),
+                      },
+                    ]
                   : []),
               ]}
             />
@@ -135,7 +141,7 @@ export function TripDetailPage() {
                       dir: 'ltr',
                     },
                     { icon: 'clock', label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
-                    { icon: 'roles', label: t('trips.otp'), value: trip.otp_code, dir: 'ltr' },
+                    { icon: 'roles', label: t('trips.otp'), value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired') },
                   ]}
                 />
               </div>

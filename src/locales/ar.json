@@ -361,6 +361,8 @@
     "deliveredQuantity": "الكمية المسلّمة",
     "timeline": "مسار الحالة",
     "otp": "رمز التسليم",
+    "otpRequired": "الرمز لدى المستلم",
+    "otpNotRequired": "غير مطلوب",
     "assignedAt": "التعيين",
     "arrivedPickupAt": "الوصول للتحميل",
     "loadedAt": "التحميل",
