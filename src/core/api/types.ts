@@ -60,11 +60,12 @@ export interface DriverProfile {
 export interface AuthUser {
   id: number
   name: string
-  email: string
+  email?: string | null
   phone?: string | null
   locale?: string | null
   user_type: string
   is_active: boolean
+  must_set_password?: boolean
   organization_id?: number | null
   organization?: Organization | null
   roles?: string[]

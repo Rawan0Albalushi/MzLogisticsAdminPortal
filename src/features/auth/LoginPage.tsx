@@ -39,7 +39,7 @@ export function LoginPage() {
       <section className="mz-login__brand">
         <div className="mz-login__brand-copy">
           <div className="mz-login__brand-head">
-            <div className="mz-mark">MZ</div>
+            <div className="mz-mark">MX</div>
             <h1>{t('app.portal')}</h1>
           </div>
           <p>{t('app.tagline')}</p>

@@ -319,7 +319,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
     <article class="sheet${options.forFile ? ' is-file' : ''}" dir="${dir}">
       <header class="masthead">
         <div class="brand">
-          <div class="logo">MZ</div>
+          <div class="logo">MX</div>
           <div>
             <small>${escapeHtml(document.portal)}</small>
             <strong>${escapeHtml(document.appName)}</strong>

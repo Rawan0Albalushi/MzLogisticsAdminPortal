@@ -130,11 +130,11 @@ export function formatCoords(lat?: number | null, lng?: number | null): string {
 
 export function initials(name?: string | null): string {
   if (!name) {
-    return 'MZ'
+    return 'MX'
   }
   const parts = name.trim().split(/\s+/).slice(0, 2)
   const letters = parts.map((part) => part.charAt(0).toUpperCase()).join('')
-  return letters || 'MZ'
+  return letters || 'MX'
 }
 
 export function greetingKey(date = new Date()): 'dashboard.greetingMorning' | 'dashboard.greetingAfternoon' | 'dashboard.greetingEvening' {

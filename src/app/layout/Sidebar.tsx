@@ -20,7 +20,7 @@ export function Sidebar({ open, onNavigate }: SidebarProps) {
     <aside className={`mz-sidebar ${open ? 'is-open' : ''}`}>
       <div className="mz-sidebar__brand">
         <div className="mz-sidebar__brand-row">
-          <div className="mz-mark">MZ</div>
+          <div className="mz-mark">MX</div>
           <div className="mz-sidebar__name">{t('app.portal')}</div>
           <button type="button" className="mz-sidebar__close" onClick={onNavigate} aria-label={t('common.closeMenu')}>
             <AppIcon name="close" width={14} height={14} />
