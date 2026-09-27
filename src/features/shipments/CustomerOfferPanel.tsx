@@ -1,0 +1,405 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
+import type { PlatformOffer, Quotation, Shipment } from '@/core/api/types.ts'
+import { FormField } from '@/shared/components/FormField.tsx'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
+import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
+import { displayValue, formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+
+type PriceMode = 'fixed' | 'percent'
+
+interface CustomerOfferPanelProps {
+  shipment: Shipment
+  canManage: boolean
+  message: string
+  error: string
+  publishing: boolean
+  withdrawing: boolean
+  onPublish: (payload: { quotation_id: number; customer_price: number }) => void
+  onWithdraw: (offerId: number) => void
+}
+
+function roundMoney(value: number) {
+  return Math.round((value + Number.EPSILON) * 1000) / 1000
+}
+
+function moneyAmount(value?: string | number | null) {
+  if (value == null || value === '') return null
+  const amount = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(amount) ? amount : null
+}
+
+function isExpired(value?: string | null) {
+  if (!value) return false
+  const date = new Date(value)
+  return !Number.isNaN(date.getTime()) && date.getTime() < Date.now()
+}
+
+function formatDetail(value: string | number) {
+  const amount = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(amount)) return String(value)
+  return new Intl.NumberFormat('en', { numberingSystem: 'latn', maximumFractionDigits: 3 }).format(amount)
+}
+
+function formatMarkup(value: number) {
+  return `${formatDetail(Math.round(value * 100) / 100)}%`
+}
+
+function markupInput(customer: number, provider: number) {
+  if (provider <= 0) return ''
+  const percent = ((customer - provider) / provider) * 100
+  const rounded = Math.round(percent * 100) / 100
+  return String(rounded)
+}
+
+export function CustomerOfferPanel({
+  shipment,
+  canManage,
+  message,
+  error,
+  publishing,
+  withdrawing,
+  onPublish,
+  onWithdraw,
+}: CustomerOfferPanelProps) {
+  const { t } = useTranslation()
+  const [selectedQuotationId, setSelectedQuotationId] = useState('')
+  const [priceMode, setPriceMode] = useState<PriceMode>('fixed')
+  const [amountInput, setAmountInput] = useState('')
+
+  const quotations = (shipment.quotations ?? []).filter((row) => row.status === 'submitted')
+  const selectable = quotations.filter((row) => !isExpired(row.valid_until))
+  const lowest = selectable.reduce<Quotation | null>((best, row) => {
+    const price = moneyAmount(row.total_price)
+    if (price == null) return best
+    if (!best || price < Number(best.total_price)) return row
+    return best
+  }, null)
+  const activeQuotationId = selectable.some((row) => String(row.id) === selectedQuotationId)
+    ? selectedQuotationId
+    : lowest
+      ? String(lowest.id)
+      : ''
+  const selected = selectable.find((row) => String(row.id) === activeQuotationId) ?? null
+  const providerPrice = selected ? moneyAmount(selected.total_price) : null
+  const currency = selected?.currency ?? shipment.platform_offer?.currency ?? undefined
+  const parsedAmount = Number(amountInput)
+  const amountReady = amountInput.trim() !== '' && Number.isFinite(parsedAmount)
+  let customerPrice: number | null = null
+  if (providerPrice != null && amountReady) {
+    if (priceMode === 'fixed') {
+      customerPrice = roundMoney(parsedAmount)
+    } else if (parsedAmount >= 0) {
+      customerPrice = roundMoney(providerPrice * (1 + parsedAmount / 100))
+    }
+  }
+  const margin = customerPrice != null && providerPrice != null ? roundMoney(customerPrice - providerPrice) : null
+  const marginPercent =
+    margin != null && providerPrice != null && providerPrice > 0 ? (margin / providerPrice) * 100 : null
+  const priceTooLow = margin != null && margin < 0
+  const canPublish = canManage && shipment.status === 'published' && selectable.length > 0
+  const unitLabel = shipment.quantity_unit
+    ? t(`common.quantityUnits.${shipment.quantity_unit}`, { defaultValue: shipment.quantity_unit })
+    : null
+
+  function switchMode(next: PriceMode) {
+    if (next === priceMode) return
+    if (customerPrice != null && providerPrice != null) {
+      setAmountInput(next === 'fixed' ? String(customerPrice) : markupInput(customerPrice, providerPrice))
+    }
+    setPriceMode(next)
+  }
+
+  return (
+    <section className="mz-card mz-section">
+      <div className="mz-card__body mz-offer">
+        <SectionTitle icon="quotations" title={t('shipments.platformOffer')} />
+        <p className="mz-offer__hint">{t('shipments.platformOfferHint')}</p>
+        {message ? <div className="mz-alert mz-alert--ok">{message}</div> : null}
+        {error ? <div className="mz-alert">{error}</div> : null}
+
+        {shipment.platform_offer ? (
+          <PublishedOffer
+            offer={shipment.platform_offer}
+            quotation={quotations.find((row) => row.id === shipment.platform_offer?.quotation_id) ?? null}
+            unitLabel={unitLabel}
+            canWithdraw={canManage && shipment.platform_offer.status === 'published'}
+            withdrawing={withdrawing}
+            onWithdraw={() => {
+              if (shipment.platform_offer) onWithdraw(shipment.platform_offer.id)
+            }}
+          />
+        ) : null}
+
+        {canPublish ? (
+          <form
+            className="mz-form mz-offer-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!selected || customerPrice == null || priceTooLow) return
+              onPublish({ quotation_id: selected.id, customer_price: customerPrice })
+            }}
+          >
+            <div className="mz-offer__group">
+              <h3 id="provider-offers">{t('shipments.providerOffers')}</h3>
+              <div className="mz-offer-board" role="radiogroup" aria-labelledby="provider-offers">
+                {quotations.map((row) => {
+                  const expired = isExpired(row.valid_until)
+                  const checked = !expired && String(row.id) === activeQuotationId
+                  const isLowest = lowest != null && row.id === lowest.id
+                  return (
+                    <label
+                      key={row.id}
+                      className={`mz-offer-card${checked ? ' is-selected' : ''}${expired ? ' is-disabled' : ''}`}
+                    >
+                      <input
+                        className="mz-offer-card__input"
+                        type="radio"
+                        name="provider-offer"
+                        value={row.id}
+                        checked={checked}
+                        disabled={expired}
+                        onChange={() => setSelectedQuotationId(String(row.id))}
+                      />
+                      <span className="mz-offer-card__head">
+                        <span>
+                          <strong>{organizationName(row.provider)}</strong>
+                          <span className="mz-offer-card__ref">{row.reference}</span>
+                        </span>
+                        <span className="mz-offer-card__marks">
+                          {isLowest ? <span className="mz-badge mz-badge--success">{t('shipments.lowestBadge')}</span> : null}
+                          {expired ? <span className="mz-badge mz-badge--warning">{t('shipments.expiredBadge')}</span> : null}
+                          {checked ? <span className="mz-badge mz-badge--info">{t('shipments.selectedBadge')}</span> : null}
+                        </span>
+                      </span>
+                      <span className="mz-offer-card__price">
+                        <span>{t('shipments.providerPrice')}</span>
+                        {formatMoney(row.total_price, row.currency ?? undefined)}
+                      </span>
+                      <OfferFacts detail={row} unitLabel={unitLabel} note={row.conditions} />
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mz-offer__group">
+              <h3 id="customer-price-mode">{t('shipments.priceMode')}</h3>
+              <div className="mz-segment" role="radiogroup" aria-labelledby="customer-price-mode">
+                <label className={priceMode === 'fixed' ? 'is-active' : undefined}>
+                  <input
+                    type="radio"
+                    name="customer-price-mode"
+                    checked={priceMode === 'fixed'}
+                    onChange={() => switchMode('fixed')}
+                  />
+                  {t('shipments.priceFixed')}
+                </label>
+                <label className={priceMode === 'percent' ? 'is-active' : undefined}>
+                  <input
+                    type="radio"
+                    name="customer-price-mode"
+                    checked={priceMode === 'percent'}
+                    onChange={() => switchMode('percent')}
+                  />
+                  {t('shipments.pricePercent')}
+                </label>
+              </div>
+              <FormField
+                label={priceMode === 'fixed' ? t('shipments.customerPrice') : t('shipments.percentLabel')}
+                htmlFor="platform-offer-price"
+                required
+                hint={priceMode === 'fixed' ? t('shipments.customerPriceHint') : undefined}
+                error={priceTooLow ? t('shipments.priceTooLow') : undefined}
+              >
+                <div className="mz-offer-amount">
+                  <input
+                    id="platform-offer-price"
+                    className="mz-input"
+                    inputMode="decimal"
+                    value={amountInput}
+                    aria-invalid={priceTooLow || undefined}
+                    onChange={(event) => setAmountInput(event.target.value)}
+                  />
+                  <span>{priceMode === 'fixed' ? (currency ?? 'OMR') : '%'}</span>
+                </div>
+              </FormField>
+            </div>
+
+            <div className="mz-offer-preview" aria-live="polite">
+              <div>
+                <span>{t('shipments.customerPays')}</span>
+                <strong>{customerPrice == null ? displayValue(null) : formatMoney(customerPrice, currency)}</strong>
+              </div>
+              <div>
+                <span>{t('shipments.providerPrice')}</span>
+                <strong>{providerPrice == null ? displayValue(null) : formatMoney(providerPrice, currency)}</strong>
+              </div>
+              <div>
+                <span>{t('shipments.margin')}</span>
+                <strong className={priceTooLow ? 'is-low' : undefined}>
+                  {margin == null ? displayValue(null) : formatMoney(margin, currency)}
+                  {marginPercent != null && !priceTooLow ? <small>{formatMarkup(marginPercent)}</small> : null}
+                </strong>
+              </div>
+            </div>
+
+            <div className="mz-form-actions">
+              <button
+                type="submit"
+                className="mz-btn mz-btn--primary"
+                disabled={publishing || customerPrice == null || priceTooLow}
+              >
+                {t('shipments.publishOffer')}
+              </button>
+            </div>
+          </form>
+        ) : quotations.length === 0 && shipment.status === 'published' ? (
+          <p className="mz-offer__hint">{t('shipments.noSubmittedQuotations')}</p>
+        ) : selectable.length === 0 && quotations.length > 0 && shipment.status === 'published' ? (
+          <p className="mz-offer__hint">{t('shipments.noValidQuotations')}</p>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+interface OfferDetail {
+  truck_count?: number | null
+  truck_type?: string | null
+  truck_type_label?: string | null
+  truck_capacity_tons?: string | number | null
+  trip_count?: number | null
+  quantity_per_trip?: string | number | null
+  duration_days?: number | null
+  additional_costs?: string | number | null
+  valid_until?: string | null
+  currency?: string | null
+}
+
+function OfferFacts({ detail, unitLabel, note }: { detail: OfferDetail; unitLabel: string | null; note?: string | null }) {
+  const { t } = useTranslation()
+  const rows: { label: string; value: string }[] = []
+  const push = (label: string, value?: string | number | null) => {
+    if (value == null || value === '') return
+    rows.push({ label, value: String(value) })
+  }
+  push(t('quotations.truckCount'), detail.truck_count == null ? null : formatDetail(detail.truck_count))
+  push(t('quotations.truckType'), detail.truck_type_label || detail.truck_type)
+  if (detail.truck_capacity_tons != null && detail.truck_capacity_tons !== '') {
+    push(t('quotations.truckCapacity'), formatDetail(detail.truck_capacity_tons))
+  }
+  push(t('quotations.tripCount'), detail.trip_count == null ? null : formatDetail(detail.trip_count))
+  if (detail.quantity_per_trip != null && detail.quantity_per_trip !== '') {
+    const amount = formatDetail(detail.quantity_per_trip)
+    push(t('quotations.quantityPerTrip'), unitLabel ? `${amount} ${unitLabel}` : amount)
+  }
+  push(t('quotations.duration'), detail.duration_days == null ? null : formatDetail(detail.duration_days))
+  if (moneyAmount(detail.additional_costs)) {
+    push(t('quotations.additionalCosts'), formatMoney(detail.additional_costs, detail.currency ?? undefined))
+  }
+  if (detail.valid_until) {
+    push(t('quotations.validUntil'), formatDate(detail.valid_until))
+  }
+  if (rows.length === 0 && !note) return null
+  return (
+    <>
+      {rows.length > 0 ? (
+        <dl className="mz-offer-facts">
+          {rows.map((row) => (
+            <div key={row.label}>
+              <dt>{row.label}</dt>
+              <dd>{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {note ? <p className="mz-offer-card__note">{note}</p> : null}
+    </>
+  )
+}
+
+function PublishedOffer({
+  offer,
+  quotation,
+  unitLabel,
+  canWithdraw,
+  withdrawing,
+  onWithdraw,
+}: {
+  offer: PlatformOffer
+  quotation: Quotation | null
+  unitLabel: string | null
+  canWithdraw: boolean
+  withdrawing: boolean
+  onWithdraw: () => void
+}) {
+  const { t } = useTranslation()
+  const providerPrice = moneyAmount(offer.provider_price)
+  const customerPrice = moneyAmount(offer.customer_price)
+  const margin = moneyAmount(offer.margin_amount)
+  const marginPercent =
+    providerPrice != null && providerPrice > 0 && customerPrice != null
+      ? ((customerPrice - providerPrice) / providerPrice) * 100
+      : null
+  const currency = offer.currency ?? undefined
+  const provider = offer.provider ?? quotation?.provider
+
+  return (
+    <article className="mz-offer-live">
+      <div className="mz-offer-live__top">
+        <div>
+          <h3>{t('shipments.currentOffer')}</h3>
+          <p>{offer.reference}</p>
+          {provider ? (
+            <Link className="mz-link" to={`/providers/${provider.id}`}>
+              {organizationName(provider)}
+            </Link>
+          ) : null}
+        </div>
+        <StatusBadge status={offer.status} />
+      </div>
+      <div className="mz-offer-preview">
+        <div>
+          <span>{t('shipments.customerPrice')}</span>
+          <strong>{formatMoney(offer.customer_price, currency)}</strong>
+        </div>
+        <div>
+          <span>{t('shipments.providerPrice')}</span>
+          <strong>{formatMoney(offer.provider_price, currency)}</strong>
+        </div>
+        <div>
+          <span>{t('shipments.margin')}</span>
+          <strong>
+            {formatMoney(margin, currency)}
+            {marginPercent != null ? <small>{formatMarkup(marginPercent)}</small> : null}
+          </strong>
+        </div>
+      </div>
+      <OfferFacts
+        detail={{
+          truck_count: offer.truck_count,
+          truck_type: offer.truck_type,
+          truck_type_label: offer.truck_type_label,
+          truck_capacity_tons: offer.truck_capacity_tons,
+          trip_count: offer.trip_count,
+          quantity_per_trip: offer.quantity_per_trip,
+          duration_days: offer.duration_days,
+          additional_costs: quotation?.additional_costs,
+          valid_until: offer.valid_until,
+          currency: offer.currency,
+        }}
+        unitLabel={unitLabel}
+        note={offer.conditions}
+      />
+      {canWithdraw ? (
+        <div className="mz-form-actions">
+          <button type="button" className="mz-btn mz-btn--danger" disabled={withdrawing} onClick={onWithdraw}>
+            {t('shipments.withdrawOffer')}
+          </button>
+        </div>
+      ) : null}
+    </article>
+  )
+}

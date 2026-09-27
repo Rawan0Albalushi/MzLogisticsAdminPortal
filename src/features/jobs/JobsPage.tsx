@@ -10,7 +10,7 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
-import { formatMoney, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { formatMoney, formatPercent, organizationName, projectName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
 import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
@@ -41,6 +41,18 @@ export function JobsPage() {
           {row.reference}
         </Link>
       ),
+    },
+    {
+      id: 'project',
+      header: t('jobs.project'),
+      cell: (row) =>
+        row.project ? (
+          <Link className="mz-link" to={`/projects/${row.project.id}`}>
+            {projectName(row.project)}
+          </Link>
+        ) : (
+          t('common.noValue')
+        ),
     },
     { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },

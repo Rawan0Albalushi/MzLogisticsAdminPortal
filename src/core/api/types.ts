@@ -144,7 +144,11 @@ export interface PlatformOffer {
   margin_amount?: string | number | null
   currency?: string | null
   truck_count?: number | null
+  truck_type?: string | null
+  truck_type_label?: string | null
+  truck_capacity_tons?: string | number | null
   trip_count?: number | null
+  quantity_per_trip?: string | number | null
   duration_days?: number | null
   conditions?: string | null
   valid_until?: string | null
@@ -178,10 +182,27 @@ export interface Quotation {
   created_at?: string
 }
 
+export interface Project {
+  id: number
+  project_id: string
+  name_en: string
+  name_ar: string
+  jobs_count?: number
+  jobs?: TransportJob[]
+  created_at?: string
+}
+
+export interface ProjectInput {
+  project_id: string
+  name_en: string
+  name_ar: string
+}
+
 export interface TransportJob {
   id: number
   reference: string
   status: string
+  project?: Project | null
   total_price?: string | number | null
   currency?: string | null
   total_quantity?: string | number | null
@@ -422,6 +443,8 @@ export interface ListQuery {
   role?: string
   account_type?: string
   job_id?: number | string
+  project?: number | string
+  without_project?: boolean
   organization_id?: number | string
   date_from?: string
   date_to?: string

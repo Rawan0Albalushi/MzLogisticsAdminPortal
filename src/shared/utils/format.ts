@@ -1,6 +1,6 @@
 import i18n from '@/core/i18n/index.ts'
 import { DEFAULT_CURRENCY } from '@/core/constants/statuses.ts'
-import type { Organization } from '@/core/api/types.ts'
+import type { Organization, Project } from '@/core/api/types.ts'
 
 export function enumString(value: unknown): string | null {
   if (value == null || value === '') {
@@ -45,6 +45,16 @@ export function organizationName(organization?: Organization | null): string {
   return organization.name
 }
 
+export function projectName(project?: Project | null): string {
+  if (!project) {
+    return i18n.t('common.noValue')
+  }
+  if (i18n.language.startsWith('ar') && project.name_ar) {
+    return project.name_ar
+  }
+  return project.name_en || project.name_ar
+}
+
 export function formatMoney(value: string | number | null | undefined, currency = DEFAULT_CURRENCY): string {
   if (value === null || value === undefined || value === '') {
     return i18n.t('common.noValue')
@@ -53,10 +63,10 @@ export function formatMoney(value: string | number | null | undefined, currency 
   if (Number.isNaN(amount)) {
     return displayValue(value)
   }
-  const locale = i18n.language.startsWith('ar') ? 'ar-OM' : 'en-OM'
-  return new Intl.NumberFormat(locale, {
+  return new Intl.NumberFormat('en-OM', {
     style: 'currency',
     currency,
+    numberingSystem: 'latn',
     minimumFractionDigits: 3,
     maximumFractionDigits: 3,
   }).format(amount)
@@ -70,8 +80,10 @@ export function formatNumber(value: string | number | null | undefined): string 
   if (Number.isNaN(amount)) {
     return displayValue(value)
   }
-  const locale = i18n.language.startsWith('ar') ? 'ar' : 'en'
-  return new Intl.NumberFormat(locale).format(amount)
+  return new Intl.NumberFormat('en', {
+    numberingSystem: 'latn',
+    maximumFractionDigits: 3,
+  }).format(amount)
 }
 
 export function formatDate(value?: string | null): string {
@@ -83,7 +95,7 @@ export function formatDate(value?: string | null): string {
     return value
   }
   const locale = i18n.language.startsWith('ar') ? 'ar' : 'en-GB'
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', numberingSystem: 'latn' }).format(date)
 }
 
 export function formatDateTime(value?: string | null): string {
@@ -95,7 +107,11 @@ export function formatDateTime(value?: string | null): string {
     return value
   }
   const locale = i18n.language.startsWith('ar') ? 'ar' : 'en-GB'
-  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(date)
+  return new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    numberingSystem: 'latn',
+  }).format(date)
 }
 
 export function formatPercent(value?: number | null): string {

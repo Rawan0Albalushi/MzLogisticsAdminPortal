@@ -20,7 +20,7 @@ import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { FormField } from '@/shared/components/FormField.tsx'
+import { CustomerOfferPanel } from '@/features/shipments/CustomerOfferPanel.tsx'
 import { displayValue, formatDate, formatMoney, formatNumber, organizationName } from '@/shared/utils/format.ts'
 
 function quantityValue(quantity?: string | number | null, unit?: string | null) {
@@ -38,8 +38,6 @@ export function ShipmentDetailPage() {
   const queryClient = useQueryClient()
   const [confirmCancel, setConfirmCancel] = useState(false)
   const [error, setError] = useState('')
-  const [selectedQuotationId, setSelectedQuotationId] = useState('')
-  const [customerPrice, setCustomerPrice] = useState('')
   const [offerMessage, setOfferMessage] = useState('')
   const [offerError, setOfferError] = useState('')
   const query = useQuery({ queryKey: ['shipment', id], queryFn: () => fetchShipment(id), enabled: Boolean(id) })
@@ -91,21 +89,6 @@ export function ShipmentDetailPage() {
   const shipment = query.data
   const quotations = shipment.quotations ?? []
   const adminSelects = shipment.offer_selection_mode === 'admin'
-  const submittedQuotations = quotations.filter((row) => row.status === 'submitted')
-  const lowestQuotation = submittedQuotations.reduce<Quotation | null>((lowest, row) => {
-    const price = Number(row.total_price)
-    if (!Number.isFinite(price)) return lowest
-    if (!lowest || price < Number(lowest.total_price)) return row
-    return lowest
-  }, null)
-  const activeQuotationId = selectedQuotationId || (lowestQuotation ? String(lowestQuotation.id) : '')
-  const selectedQuotation = submittedQuotations.find((row) => String(row.id) === activeQuotationId) ?? null
-  const providerPrice = selectedQuotation ? Number(selectedQuotation.total_price) : null
-  const parsedCustomerPrice = Number(customerPrice)
-  const margin =
-    providerPrice != null && Number.isFinite(parsedCustomerPrice) ? parsedCustomerPrice - providerPrice : null
-  const canPublishOffer =
-    hasPermission(PERMISSIONS.QUOTATIONS_MANAGE) && shipment.status === 'published' && submittedQuotations.length > 0
   const customerName = organizationName(shipment.customer)
   const canCancel =
     hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) && shipment.status !== 'cancelled' && shipment.status !== 'awarded'
@@ -285,105 +268,16 @@ export function ShipmentDetailPage() {
       </section>
 
       {adminSelects ? (
-        <section className="mz-card mz-section">
-          <div className="mz-card__body">
-            <SectionTitle icon="quotations" title={t('shipments.platformOffer')} />
-            <p style={{ color: 'var(--mz-muted)', marginTop: 0 }}>{t('shipments.platformOfferHint')}</p>
-            {offerMessage ? <div className="mz-alert mz-alert--ok">{offerMessage}</div> : null}
-            {offerError ? <div className="mz-alert">{offerError}</div> : null}
-            {shipment.platform_offer ? (
-              <InfoGrid
-                fields={[
-                  { icon: 'quotations', label: t('common.reference'), value: shipment.platform_offer.reference },
-                  { icon: 'roles', label: t('common.status'), value: <StatusBadge status={shipment.platform_offer.status} /> },
-                  {
-                    icon: 'payments',
-                    label: t('shipments.customerPrice'),
-                    value: formatMoney(shipment.platform_offer.customer_price, shipment.platform_offer.currency ?? undefined),
-                  },
-                  {
-                    icon: 'payments',
-                    label: t('shipments.providerPrice'),
-                    value: formatMoney(shipment.platform_offer.provider_price, shipment.platform_offer.currency ?? undefined),
-                  },
-                  {
-                    icon: 'payments',
-                    label: t('shipments.margin'),
-                    value: formatMoney(shipment.platform_offer.margin_amount, shipment.platform_offer.currency ?? undefined),
-                  },
-                ]}
-              />
-            ) : null}
-            {shipment.platform_offer?.status === 'published' && hasPermission(PERMISSIONS.QUOTATIONS_MANAGE) ? (
-              <div className="mz-form-actions" style={{ marginBottom: 16 }}>
-                <button
-                  type="button"
-                  className="mz-btn mz-btn--danger"
-                  disabled={withdrawOffer.isPending}
-                  onClick={() => {
-                    if (shipment.platform_offer) withdrawOffer.mutate(shipment.platform_offer.id)
-                  }}
-                >
-                  {t('shipments.withdrawOffer')}
-                </button>
-              </div>
-            ) : null}
-            {canPublishOffer ? (
-              <form
-                className="mz-form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  if (!activeQuotationId || !Number.isFinite(parsedCustomerPrice)) return
-                  publishOffer.mutate({
-                    quotation_id: Number(activeQuotationId),
-                    customer_price: parsedCustomerPrice,
-                  })
-                }}
-              >
-                <FormField label={t('shipments.selectQuotation')} htmlFor="platform-offer-quotation" required>
-                  <select
-                    id="platform-offer-quotation"
-                    className="mz-select"
-                    value={activeQuotationId}
-                    onChange={(event) => setSelectedQuotationId(event.target.value)}
-                  >
-                    {submittedQuotations.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.reference} · {organizationName(row.provider)} · {formatMoney(row.total_price, row.currency ?? undefined)}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
-                {lowestQuotation ? (
-                  <p style={{ color: 'var(--mz-muted)', margin: 0 }}>
-                    {t('shipments.lowestQuote')}: {formatMoney(lowestQuotation.total_price, lowestQuotation.currency ?? undefined)}
-                  </p>
-                ) : null}
-                <FormField label={t('shipments.customerPrice')} htmlFor="platform-offer-price" required hint={t('shipments.customerPriceHint')}>
-                  <input
-                    id="platform-offer-price"
-                    className="mz-input"
-                    inputMode="decimal"
-                    value={customerPrice}
-                    onChange={(event) => setCustomerPrice(event.target.value)}
-                  />
-                </FormField>
-                {margin != null ? (
-                  <p style={{ margin: 0 }}>
-                    {t('shipments.margin')}: {formatMoney(margin, selectedQuotation?.currency ?? undefined)}
-                  </p>
-                ) : null}
-                <div className="mz-form-actions">
-                  <button type="submit" className="mz-btn mz-btn--primary" disabled={publishOffer.isPending || margin == null || margin < 0}>
-                    {t('shipments.publishOffer')}
-                  </button>
-                </div>
-              </form>
-            ) : submittedQuotations.length === 0 && shipment.status === 'published' ? (
-              <p style={{ color: 'var(--mz-muted)', marginBottom: 0 }}>{t('shipments.noSubmittedQuotations')}</p>
-            ) : null}
-          </div>
-        </section>
+        <CustomerOfferPanel
+          shipment={shipment}
+          canManage={hasPermission(PERMISSIONS.QUOTATIONS_MANAGE)}
+          message={offerMessage}
+          error={offerError}
+          publishing={publishOffer.isPending}
+          withdrawing={withdrawOffer.isPending}
+          onPublish={(payload) => publishOffer.mutate(payload)}
+          onWithdraw={(offerId) => withdrawOffer.mutate(offerId)}
+        />
       ) : null}
 
       <section className="mz-section">

@@ -16,6 +16,8 @@ import type {
   PaymentMethod,
   PaymentMethodInput,
   OfferSelectionSetting,
+  Project,
+  ProjectInput,
   Quotation,
   Settlement,
   Shipment,
@@ -42,6 +44,8 @@ function toParams(query: ListQuery = {}): Record<string, string | number> {
   if (query.role) params.role = query.role
   if (query.account_type) params.account_type = query.account_type
   if (query.job_id) params.job_id = query.job_id
+  if (query.project) params.project = query.project
+  if (query.without_project) params.without_project = 1
   if (query.organization_id) params.organization_id = query.organization_id
   if (query.date_from) params.date_from = query.date_from
   if (query.date_to) params.date_to = query.date_to
@@ -154,6 +158,36 @@ export async function fetchQuotations(query: ListQuery) {
 
 export async function fetchQuotation(id: string | number): Promise<Quotation> {
   const { data } = await api.get<ApiSuccess<Quotation>>(`/quotations/${id}`)
+  return unwrapData(data)
+}
+
+export async function fetchProjects(query: ListQuery) {
+  const { data } = await api.get<ApiSuccess<Project[]>>('/projects', { params: toParams(query) })
+  return unwrapList(data)
+}
+
+export async function fetchProject(id: string | number): Promise<Project> {
+  const { data } = await api.get<ApiSuccess<Project>>(`/projects/${id}`)
+  return unwrapData(data)
+}
+
+export async function createProject(payload: ProjectInput): Promise<Project> {
+  const { data } = await api.post<ApiSuccess<Project>>('/projects', payload)
+  return unwrapData(data)
+}
+
+export async function updateProject(id: string | number, payload: ProjectInput): Promise<Project> {
+  const { data } = await api.patch<ApiSuccess<Project>>(`/projects/${id}`, payload)
+  return unwrapData(data)
+}
+
+export async function attachProjectJob(projectId: string | number, jobId: number): Promise<Project> {
+  const { data } = await api.post<ApiSuccess<Project>>(`/projects/${projectId}/jobs`, { job_id: jobId })
+  return unwrapData(data)
+}
+
+export async function detachProjectJob(projectId: string | number, jobId: number): Promise<Project> {
+  const { data } = await api.delete<ApiSuccess<Project>>(`/projects/${projectId}/jobs/${jobId}`)
   return unwrapData(data)
 }
 

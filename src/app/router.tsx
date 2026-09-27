@@ -30,6 +30,10 @@ const QuotationDetailPage = lazy(() =>
 )
 const JobsPage = lazy(() => import('@/features/jobs/JobsPage.tsx').then((m) => ({ default: m.JobsPage })))
 const JobDetailPage = lazy(() => import('@/features/jobs/JobDetailPage.tsx').then((m) => ({ default: m.JobDetailPage })))
+const ProjectsPage = lazy(() => import('@/features/projects/ProjectsPage.tsx').then((m) => ({ default: m.ProjectsPage })))
+const ProjectDetailPage = lazy(() =>
+  import('@/features/projects/ProjectDetailPage.tsx').then((m) => ({ default: m.ProjectDetailPage })),
+)
 const TripsPage = lazy(() => import('@/features/trips/TripsPage.tsx').then((m) => ({ default: m.TripsPage })))
 const TripDetailPage = lazy(() => import('@/features/trips/TripDetailPage.tsx').then((m) => ({ default: m.TripDetailPage })))
 const TrackingPage = lazy(() => import('@/features/tracking/TrackingPage.tsx').then((m) => ({ default: m.TrackingPage })))
@@ -110,6 +114,8 @@ const router = createBrowserRouter([
           {
             element: <ProtectedRoute permission={PERMISSIONS.JOBS_VIEW} />,
             children: [
+              { path: '/projects', element: withSuspense(<ProjectsPage />) },
+              { path: '/projects/:id', element: withSuspense(<ProjectDetailPage />) },
               { path: '/jobs', element: withSuspense(<JobsPage />) },
               { path: '/jobs/:id', element: withSuspense(<JobDetailPage />) },
             ],

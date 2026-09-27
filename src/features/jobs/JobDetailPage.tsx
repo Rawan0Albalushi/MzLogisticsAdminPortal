@@ -15,7 +15,7 @@ import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { displayValue, formatDateTime, formatMoney, formatNumber, formatPaymentTerms, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDateTime, formatMoney, formatNumber, formatPaymentTerms, formatPercent, organizationName, projectName } from '@/shared/utils/format.ts'
 
 function numericValue(value?: string | number | null) {
   if (value == null || value === '') {
@@ -71,6 +71,12 @@ export function JobDetailPage() {
   const quotationLink = quotation ? (
     <Link className="mz-link" to={`/quotations/${quotation.id}`}>
       {quotation.reference}
+    </Link>
+  ) : null
+
+  const projectLink = job.project ? (
+    <Link className="mz-link" to={`/projects/${job.project.id}`}>
+      {projectName(job.project)}
     </Link>
   ) : null
 
@@ -139,6 +145,7 @@ export function JobDetailPage() {
                 { icon: 'providers', label: t('common.provider'), value: providerLink },
                 { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },
                 { icon: 'quotations', label: t('common.quotation'), value: quotationLink },
+                { icon: 'projects', label: t('jobs.project'), value: projectLink },
                 ...(shipment
                   ? [
                       {

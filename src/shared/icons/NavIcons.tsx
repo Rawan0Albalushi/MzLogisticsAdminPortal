@@ -9,6 +9,7 @@ export type IconName =
   | 'drivers'
   | 'shipments'
   | 'quotations'
+  | 'projects'
   | 'jobs'
   | 'trips'
   | 'tracking'
@@ -132,6 +133,13 @@ const glyphs: Record<IconName, ReactNode> = {
       <path d="M7 3.6h8.2L19.4 8v12.4H7z" />
       <path d="M15.2 3.6V8h4.2" />
       <path d="M10 11.4h5.4M10 14.4h5.4M10 17.4h3.2" />
+    </>
+  ),
+  projects: (
+    <>
+      <path d="M4.2 7.4h6.2l1.4 1.6H19.8v9.4H4.2z" fill="currentColor" opacity="0.14" />
+      <path d="M4.2 7.4h6.2l1.4 1.6H19.8v9.4H4.2z" />
+      <path d="M4.2 11.2h15.6" />
     </>
   ),
   jobs: (

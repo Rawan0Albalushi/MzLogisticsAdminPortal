@@ -21,6 +21,7 @@ export const navGroups: NavGroup[] = [
       { to: '/', labelKey: 'nav.dashboard', permission: PERMISSIONS.DASHBOARD_VIEW, icon: 'dashboard' },
       { to: '/shipments', labelKey: 'nav.shipments', permission: PERMISSIONS.SHIPMENTS_VIEW, icon: 'shipments' },
       { to: '/quotations', labelKey: 'nav.quotations', permission: PERMISSIONS.QUOTATIONS_VIEW, icon: 'quotations' },
+      { to: '/projects', labelKey: 'nav.projects', permission: PERMISSIONS.JOBS_VIEW, icon: 'projects' },
       { to: '/jobs', labelKey: 'nav.jobs', permission: PERMISSIONS.JOBS_VIEW, icon: 'jobs' },
       { to: '/trips', labelKey: 'nav.trips', permission: PERMISSIONS.TRIPS_VIEW, icon: 'trips' },
       ...(LIVE_TRACKING_ENABLED

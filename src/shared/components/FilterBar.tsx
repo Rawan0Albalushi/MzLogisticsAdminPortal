@@ -83,7 +83,11 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
   }, [i18n.language])
 
   const label = from && to ? `${from} – ${to}` : from || to || t('common.dateRange')
-  const monthLabel = new Intl.DateTimeFormat(i18n.language, { month: 'long', year: 'numeric' }).format(cursor)
+  const monthLabel = new Intl.DateTimeFormat(i18n.language, {
+    month: 'long',
+    year: 'numeric',
+    numberingSystem: 'latn',
+  }).format(cursor)
 
   const previewEnd = draftTo || (step === 'end' ? hover : '')
 
