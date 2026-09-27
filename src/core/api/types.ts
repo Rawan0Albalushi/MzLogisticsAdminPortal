@@ -246,6 +246,7 @@ export interface Trip {
   otp_required?: boolean
   otp_code?: string | null
   assigned_at?: string | null
+  scheduled_departure_at?: string | null
   arrived_pickup_at?: string | null
   loaded_at?: string | null
   in_transit_at?: string | null

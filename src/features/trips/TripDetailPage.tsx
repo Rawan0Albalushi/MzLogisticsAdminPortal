@@ -172,6 +172,7 @@ export function TripDetailPage() {
               ...(!LIVE_TRACKING_ENABLED
                 ? [{ icon: 'clock' as const, label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null }]
                 : []),
+              { icon: 'calendar', label: t('trips.scheduledDeparture'), value: trip.scheduled_departure_at ? formatDateTime(trip.scheduled_departure_at) : null },
               { icon: 'dispatch', label: t('trips.assignedAt'), value: trip.assigned_at ? formatDateTime(trip.assigned_at) : null },
               { icon: 'pickup', label: t('trips.arrivedPickupAt'), value: trip.arrived_pickup_at ? formatDateTime(trip.arrived_pickup_at) : null },
               { icon: 'shipments', label: t('trips.loadedAt'), value: trip.loaded_at ? formatDateTime(trip.loaded_at) : null },

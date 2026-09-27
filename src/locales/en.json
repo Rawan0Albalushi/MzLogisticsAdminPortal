@@ -380,6 +380,7 @@
     "otpRequired": "Receiver holds the code",
     "otpNotRequired": "Not required",
     "assignedAt": "Assigned",
+    "scheduledDeparture": "Departure",
     "arrivedPickupAt": "Arrived at pickup",
     "loadedAt": "Loaded",
     "inTransitAt": "In transit",
