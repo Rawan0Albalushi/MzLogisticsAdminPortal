@@ -124,12 +124,36 @@ export interface Shipment {
   required_date?: string | null
   notes?: string | null
   status: string
+  offer_selection_mode?: 'customer' | 'admin' | string | null
   published_at?: string | null
   customer?: Organization | null
   quotations?: Quotation[]
   quotations_count?: number
+  platform_offer?: PlatformOffer | null
   payment_terms?: PaymentTerms
   created_at?: string
+}
+
+export interface PlatformOffer {
+  id: number
+  reference: string
+  shipment_request_id: number
+  quotation_id?: number | null
+  customer_price?: string | number | null
+  provider_price?: string | number | null
+  margin_amount?: string | number | null
+  currency?: string | null
+  truck_count?: number | null
+  trip_count?: number | null
+  duration_days?: number | null
+  conditions?: string | null
+  valid_until?: string | null
+  status: string
+  provider?: Organization | null
+}
+
+export interface OfferSelectionSetting {
+  offer_selection_mode: 'customer' | 'admin'
 }
 
 export interface Quotation {

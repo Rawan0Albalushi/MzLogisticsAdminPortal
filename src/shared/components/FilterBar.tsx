@@ -177,11 +177,15 @@ export function DateRangeFilter({ from, to, onChange }: DateRangeFilterProps) {
         <div className="mz-date-range__popover" role="dialog" aria-label={t('common.dateRange')}>
           <div className="mz-date-range__nav">
             <button type="button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
-              ‹
+              <span className="mz-dir-arrow" aria-hidden="true">
+                ‹
+              </span>
             </button>
             <strong>{monthLabel}</strong>
             <button type="button" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
-              ›
+              <span className="mz-dir-arrow" aria-hidden="true">
+                ›
+              </span>
             </button>
           </div>
           <div className="mz-date-range__week">

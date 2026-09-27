@@ -15,7 +15,8 @@ import { DateRangeFilter, FilterBar } from '@/shared/components/FilterBar.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
-import { displayValue, formatCommissionRate, formatDate, formatMoney, formatNumber, formatPercent, organizationName } from '@/shared/utils/format.ts'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
+import { displayValue, formatCommissionRate, formatDate, formatMoney, formatNumber, formatPercent, formatRoute, organizationName } from '@/shared/utils/format.ts'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { MixBar } from '@/features/reports/MixBar.tsx'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
@@ -97,7 +98,7 @@ export function ReportsPage() {
     {
       id: 'route',
       header: t('shipments.routeSection'),
-      cell: (row) => `${displayValue(row.pickup_city)} → ${displayValue(row.delivery_city)}`,
+      cell: (row) => <RouteLabel from={displayValue(row.pickup_city)} to={displayValue(row.delivery_city)} />,
     },
     { id: 'date', header: t('shipments.requiredDate'), cell: (row) => formatDate(row.required_date) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
@@ -246,7 +247,7 @@ export function ReportsPage() {
                                 row.reference,
                                 organizationName(row.customer),
                                 displayValue(row.cargo_type),
-                                `${displayValue(row.pickup_city)} → ${displayValue(row.delivery_city)}`,
+                                formatRoute(displayValue(row.pickup_city), displayValue(row.delivery_city)),
                                 formatDate(row.required_date),
                                 reportStatus(t, row.status),
                               ]),

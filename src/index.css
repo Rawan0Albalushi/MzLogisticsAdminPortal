@@ -487,6 +487,29 @@ html[dir='rtl'] .mz-userchip {
   color: var(--mz-ink);
 }
 
+.mz-route {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35em;
+  max-width: 100%;
+  vertical-align: baseline;
+}
+
+.mz-route__arrow,
+.mz-dir-arrow,
+.mz-dir-icon {
+  display: inline-block;
+  direction: ltr;
+  unicode-bidi: isolate;
+  line-height: 1;
+}
+
+[dir='rtl'] .mz-route__arrow,
+[dir='rtl'] .mz-dir-arrow,
+[dir='rtl'] .mz-dir-icon {
+  transform: scaleX(-1);
+}
+
 .mz-page-header__actions {
   display: flex;
   align-items: center;
@@ -990,6 +1013,9 @@ html[dir='rtl'] .mz-userchip {
 }
 
 .mz-date-range__nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border: 1px solid var(--mz-border);

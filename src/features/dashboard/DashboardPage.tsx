@@ -12,6 +12,7 @@ import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { formatCommissionRate, formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
 import { WorkQueue } from '@/features/dashboard/WorkQueue.tsx'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
@@ -351,7 +352,13 @@ export function DashboardPage() {
               items={(shipments.data?.items ?? []).map((item) => ({
                 id: item.id,
                 title: item.reference,
-                meta: `${organizationName(item.customer)} · ${item.pickup_city ?? '—'} → ${item.delivery_city ?? '—'}`,
+                meta: (
+                  <>
+                    {organizationName(item.customer)}
+                    {' · '}
+                    <RouteLabel from={item.pickup_city ?? '—'} to={item.delivery_city ?? '—'} />
+                  </>
+                ),
                 status: item.status,
                 to: `/shipments/${item.id}`,
               }))}
@@ -385,7 +392,13 @@ export function DashboardPage() {
               items={(trips.data?.items ?? []).map((item) => ({
                 id: item.id,
                 title: item.reference,
-                meta: `${item.driver?.name ?? t('common.noValue')} · ${item.pickup_city ?? '—'} → ${item.delivery_city ?? '—'}`,
+                meta: (
+                  <>
+                    {item.driver?.name ?? t('common.noValue')}
+                    {' · '}
+                    <RouteLabel from={item.pickup_city ?? '—'} to={item.delivery_city ?? '—'} />
+                  </>
+                ),
                 status: item.status,
                 to: `/trips/${item.id}`,
               }))}

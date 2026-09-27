@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { updateMe, updateMyPassword } from '@/core/api/services.ts'
+import { fetchOfferSelectionMode, updateMe, updateMyPassword, updateOfferSelectionMode } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -15,10 +16,34 @@ export function ProfilePage() {
   const { t } = useTranslation()
   const { user, setUser, hasPermission } = useAuth()
   const catalog = useCatalog()
+  const queryClient = useQueryClient()
   const canViewCommission =
     hasPermission(PERMISSIONS.PAYMENTS_VIEW) ||
     hasPermission(PERMISSIONS.PROVIDERS_VIEW) ||
     hasPermission(PERMISSIONS.SETTLEMENTS_VIEW)
+  const canManageOfferSelection = user?.user_type === 'platform' && hasPermission(PERMISSIONS.QUOTATIONS_MANAGE)
+  const offerModeQuery = useQuery({
+    queryKey: ['offer-selection-mode'],
+    queryFn: fetchOfferSelectionMode,
+    enabled: canManageOfferSelection,
+  })
+  const [offerMode, setOfferMode] = useState<'customer' | 'admin' | ''>('')
+  const selectedOfferMode = offerMode || offerModeQuery.data?.offer_selection_mode || 'customer'
+  const [offerFeedback, setOfferFeedback] = useState('')
+  const [offerError, setOfferError] = useState('')
+  const offerModeMutation = useMutation({
+    mutationFn: (mode: 'customer' | 'admin') => updateOfferSelectionMode(mode),
+    onSuccess: async (setting) => {
+      setOfferMode(setting.offer_selection_mode)
+      setOfferError('')
+      setOfferFeedback(t('settings.offerSelectionSaved'))
+      await queryClient.invalidateQueries({ queryKey: ['offer-selection-mode'] })
+    },
+    onError: (err) => {
+      setOfferFeedback('')
+      setOfferError(getApiMessage(err, t('settings.offerSelectionFailed')))
+    },
+  })
   const [profile, setProfile] = useState({
     name: user?.name ?? '',
     phone: user?.phone ?? '',
@@ -84,6 +109,56 @@ export function ProfilePage() {
                 {t('settings.platformCommissionProviders')}
               </Link>
             ) : null}
+          </div>
+        </section>
+      ) : null}
+
+      {canManageOfferSelection ? (
+        <section className="mz-card" style={{ marginBottom: 16 }}>
+          <div className="mz-card__body">
+            <h2 className="mz-card__title">{t('settings.offerSelection')}</h2>
+            <p style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>{t('settings.offerSelectionHint')}</p>
+            {offerFeedback ? <div className="mz-alert mz-alert--ok">{offerFeedback}</div> : null}
+            {offerError ? <div className="mz-alert">{offerError}</div> : null}
+            <form
+              className="mz-form"
+              onSubmit={(event) => {
+                event.preventDefault()
+                offerModeMutation.mutate(selectedOfferMode)
+              }}
+            >
+              <label className="mz-check">
+                <input
+                  type="radio"
+                  name="offer-selection-mode"
+                  value="customer"
+                  checked={selectedOfferMode === 'customer'}
+                  onChange={() => setOfferMode('customer')}
+                />
+                <span>
+                  <strong>{t('settings.offerSelectionCustomer')}</strong>
+                  <span style={{ display: 'block', color: 'var(--mz-muted)' }}>{t('settings.offerSelectionCustomerHint')}</span>
+                </span>
+              </label>
+              <label className="mz-check">
+                <input
+                  type="radio"
+                  name="offer-selection-mode"
+                  value="admin"
+                  checked={selectedOfferMode === 'admin'}
+                  onChange={() => setOfferMode('admin')}
+                />
+                <span>
+                  <strong>{t('settings.offerSelectionAdmin')}</strong>
+                  <span style={{ display: 'block', color: 'var(--mz-muted)' }}>{t('settings.offerSelectionAdminHint')}</span>
+                </span>
+              </label>
+              <div className="mz-form-actions">
+                <button type="submit" className="mz-btn mz-btn--primary" disabled={offerModeMutation.isPending || offerModeQuery.isLoading}>
+                  {t('settings.offerSelectionSave')}
+                </button>
+              </div>
+            </form>
           </div>
         </section>
       ) : null}

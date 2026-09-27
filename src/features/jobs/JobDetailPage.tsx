@@ -13,6 +13,7 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { displayValue, formatDateTime, formatMoney, formatNumber, formatPaymentTerms, formatPercent, organizationName } from '@/shared/utils/format.ts'
 
@@ -45,9 +46,9 @@ export function JobDetailPage() {
   const providerName = organizationName(job.provider)
   const currency = job.currency ?? undefined
   const routeLabel =
-    shipment?.pickup_city || shipment?.delivery_city
-      ? `${displayValue(shipment?.pickup_city)} → ${displayValue(shipment?.delivery_city)}`
-      : null
+    shipment?.pickup_city || shipment?.delivery_city ? (
+      <RouteLabel from={displayValue(shipment?.pickup_city)} to={displayValue(shipment?.delivery_city)} />
+    ) : null
 
   const customerLink = job.customer ? (
     <Link className="mz-link" to={`/customers/${job.customer.id}`}>

@@ -10,6 +10,7 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
@@ -45,7 +46,7 @@ export function ShipmentsPage() {
     },
     { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
     { id: 'cargo', header: t('shipments.cargoType'), cell: (row) => displayValue(row.cargo_type) },
-    { id: 'route', header: t('common.pickup'), cell: (row) => `${displayValue(row.pickup_city)} → ${displayValue(row.delivery_city)}` },
+    { id: 'route', header: t('common.pickup'), cell: (row) => <RouteLabel from={displayValue(row.pickup_city)} to={displayValue(row.delivery_city)} /> },
     { id: 'date', header: t('shipments.requiredDate'), cell: (row) => formatDate(row.required_date) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
     {

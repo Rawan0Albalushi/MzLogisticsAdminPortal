@@ -71,7 +71,7 @@ export function TopBar({ onMenu }: TopBarProps) {
                   void logout()
                 }}
               >
-                <AppIcon name="logout" width={16} height={16} />
+                <AppIcon className="mz-dir-icon" name="logout" width={16} height={16} />
                 {t('common.logout')}
               </button>
             </div>

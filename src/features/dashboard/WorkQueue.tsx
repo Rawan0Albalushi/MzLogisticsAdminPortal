@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
@@ -10,7 +11,7 @@ import type { IconName } from '@/shared/icons/NavIcons.tsx'
 export interface WorkQueueItem {
   id: number
   title: string
-  meta: string
+  meta: ReactNode
   status: string
   to: string
 }

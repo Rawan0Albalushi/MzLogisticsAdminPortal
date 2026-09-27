@@ -15,6 +15,7 @@ import type {
   Payment,
   PaymentMethod,
   PaymentMethodInput,
+  OfferSelectionSetting,
   Quotation,
   Settlement,
   Shipment,
@@ -121,6 +122,29 @@ export async function fetchShipments(query: ListQuery) {
 export async function fetchShipment(id: string | number): Promise<Shipment> {
   const { data } = await api.get<ApiSuccess<Shipment>>(`/shipments/${id}`)
   return unwrapData(data)
+}
+
+export async function fetchOfferSelectionMode(): Promise<OfferSelectionSetting> {
+  const { data } = await api.get<ApiSuccess<OfferSelectionSetting>>('/settings/offer-selection')
+  return unwrapData(data)
+}
+
+export async function updateOfferSelectionMode(mode: 'customer' | 'admin'): Promise<OfferSelectionSetting> {
+  const { data } = await api.put<ApiSuccess<OfferSelectionSetting>>('/settings/offer-selection', {
+    offer_selection_mode: mode,
+  })
+  return unwrapData(data)
+}
+
+export async function publishPlatformOffer(
+  shipmentId: string | number,
+  payload: { quotation_id: number; customer_price: number },
+): Promise<void> {
+  await api.post(`/shipments/${shipmentId}/platform-offers`, payload)
+}
+
+export async function withdrawPlatformOffer(offerId: string | number): Promise<void> {
+  await api.post(`/platform-offers/${offerId}/withdraw`)
 }
 
 export async function fetchQuotations(query: ListQuery) {

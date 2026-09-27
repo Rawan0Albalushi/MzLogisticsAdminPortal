@@ -11,6 +11,7 @@ import { TripTimeline } from '@/features/trips/TripTimeline.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
 import { displayValue, formatCoords, formatDateTime, formatNumber } from '@/shared/utils/format.ts'
@@ -38,9 +39,9 @@ export function TripDetailPage() {
   const trip = query.data
   const pod = trip.proof_of_delivery
   const routeLabel =
-    trip.pickup_city || trip.delivery_city
-      ? `${displayValue(trip.pickup_city)} → ${displayValue(trip.delivery_city)}`
-      : null
+    trip.pickup_city || trip.delivery_city ? (
+      <RouteLabel from={displayValue(trip.pickup_city)} to={displayValue(trip.delivery_city)} />
+    ) : null
 
   const jobLink = trip.job ? (
     <Link className="mz-link" to={`/jobs/${trip.job.id}`}>

@@ -27,6 +27,14 @@ export function displayValue(value: string | number | null | undefined): string 
   return String(value)
 }
 
+/** Plain-text route for exports. The arrow is isolated so RTL text does not mirror it twice. */
+export function formatRoute(from: string, to: string, language = i18n.language): string {
+  const rtl = language.startsWith('ar')
+  const arrow = rtl ? '\u2066\u2190\u2069' : '\u2066\u2192\u2069'
+  const embed = rtl ? '\u202B' : '\u202A'
+  return `${embed}${from} ${arrow} ${to}\u202C`
+}
+
 export function organizationName(organization?: Organization | null): string {
   if (!organization) {
     return i18n.t('common.noValue')

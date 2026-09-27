@@ -11,6 +11,7 @@ import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { displayValue, formatDate, formatMoney, formatNumber, organizationName } from '@/shared/utils/format.ts'
 
@@ -80,9 +81,9 @@ export function QuotationDetailPage() {
     totalAmount != null && additionalAmount != null && additionalAmount > 0 ? totalAmount - additionalAmount : null
   const validityExpired = quotation.status === 'submitted' && isPastDate(quotation.valid_until)
   const routeLabel =
-    shipment?.pickup_city || shipment?.delivery_city
-      ? `${displayValue(shipment?.pickup_city)} → ${displayValue(shipment?.delivery_city)}`
-      : null
+    shipment?.pickup_city || shipment?.delivery_city ? (
+      <RouteLabel from={displayValue(shipment?.pickup_city)} to={displayValue(shipment?.delivery_city)} />
+    ) : null
 
   const providerLink = quotation.provider ? (
     <Link className="mz-link" to={`/providers/${quotation.provider.id}`}>

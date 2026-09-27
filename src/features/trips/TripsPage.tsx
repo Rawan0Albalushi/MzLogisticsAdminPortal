@@ -10,6 +10,7 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { displayValue } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
@@ -44,7 +45,7 @@ export function TripsPage() {
       ),
     },
     { id: 'job', header: t('common.job'), cell: (row) => displayValue(row.job?.reference) },
-    { id: 'route', header: t('common.pickup'), cell: (row) => `${displayValue(row.pickup_city)} → ${displayValue(row.delivery_city)}` },
+    { id: 'route', header: t('common.pickup'), cell: (row) => <RouteLabel from={displayValue(row.pickup_city)} to={displayValue(row.delivery_city)} /> },
     { id: 'driver', header: t('common.driver'), cell: (row) => displayValue(row.driver?.name) },
     { id: 'truck', header: t('common.truck'), cell: (row) => displayValue(row.truck?.plate_number) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },

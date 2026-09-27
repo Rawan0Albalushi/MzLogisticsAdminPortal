@@ -10,6 +10,7 @@ import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
+import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { displayValue, formatCoords, formatDateTime, mapUrl } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
@@ -134,7 +135,7 @@ export function TrackingPage() {
                   {t('common.truck')}: {displayValue(trip.truck?.plate_number)}
                 </p>
                 <p>
-                  {displayValue(trip.pickup_city)} → {displayValue(trip.delivery_city)}
+                  <RouteLabel from={displayValue(trip.pickup_city)} to={displayValue(trip.delivery_city)} />
                 </p>
                 <p className="mz-coords">
                   {t('common.location')}: {formatCoords(trip.current_lat, trip.current_lng)}
