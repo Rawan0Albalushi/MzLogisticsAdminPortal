@@ -688,6 +688,7 @@ html[dir='rtl'] .mz-userchip {
 .mz-section-title {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -697,6 +698,10 @@ html[dir='rtl'] .mz-userchip {
 }
 
 .mz-section-title__extra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
   margin-inline-start: auto;
   color: var(--mz-muted);
   font-size: 15px;
@@ -1074,6 +1079,87 @@ html[dir='rtl'] .mz-userchip {
   resize: vertical;
 }
 
+.mz-picker {
+  position: relative;
+}
+
+.mz-picker__trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mz-picker__trigger span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mz-picker__trigger.is-empty {
+  color: var(--mz-muted);
+}
+
+.mz-picker__trigger::after {
+  content: '';
+  flex: none;
+  border-inline-start: 4px solid transparent;
+  border-inline-end: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  opacity: 0.55;
+}
+
+.mz-picker__panel {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  padding: 8px;
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  background: var(--mz-card);
+  box-shadow: var(--mz-shadow);
+}
+
+.mz-picker__panel .mz-input {
+  width: 100%;
+}
+
+.mz-picker__list {
+  list-style: none;
+  max-height: 220px;
+  margin: 8px 0 0;
+  padding: 0;
+  overflow: auto;
+}
+
+.mz-picker__option {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.mz-picker__option:hover,
+.mz-picker__option.is-selected {
+  background: var(--mz-surface);
+}
+
+.mz-picker__empty {
+  padding: 8px 10px;
+  color: var(--mz-muted);
+  font-size: 13px;
+}
+
 .mz-search:focus,
 .mz-select:focus,
 .mz-input:focus,
@@ -1438,6 +1524,10 @@ a.mz-profile__chip:hover {
   margin-top: 12px;
 }
 
+.mz-owner-switch {
+  margin: 4px 0 16px;
+}
+
 .mz-progress {
   height: 8px;
   background: var(--mz-purple-soft);
@@ -1591,6 +1681,122 @@ html[dir='rtl'] .mz-timeline__step::after {
 
 .mz-dialog--wide {
   width: min(760px, 100%);
+}
+
+.mz-dialog--map {
+  width: min(920px, 100%);
+  height: min(88vh, 860px);
+}
+
+.mz-dialog--map .mz-dialog__body {
+  min-height: 0;
+  flex: 1;
+}
+
+.mz-location {
+  display: grid;
+  gap: 8px;
+}
+
+.mz-location__trigger {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+.mz-location__summary {
+  display: grid;
+  gap: 2px;
+}
+
+.mz-location__summary p,
+.mz-location__meta {
+  margin: 0;
+}
+
+.mz-location__meta,
+.mz-location__link {
+  color: var(--mz-muted);
+  font-size: 13px;
+}
+
+.mz-location__link {
+  color: var(--mz-purple-800);
+}
+
+.mz-location-dialog {
+  display: grid;
+  gap: 10px;
+}
+
+.mz-location-dialog .mz-field > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mz-location__suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  max-height: 180px;
+  overflow: auto;
+}
+
+.mz-location__suggestions button {
+  width: 100%;
+  display: grid;
+  gap: 2px;
+  text-align: start;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--mz-border);
+  padding: 8px 12px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.mz-location__suggestions li:last-child button {
+  border-bottom: 0;
+}
+
+.mz-location__suggestions button:hover {
+  background: var(--mz-row-hover);
+}
+
+.mz-location__suggestions small {
+  color: var(--mz-muted);
+}
+
+.mz-map {
+  height: min(280px, 36vh);
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+  overflow: hidden;
+  direction: ltr;
+}
+
+.mz-map__canvas {
+  height: 100%;
+  width: 100%;
+}
+
+.mz-map-pin {
+  background: transparent;
+  border: 0;
+}
+
+.mz-map-pin__dot {
+  display: block;
+  width: 16px;
+  height: 16px;
+  margin-inline-start: 3px;
+  border-radius: 50% 50% 50% 0;
+  background: var(--mz-purple);
+  transform: rotate(-45deg);
+  border: 2px solid #fff;
+  box-shadow: 0 1px 3px rgb(var(--mz-ink-rgb) / 28%);
 }
 
 .mz-dialog-backdrop--in .mz-dialog {
@@ -2235,6 +2441,92 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   gap: 8px;
 }
 
+.mz-import {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mz-import__hint,
+.mz-import__summary {
+  margin: 0;
+  max-width: 68ch;
+}
+
+.mz-import__hint {
+  color: var(--mz-muted);
+}
+
+.mz-import__summary {
+  font-weight: 600;
+}
+
+.mz-import__results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mz-import__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mz-import__list li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--mz-border);
+}
+
+.mz-import__list li > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.mz-import__list small {
+  color: var(--mz-muted);
+  overflow-wrap: anywhere;
+}
+
+.mz-import__row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mz-import-error {
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mz-danger-soft);
+}
+
+.mz-import-error p {
+  margin: 2px 0 0;
+  color: var(--mz-danger);
+}
+
+.mz-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .mz-check {
   display: inline-flex;
   align-items: flex-start;
@@ -2668,6 +2960,10 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   .mz-dialog {
     width: min(560px, 100%);
   }
+
+  .mz-dialog--wide {
+    width: min(760px, 100%);
+  }
 }
 
 @media (min-width: 1600px) {
@@ -2981,6 +3277,10 @@ html[dir='rtl'] .mz-queue-list__row:hover {
 @media (max-width: 640px) {
   :root {
     --mz-topbar: 56px;
+  }
+
+  .mz-map {
+    height: 240px;
   }
 
   .mz-topbar {

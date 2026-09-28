@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchCustomers } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { CUSTOMER_ACCOUNT_TYPES, ORGANIZATION_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
@@ -18,6 +20,8 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function CustomersPage() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission(PERMISSIONS.CUSTOMERS_MANAGE)
   const list = useListQuery()
   const query = useQuery({
     queryKey: ['customers', list.search, list.status, list.accountType, list.city, list.dateFrom, list.dateTo, list.page],
@@ -74,7 +78,13 @@ export function CustomersPage() {
         title={t('customers.title')}
         subtitle={t('customers.subtitle')}
         actions={
-          <DownloadReportButton
+          <>
+            {canCreate ? (
+              <Link className="mz-btn mz-btn--primary" to="/customers/new">
+                {t('customers.create')}
+              </Link>
+            ) : null}
+            <DownloadReportButton
             build={async () => {
               const items = await fetchAllPages((page, perPage) =>
                 fetchCustomers({
@@ -112,6 +122,7 @@ export function CustomersPage() {
               })
             }}
           />
+          </>
         }
       />
       <FilterBar>

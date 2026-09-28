@@ -2,6 +2,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchShipments } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import type { Shipment } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
@@ -18,6 +20,8 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function ShipmentsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission(PERMISSIONS.SHIPMENTS_MANAGE)
   const list = useListQuery()
   const catalog = useCatalog()
   const statuses = catalog.data?.shipment_statuses ?? ['draft', 'published', 'awarded', 'cancelled', 'expired']
@@ -66,7 +70,13 @@ export function ShipmentsPage() {
         title={t('shipments.title')}
         subtitle={t('shipments.subtitle')}
         actions={
-          <DownloadReportButton
+          <>
+            {canCreate ? (
+              <Link className="mz-btn mz-btn--primary" to="/shipments/new">
+                {t('shipments.create')}
+              </Link>
+            ) : null}
+            <DownloadReportButton
             build={async () => {
               const items = await fetchAllPages((page, perPage) =>
                 fetchShipments({
@@ -104,6 +114,7 @@ export function ShipmentsPage() {
               })
             }}
           />
+          </>
         }
       />
       <FilterBar>

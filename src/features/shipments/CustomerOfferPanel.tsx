@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { fetchTruckTypes, type PlatformOfferInput } from '@/core/api/services.ts'
 import type { PlatformOffer, Quotation, Shipment } from '@/core/api/types.ts'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
@@ -15,8 +17,10 @@ interface CustomerOfferPanelProps {
   message: string
   error: string
   publishing: boolean
+  confirming: boolean
   withdrawing: boolean
-  onPublish: (payload: { quotation_id: number; customer_price: number }) => void
+  onPublish: (payload: PlatformOfferInput) => void
+  onConfirm: (offerId: number) => void
   onWithdraw: (offerId: number) => void
 }
 
@@ -59,14 +63,29 @@ export function CustomerOfferPanel({
   message,
   error,
   publishing,
+  confirming,
   withdrawing,
   onPublish,
+  onConfirm,
   onWithdraw,
 }: CustomerOfferPanelProps) {
   const { t } = useTranslation()
   const [selectedQuotationId, setSelectedQuotationId] = useState('')
   const [priceMode, setPriceMode] = useState<PriceMode>('fixed')
   const [amountInput, setAmountInput] = useState('')
+  const [source, setSource] = useState<'provider' | 'platform'>('provider')
+  const [ownedForm, setOwnedForm] = useState({
+    total_price: '',
+    truck_count: '1',
+    truck_type: '',
+    truck_capacity_tons: '',
+    trip_count: '1',
+    quantity_per_trip: '',
+    duration_days: '1',
+    additional_costs: '',
+    conditions: '',
+  })
+  const truckTypes = useQuery({ queryKey: ['truck-types'], queryFn: fetchTruckTypes })
 
   const quotations = (shipment.quotations ?? []).filter((row) => row.status === 'submitted')
   const selectable = quotations.filter((row) => !isExpired(row.valid_until))
@@ -99,6 +118,19 @@ export function CustomerOfferPanel({
     margin != null && providerPrice != null && providerPrice > 0 ? (margin / providerPrice) * 100 : null
   const priceTooLow = margin != null && margin < 0
   const canPublish = canManage && shipment.status === 'published' && selectable.length > 0
+  const canCompose = canManage && shipment.status === 'published'
+  const ownedPrice = Number(ownedForm.total_price)
+  const ownedReady =
+    ownedForm.total_price.trim() !== '' &&
+    Number.isFinite(ownedPrice) &&
+    ownedPrice > 0 &&
+    Number(ownedForm.truck_count) >= 1 &&
+    ownedForm.truck_type !== '' &&
+    Number(ownedForm.truck_capacity_tons) > 0 &&
+    Number(ownedForm.trip_count) >= 1 &&
+    Number(ownedForm.quantity_per_trip) > 0 &&
+    Number(ownedForm.duration_days) >= 1
+  const activeTruckTypes = (truckTypes.data ?? []).filter((row) => row.is_active)
   const unitLabel = shipment.quantity_unit
     ? t(`common.quantityUnits.${shipment.quantity_unit}`, { defaultValue: shipment.quantity_unit })
     : null
@@ -124,21 +156,182 @@ export function CustomerOfferPanel({
             offer={shipment.platform_offer}
             quotation={quotations.find((row) => row.id === shipment.platform_offer?.quotation_id) ?? null}
             unitLabel={unitLabel}
+            canConfirm={canManage && shipment.status === 'published' && shipment.platform_offer.status === 'published'}
+            confirming={confirming}
             canWithdraw={canManage && shipment.platform_offer.status === 'published'}
             withdrawing={withdrawing}
+            onConfirm={() => {
+              if (shipment.platform_offer) onConfirm(shipment.platform_offer.id)
+            }}
             onWithdraw={() => {
               if (shipment.platform_offer) onWithdraw(shipment.platform_offer.id)
             }}
           />
         ) : null}
 
-        {canPublish ? (
+        {canCompose ? (
+          <div className="mz-offer__group">
+            <h3 id="offer-source">{t('shipments.offerSource')}</h3>
+            <div className="mz-segment" role="radiogroup" aria-labelledby="offer-source">
+              <label className={source === 'provider' ? 'is-active' : undefined}>
+                <input
+                  type="radio"
+                  name="offer-source"
+                  checked={source === 'provider'}
+                  onChange={() => setSource('provider')}
+                />
+                {t('shipments.offerFromProvider')}
+              </label>
+              <label className={source === 'platform' ? 'is-active' : undefined}>
+                <input
+                  type="radio"
+                  name="offer-source"
+                  checked={source === 'platform'}
+                  onChange={() => setSource('platform')}
+                />
+                {t('shipments.offerFromPlatform')}
+              </label>
+            </div>
+          </div>
+        ) : null}
+
+        {source === 'platform' && canCompose ? (
+          <form
+            className="mz-form mz-offer-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (!ownedReady) return
+              const confirm = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'confirm'
+              const additional = ownedForm.additional_costs.trim()
+              onPublish({
+                total_price: ownedPrice,
+                truck_count: Number(ownedForm.truck_count),
+                truck_type: ownedForm.truck_type,
+                truck_capacity_tons: Number(ownedForm.truck_capacity_tons),
+                trip_count: Number(ownedForm.trip_count),
+                quantity_per_trip: Number(ownedForm.quantity_per_trip),
+                duration_days: Number(ownedForm.duration_days),
+                ...(additional !== '' && Number.isFinite(Number(additional)) ? { additional_costs: Number(additional) } : {}),
+                ...(ownedForm.conditions.trim() ? { conditions: ownedForm.conditions.trim() } : {}),
+                confirm,
+              })
+            }}
+          >
+            <p className="mz-offer__hint">{t('shipments.platformOfferFormHint')}</p>
+            <FormField label={t('shipments.customerPrice')} htmlFor="owned-price" required>
+              <input
+                id="owned-price"
+                className="mz-input"
+                inputMode="decimal"
+                value={ownedForm.total_price}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, total_price: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.truckCount')} htmlFor="owned-trucks" required>
+              <input
+                id="owned-trucks"
+                className="mz-input"
+                inputMode="numeric"
+                value={ownedForm.truck_count}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_count: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.truckType')} htmlFor="owned-type" required>
+              <select
+                id="owned-type"
+                className="mz-select"
+                value={ownedForm.truck_type}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_type: event.target.value }))}
+                required
+              >
+                <option value="">{t('shipments.chooseTruckType')}</option>
+                {activeTruckTypes.map((row) => (
+                  <option key={row.id} value={row.code}>
+                    {row.name_ar && row.name_ar !== row.name ? `${row.name} / ${row.name_ar}` : row.name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+            <FormField label={t('quotations.truckCapacity')} htmlFor="owned-capacity" required>
+              <input
+                id="owned-capacity"
+                className="mz-input"
+                inputMode="decimal"
+                value={ownedForm.truck_capacity_tons}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_capacity_tons: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.tripCount')} htmlFor="owned-trips" required>
+              <input
+                id="owned-trips"
+                className="mz-input"
+                inputMode="numeric"
+                value={ownedForm.trip_count}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, trip_count: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.quantityPerTrip')} htmlFor="owned-quantity" required>
+              <input
+                id="owned-quantity"
+                className="mz-input"
+                inputMode="decimal"
+                value={ownedForm.quantity_per_trip}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, quantity_per_trip: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.duration')} htmlFor="owned-duration" required>
+              <input
+                id="owned-duration"
+                className="mz-input"
+                inputMode="numeric"
+                value={ownedForm.duration_days}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, duration_days: event.target.value }))}
+                required
+              />
+            </FormField>
+            <FormField label={t('quotations.additionalCosts')} htmlFor="owned-extra">
+              <input
+                id="owned-extra"
+                className="mz-input"
+                inputMode="decimal"
+                value={ownedForm.additional_costs}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, additional_costs: event.target.value }))}
+              />
+            </FormField>
+            <FormField label={t('quotations.conditions')} htmlFor="owned-conditions">
+              <textarea
+                id="owned-conditions"
+                className="mz-input"
+                value={ownedForm.conditions}
+                maxLength={2000}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, conditions: event.target.value }))}
+              />
+            </FormField>
+            <p className="mz-offer__hint">{t('shipments.offerActionHint')}</p>
+            <div className="mz-form-actions">
+              <button type="submit" value="publish" className="mz-btn mz-btn--ghost" disabled={publishing || confirming || !ownedReady}>
+                {t('shipments.publishOffer')}
+              </button>
+              <button type="submit" value="confirm" className="mz-btn mz-btn--primary" disabled={publishing || confirming || !ownedReady}>
+                {t('shipments.confirmAgreement')}
+              </button>
+            </div>
+          </form>
+        ) : null}
+
+        {source === 'provider' && canPublish ? (
           <form
             className="mz-form mz-offer-form"
             onSubmit={(event) => {
               event.preventDefault()
               if (!selected || customerPrice == null || priceTooLow) return
-              onPublish({ quotation_id: selected.id, customer_price: customerPrice })
+              const confirm = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'confirm'
+              onPublish({ quotation_id: selected.id, customer_price: customerPrice, confirm })
             }}
           >
             <div className="mz-offer__group">
@@ -245,19 +438,29 @@ export function CustomerOfferPanel({
               </div>
             </div>
 
+            <p className="mz-offer__hint">{t('shipments.offerActionHint')}</p>
             <div className="mz-form-actions">
               <button
                 type="submit"
-                className="mz-btn mz-btn--primary"
-                disabled={publishing || customerPrice == null || priceTooLow}
+                value="publish"
+                className="mz-btn mz-btn--ghost"
+                disabled={publishing || confirming || customerPrice == null || priceTooLow}
               >
                 {t('shipments.publishOffer')}
               </button>
+              <button
+                type="submit"
+                value="confirm"
+                className="mz-btn mz-btn--primary"
+                disabled={publishing || confirming || customerPrice == null || priceTooLow}
+              >
+                {t('shipments.confirmAgreement')}
+              </button>
             </div>
           </form>
-        ) : quotations.length === 0 && shipment.status === 'published' ? (
+        ) : source === 'provider' && quotations.length === 0 && shipment.status === 'published' ? (
           <p className="mz-offer__hint">{t('shipments.noSubmittedQuotations')}</p>
-        ) : selectable.length === 0 && quotations.length > 0 && shipment.status === 'published' ? (
+        ) : source === 'provider' && selectable.length === 0 && quotations.length > 0 && shipment.status === 'published' ? (
           <p className="mz-offer__hint">{t('shipments.noValidQuotations')}</p>
         ) : null}
       </div>
@@ -324,27 +527,34 @@ function PublishedOffer({
   offer,
   quotation,
   unitLabel,
+  canConfirm,
+  confirming,
   canWithdraw,
   withdrawing,
+  onConfirm,
   onWithdraw,
 }: {
   offer: PlatformOffer
   quotation: Quotation | null
   unitLabel: string | null
+  canConfirm: boolean
+  confirming: boolean
   canWithdraw: boolean
   withdrawing: boolean
+  onConfirm: () => void
   onWithdraw: () => void
 }) {
   const { t } = useTranslation()
+  const owned = offer.owned_by_platform === true
   const providerPrice = moneyAmount(offer.provider_price)
   const customerPrice = moneyAmount(offer.customer_price)
   const margin = moneyAmount(offer.margin_amount)
   const marginPercent =
-    providerPrice != null && providerPrice > 0 && customerPrice != null
+    !owned && providerPrice != null && providerPrice > 0 && customerPrice != null
       ? ((customerPrice - providerPrice) / providerPrice) * 100
       : null
   const currency = offer.currency ?? undefined
-  const provider = offer.provider ?? quotation?.provider
+  const provider = owned ? null : (offer.provider ?? quotation?.provider)
 
   return (
     <article className="mz-offer-live">
@@ -352,6 +562,7 @@ function PublishedOffer({
         <div>
           <h3>{t('shipments.currentOffer')}</h3>
           <p>{offer.reference}</p>
+          {owned ? <p>{t('shipments.platformFulfillment')}</p> : null}
           {provider ? (
             <Link className="mz-link" to={`/providers/${provider.id}`}>
               {organizationName(provider)}
@@ -365,17 +576,21 @@ function PublishedOffer({
           <span>{t('shipments.customerPrice')}</span>
           <strong>{formatMoney(offer.customer_price, currency)}</strong>
         </div>
-        <div>
-          <span>{t('shipments.providerPrice')}</span>
-          <strong>{formatMoney(offer.provider_price, currency)}</strong>
-        </div>
-        <div>
-          <span>{t('shipments.margin')}</span>
-          <strong>
-            {formatMoney(margin, currency)}
-            {marginPercent != null ? <small>{formatMarkup(marginPercent)}</small> : null}
-          </strong>
-        </div>
+        {owned ? null : (
+          <div>
+            <span>{t('shipments.providerPrice')}</span>
+            <strong>{formatMoney(offer.provider_price, currency)}</strong>
+          </div>
+        )}
+        {owned ? null : (
+          <div>
+            <span>{t('shipments.margin')}</span>
+            <strong>
+              {formatMoney(margin, currency)}
+              {marginPercent != null ? <small>{formatMarkup(marginPercent)}</small> : null}
+            </strong>
+          </div>
+        )}
       </div>
       <OfferFacts
         detail={{
@@ -386,18 +601,26 @@ function PublishedOffer({
           trip_count: offer.trip_count,
           quantity_per_trip: offer.quantity_per_trip,
           duration_days: offer.duration_days,
-          additional_costs: quotation?.additional_costs,
+          additional_costs: offer.additional_costs ?? quotation?.additional_costs,
           valid_until: offer.valid_until,
           currency: offer.currency,
         }}
         unitLabel={unitLabel}
         note={offer.conditions}
       />
-      {canWithdraw ? (
+      {canConfirm ? <p className="mz-offer__hint">{t('shipments.agreementPending')}</p> : null}
+      {canConfirm || canWithdraw ? (
         <div className="mz-form-actions">
-          <button type="button" className="mz-btn mz-btn--danger" disabled={withdrawing} onClick={onWithdraw}>
-            {t('shipments.withdrawOffer')}
-          </button>
+          {canConfirm ? (
+            <button type="button" className="mz-btn mz-btn--primary" disabled={confirming || withdrawing} onClick={onConfirm}>
+              {t('shipments.confirmAgreement')}
+            </button>
+          ) : null}
+          {canWithdraw ? (
+            <button type="button" className="mz-btn mz-btn--danger" disabled={withdrawing || confirming} onClick={onWithdraw}>
+              {t('shipments.withdrawOffer')}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>

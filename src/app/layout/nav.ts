@@ -34,6 +34,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { to: '/customers', labelKey: 'nav.customers', permission: PERMISSIONS.CUSTOMERS_VIEW, icon: 'customers' },
       { to: '/providers', labelKey: 'nav.providers', permission: PERMISSIONS.PROVIDERS_VIEW, icon: 'providers' },
+      { to: '/fleet', labelKey: 'nav.fleet', permission: PERMISSIONS.FLEET_VIEW, icon: 'fleet' },
       { to: '/truck-types', labelKey: 'nav.truckTypes', permission: PERMISSIONS.FLEET_MANAGE, icon: 'truckTypes' },
       { to: '/drivers', labelKey: 'nav.drivers', permission: PERMISSIONS.DRIVERS_VIEW, icon: 'drivers' },
     ],
@@ -46,6 +47,7 @@ export const navGroups: NavGroup[] = [
       { to: '/invoices', labelKey: 'nav.invoices', permission: PERMISSIONS.INVOICES_VIEW, icon: 'invoices' },
       { to: '/wallets', labelKey: 'nav.wallets', permission: PERMISSIONS.WALLETS_VIEW, icon: 'wallets' },
       { to: '/settlements', labelKey: 'nav.settlements', permission: PERMISSIONS.SETTLEMENTS_VIEW, icon: 'settlements' },
+      { to: '/driver-payables', labelKey: 'nav.driverPayables', permission: PERMISSIONS.SETTLEMENTS_VIEW, icon: 'settlements' },
       { to: '/reports', labelKey: 'nav.reports', permission: PERMISSIONS.REPORTS_VIEW, icon: 'reports' },
     ],
   },

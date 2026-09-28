@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
-import { Navigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchOrganization } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
@@ -27,6 +29,7 @@ function ContactValue({ value, href }: { value?: string | null; href: string }) 
 export function CustomerDetailPage() {
   const { id = '' } = useParams()
   const { t, i18n } = useTranslation()
+  const { hasPermission } = useAuth()
   const query = useQuery({ queryKey: ['organization', id], queryFn: () => fetchOrganization(id), enabled: Boolean(id) })
 
   if (query.isLoading) {
@@ -65,6 +68,11 @@ export function CustomerDetailPage() {
         crumbs={[{ label: t('customers.title'), to: '/customers' }, { label: primaryName }]}
         actions={
           <>
+            {org.status === 'active' && hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) ? (
+              <Link className="mz-btn mz-btn--primary" to={`/shipments/new?customer=${org.id}`}>
+                {t('shipments.createForCustomer')}
+              </Link>
+            ) : null}
             <StatusBadge status={accountType} />
             <StatusBadge status={org.status} />
           </>

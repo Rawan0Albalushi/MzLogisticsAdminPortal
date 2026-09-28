@@ -56,11 +56,13 @@ export function JobDetailPage() {
     </Link>
   ) : null
 
-  const providerLink = job.provider ? (
+  const providerLink = job.provider && job.provider.type !== 'platform' ? (
     <Link className="mz-link" to={`/providers/${job.provider.id}`}>
       {providerName}
     </Link>
-  ) : null
+  ) : (
+    providerName
+  )
 
   const shipmentLink = shipment ? (
     <Link className="mz-link" to={`/shipments/${shipment.id}`}>
@@ -85,6 +87,9 @@ export function JobDetailPage() {
     { id: 'seq', header: t('trips.sequence'), cell: (row) => displayValue(row.sequence) },
     { id: 'driver', header: t('common.driver'), cell: (row) => displayValue(row.driver?.name) },
     { id: 'truck', header: t('common.truck'), cell: (row) => displayValue(row.truck?.plate_number) },
+    ...(job.driver_cost != null
+      ? [{ id: 'pay', header: t('trips.driverPay'), cell: (row: Trip) => formatMoney(row.driver_pay_amount, currency) }]
+      : []),
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
     {
       id: 'actions',
@@ -123,10 +128,17 @@ export function JobDetailPage() {
                     </Link>
                   ) : null}
                   {job.provider ? (
-                    <Link className="mz-profile__chip" to={`/providers/${job.provider.id}`}>
-                      <AppIcon name="providers" />
-                      {providerName}
-                    </Link>
+                    job.provider.type === 'platform' ? (
+                      <span className="mz-profile__chip">
+                        <AppIcon name="providers" />
+                        {providerName}
+                      </span>
+                    ) : (
+                      <Link className="mz-profile__chip" to={`/providers/${job.provider.id}`}>
+                        <AppIcon name="providers" />
+                        {providerName}
+                      </Link>
+                    )
                   ) : null}
                   {routeLabel ? (
                     <span className="mz-profile__chip">
@@ -141,6 +153,12 @@ export function JobDetailPage() {
             <InfoGrid
               fields={[
                 { icon: 'payments', label: t('quotations.price'), value: formatMoney(job.total_price, currency) },
+                ...(job.driver_cost != null
+                  ? [
+                      { icon: 'drivers' as const, label: t('jobs.driverCost'), value: formatMoney(job.driver_cost, currency) },
+                      { icon: 'settlements' as const, label: t('jobs.netAmount'), value: formatMoney(job.net_amount, currency) },
+                    ]
+                  : []),
                 { icon: 'customers', label: t('common.customer'), value: customerLink },
                 { icon: 'providers', label: t('common.provider'), value: providerLink },
                 { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },

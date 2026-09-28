@@ -54,6 +54,7 @@ export interface DriverProfile {
   organization_id: number
   license_number?: string | null
   license_expires_at?: string | null
+  trip_rate?: string | number | null
   status?: string | null
 }
 
@@ -154,6 +155,8 @@ export interface PlatformOffer {
   valid_until?: string | null
   status: string
   provider?: Organization | null
+  owned_by_platform?: boolean
+  additional_costs?: string | number | null
 }
 
 export interface OfferSelectionSetting {
@@ -204,6 +207,8 @@ export interface TransportJob {
   status: string
   project?: Project | null
   total_price?: string | number | null
+  driver_cost?: string | number | null
+  net_amount?: string | number | null
   currency?: string | null
   total_quantity?: string | number | null
   delivered_quantity?: string | number | null
@@ -216,6 +221,17 @@ export interface TransportJob {
   quotation?: Quotation | null
   trips?: Trip[]
   created_at?: string
+}
+
+export interface Equipment {
+  id: number
+  name: string
+  type?: string | null
+  quantity: number
+  status: string
+  truck_id?: number | null
+  truck?: { id: number; plate_number: string } | null
+  organization?: Organization | null
 }
 
 export interface Truck {
@@ -274,10 +290,25 @@ export interface Trip {
   arrived_at?: string | null
   delivered_at?: string | null
   completed_at?: string | null
+  driver_pay_amount?: string | number | null
+  driver_payable?: { id: number; status: string; amount?: string | number | null; paid_at?: string | null } | null
   job?: TransportJob | null
   truck?: Truck | null
   driver?: AuthUser | null
   proof_of_delivery?: ProofOfDelivery | null
+  created_at?: string
+}
+
+export interface DriverPayable {
+  id: number
+  reference: string
+  amount?: string | number | null
+  currency?: string | null
+  status: string
+  paid_at?: string | null
+  driver?: { id: number; name: string } | null
+  trip?: { id: number; reference: string } | null
+  job?: { id: number; reference: string } | null
   created_at?: string
 }
 
@@ -446,10 +477,64 @@ export interface ListQuery {
   project?: number | string
   without_project?: boolean
   organization_id?: number | string
+  owner?: 'platform' | 'provider'
   date_from?: string
   date_to?: string
   city?: string
   method?: string
+}
+
+export interface CreateCustomerInput {
+  name: string
+  email: string
+  phone?: string
+  password: string
+  password_confirmation: string
+  locale?: string
+  account_type: 'individual' | 'company'
+  company_name?: string
+  company_name_ar?: string
+  city?: string
+  country?: string
+  address?: string
+}
+
+export interface PlaceSuggestion {
+  place_id: string
+  description: string
+  main_text?: string | null
+  secondary_text?: string | null
+}
+
+export interface PlaceLocation {
+  place_id?: string | null
+  address: string
+  city: string
+  governorate: string
+  wilayat: string
+  lat: number
+  lng: number
+}
+
+export interface CreateShipmentInput {
+  customer_organization_id: number
+  cargo_type: string
+  cargo_description?: string
+  weight_tons: number
+  volume_cbm?: number
+  quantity?: number
+  quantity_unit?: string
+  pickup_address?: string
+  pickup_city: string
+  pickup_lat?: number
+  pickup_lng?: number
+  delivery_address?: string
+  delivery_city: string
+  delivery_lat?: number
+  delivery_lng?: number
+  required_date: string
+  notes?: string
+  publish?: boolean
 }
 
 export interface CreateStaffUserInput {

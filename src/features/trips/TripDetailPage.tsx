@@ -2,6 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchTrip } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { TripAssignForm } from '@/features/trips/TripAssignForm.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
@@ -14,7 +17,7 @@ import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
-import { displayValue, formatCoords, formatDateTime, formatNumber } from '@/shared/utils/format.ts'
+import { displayValue, formatCoords, formatDateTime, formatMoney, formatNumber } from '@/shared/utils/format.ts'
 
 function numericValue(value?: string | number | null) {
   if (value == null || value === '') {
@@ -26,6 +29,7 @@ function numericValue(value?: string | number | null) {
 export function TripDetailPage() {
   const { id = '' } = useParams()
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
   const query = useQuery({ queryKey: ['trip', id], queryFn: () => fetchTrip(id), enabled: Boolean(id) })
 
   if (query.isLoading) {
@@ -38,6 +42,8 @@ export function TripDetailPage() {
 
   const trip = query.data
   const pod = trip.proof_of_delivery
+  const platformJob = trip.job?.provider?.type === 'platform'
+  const canAssign = platformJob && hasPermission(PERMISSIONS.TRIPS_ASSIGN) && (trip.status === 'unassigned' || trip.status === 'assigned')
   const routeLabel =
     trip.pickup_city || trip.delivery_city ? (
       <RouteLabel from={displayValue(trip.pickup_city)} to={displayValue(trip.delivery_city)} />
@@ -103,6 +109,20 @@ export function TripDetailPage() {
                 { icon: 'quantity', label: t('trips.sequence'), value: numericValue(trip.sequence) },
                 { icon: 'drivers', label: t('common.driver'), value: trip.driver?.name },
                 { icon: 'fleet', label: t('common.truck'), value: trip.truck?.plate_number, dir: 'ltr' },
+                ...(trip.driver_pay_amount != null
+                  ? [
+                      {
+                        icon: 'payments' as const,
+                        label: t('trips.driverPay'),
+                        value: formatMoney(trip.driver_pay_amount, trip.job?.currency ?? undefined),
+                      },
+                      {
+                        icon: 'settlements' as const,
+                        label: t('trips.payableStatus'),
+                        value: trip.driver_payable?.status ? <StatusBadge status={trip.driver_payable.status} /> : t('trips.payablePendingCompletion'),
+                      },
+                    ]
+                  : []),
                 ...(!LIVE_TRACKING_ENABLED
                   ? [
                       {
@@ -114,6 +134,7 @@ export function TripDetailPage() {
                   : []),
               ]}
             />
+            {canAssign ? <TripAssignForm key={trip.id} trip={trip} /> : null}
           </div>
         </section>
 

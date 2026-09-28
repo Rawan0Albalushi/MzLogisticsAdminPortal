@@ -9,6 +9,9 @@ import { LoadingState } from '@/shared/components/LoadingState.tsx'
 const LoginPage = lazy(() => import('@/features/auth/LoginPage.tsx').then((m) => ({ default: m.LoginPage })))
 const DashboardPage = lazy(() => import('@/features/dashboard/DashboardPage.tsx').then((m) => ({ default: m.DashboardPage })))
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage.tsx').then((m) => ({ default: m.CustomersPage })))
+const CustomerFormPage = lazy(() =>
+  import('@/features/customers/CustomerFormPage.tsx').then((m) => ({ default: m.CustomerFormPage })),
+)
 const CustomerDetailPage = lazy(() =>
   import('@/features/customers/CustomerDetailPage.tsx').then((m) => ({ default: m.CustomerDetailPage })),
 )
@@ -18,9 +21,13 @@ const ProvidersPage = lazy(() =>
 const ProviderDetailPage = lazy(() =>
   import('@/features/service-providers/ProviderDetailPage.tsx').then((m) => ({ default: m.ProviderDetailPage })),
 )
+const FleetPage = lazy(() => import('@/features/fleet/FleetPage.tsx').then((m) => ({ default: m.FleetPage })))
 const TruckTypesPage = lazy(() => import('@/features/fleet/TruckTypesPage.tsx').then((m) => ({ default: m.TruckTypesPage })))
 const DriversPage = lazy(() => import('@/features/drivers/DriversPage.tsx').then((m) => ({ default: m.DriversPage })))
 const ShipmentsPage = lazy(() => import('@/features/shipments/ShipmentsPage.tsx').then((m) => ({ default: m.ShipmentsPage })))
+const ShipmentFormPage = lazy(() =>
+  import('@/features/shipments/ShipmentFormPage.tsx').then((m) => ({ default: m.ShipmentFormPage })),
+)
 const ShipmentDetailPage = lazy(() =>
   import('@/features/shipments/ShipmentDetailPage.tsx').then((m) => ({ default: m.ShipmentDetailPage })),
 )
@@ -48,6 +55,9 @@ const WalletDetailPage = lazy(() =>
 )
 const SettlementsPage = lazy(() =>
   import('@/features/settlements/SettlementsPage.tsx').then((m) => ({ default: m.SettlementsPage })),
+)
+const DriverPayablesPage = lazy(() =>
+  import('@/features/finance/DriverPayablesPage.tsx').then((m) => ({ default: m.DriverPayablesPage })),
 )
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage.tsx').then((m) => ({ default: m.ReportsPage })))
 const ProfilePage = lazy(() => import('@/features/users/ProfilePage.tsx').then((m) => ({ default: m.ProfilePage })))
@@ -78,6 +88,10 @@ const router = createBrowserRouter([
             element: <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_VIEW} />,
             children: [
               { path: '/customers', element: withSuspense(<CustomersPage />) },
+              {
+                element: <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_MANAGE} />,
+                children: [{ path: '/customers/new', element: withSuspense(<CustomerFormPage />) }],
+              },
               { path: '/customers/:id', element: withSuspense(<CustomerDetailPage />) },
             ],
           },
@@ -88,7 +102,10 @@ const router = createBrowserRouter([
               { path: '/providers/:id', element: withSuspense(<ProviderDetailPage />) },
             ],
           },
-          { path: '/fleet', element: <Navigate to="/" replace /> },
+          {
+            element: <ProtectedRoute permission={PERMISSIONS.FLEET_VIEW} />,
+            children: [{ path: '/fleet', element: withSuspense(<FleetPage />) }],
+          },
           {
             element: <ProtectedRoute permission={PERMISSIONS.FLEET_MANAGE} />,
             children: [{ path: '/truck-types', element: withSuspense(<TruckTypesPage />) }],
@@ -101,6 +118,10 @@ const router = createBrowserRouter([
             element: <ProtectedRoute permission={PERMISSIONS.SHIPMENTS_VIEW} />,
             children: [
               { path: '/shipments', element: withSuspense(<ShipmentsPage />) },
+              {
+                element: <ProtectedRoute permission={PERMISSIONS.SHIPMENTS_MANAGE} />,
+                children: [{ path: '/shipments/new', element: withSuspense(<ShipmentFormPage />) }],
+              },
               { path: '/shipments/:id', element: withSuspense(<ShipmentDetailPage />) },
             ],
           },
@@ -154,7 +175,10 @@ const router = createBrowserRouter([
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.SETTLEMENTS_VIEW} />,
-            children: [{ path: '/settlements', element: withSuspense(<SettlementsPage />) }],
+            children: [
+              { path: '/settlements', element: withSuspense(<SettlementsPage />) },
+              { path: '/driver-payables', element: withSuspense(<DriverPayablesPage />) },
+            ],
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.REPORTS_VIEW} />,

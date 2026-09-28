@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { cancelShipment, fetchShipment, publishPlatformOffer, withdrawPlatformOffer } from '@/core/api/services.ts'
+import { cancelShipment, confirmPlatformOffer, fetchShipment, publishPlatformOffer, withdrawPlatformOffer, type PlatformOfferInput } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -54,11 +54,29 @@ export function ShipmentDetailPage() {
     },
   })
   const publishOffer = useMutation({
-    mutationFn: (payload: { quotation_id: number; customer_price: number }) => publishPlatformOffer(id, payload),
+    mutationFn: (payload: PlatformOfferInput) => publishPlatformOffer(id, payload),
+    onSuccess: async (_data, payload) => {
+      setOfferError('')
+      setOfferMessage(payload.confirm ? t('shipments.agreementConfirmed') : t('shipments.offerPublished'))
+      await queryClient.invalidateQueries({ queryKey: ['shipment', id] })
+      await queryClient.invalidateQueries({ queryKey: ['shipments'] })
+      if (payload.confirm) {
+        await queryClient.invalidateQueries({ queryKey: ['jobs'] })
+      }
+    },
+    onError: (err) => {
+      setOfferMessage('')
+      setOfferError(getApiMessage(err, t('shipments.offerFailed')))
+    },
+  })
+  const confirmOffer = useMutation({
+    mutationFn: (offerId: number) => confirmPlatformOffer(offerId),
     onSuccess: async () => {
       setOfferError('')
-      setOfferMessage(t('shipments.offerPublished'))
+      setOfferMessage(t('shipments.agreementConfirmed'))
       await queryClient.invalidateQueries({ queryKey: ['shipment', id] })
+      await queryClient.invalidateQueries({ queryKey: ['shipments'] })
+      await queryClient.invalidateQueries({ queryKey: ['jobs'] })
     },
     onError: (err) => {
       setOfferMessage('')
@@ -274,8 +292,10 @@ export function ShipmentDetailPage() {
           message={offerMessage}
           error={offerError}
           publishing={publishOffer.isPending}
+          confirming={confirmOffer.isPending || publishOffer.isPending}
           withdrawing={withdrawOffer.isPending}
           onPublish={(payload) => publishOffer.mutate(payload)}
+          onConfirm={(offerId) => confirmOffer.mutate(offerId)}
           onWithdraw={(offerId) => withdrawOffer.mutate(offerId)}
         />
       ) : null}

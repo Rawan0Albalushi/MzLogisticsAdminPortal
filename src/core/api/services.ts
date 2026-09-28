@@ -5,9 +5,12 @@ import type {
   Catalog,
   AccessCatalog,
   AccessRole,
+  CreateCustomerInput,
   CreateSettlementInput,
+  CreateShipmentInput,
   CreateStaffUserInput,
   DashboardStats,
+  DriverPayable,
   Invoice,
   ListQuery,
   LoginPayload,
@@ -24,6 +27,7 @@ import type {
   TransportJob,
   Trip,
   Truck,
+  Equipment,
   CatalogTruckType,
   TruckTypeInput,
   UpdateCommissionRateInput,
@@ -32,6 +36,8 @@ import type {
   Wallet,
   WalletTransaction,
   PaymentContract,
+  PlaceLocation,
+  PlaceSuggestion,
 } from '@/core/api/types.ts'
 
 function toParams(query: ListQuery = {}): Record<string, string | number> {
@@ -47,6 +53,7 @@ function toParams(query: ListQuery = {}): Record<string, string | number> {
   if (query.project) params.project = query.project
   if (query.without_project) params.without_project = 1
   if (query.organization_id) params.organization_id = query.organization_id
+  if (query.owner) params.owner = query.owner
   if (query.date_from) params.date_from = query.date_from
   if (query.date_to) params.date_to = query.date_to
   if (query.city) params.city = query.city
@@ -76,6 +83,11 @@ export async function fetchDashboard(): Promise<DashboardStats> {
 export async function fetchCustomers(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Organization[]>>('/customers', { params: toParams(query) })
   return unwrapList(data)
+}
+
+export async function createCustomer(payload: CreateCustomerInput): Promise<Organization> {
+  const { data } = await api.post<ApiSuccess<Organization>>('/customers', payload)
+  return unwrapData(data)
 }
 
 export async function fetchProviders(query: ListQuery) {
@@ -128,6 +140,51 @@ export async function fetchShipment(id: string | number): Promise<Shipment> {
   return unwrapData(data)
 }
 
+export async function createShipment(payload: CreateShipmentInput): Promise<Shipment> {
+  const { data } = await api.post<ApiSuccess<Shipment>>('/shipments', payload)
+  return unwrapData(data)
+}
+
+function placesLanguage(language: string) {
+  return { headers: { 'Accept-Language': language.startsWith('ar') ? 'ar' : 'en' } }
+}
+
+export async function searchPlaces(query: string, language: string): Promise<PlaceSuggestion[]> {
+  const { data } = await api.get<ApiSuccess<{ suggestions: PlaceSuggestion[] }>>('/places/autocomplete', {
+    params: { query },
+    ...placesLanguage(language),
+  })
+  return unwrapData(data).suggestions
+}
+
+export async function placeDetails(placeId: string, language: string): Promise<PlaceLocation> {
+  const { data } = await api.get<ApiSuccess<PlaceLocation>>('/places/details', {
+    params: { place_id: placeId },
+    ...placesLanguage(language),
+  })
+  return unwrapData(data)
+}
+
+export async function reversePlace(lat: number, lng: number, language: string): Promise<PlaceLocation | null> {
+  const { data } = await api.get<ApiSuccess<Partial<PlaceLocation>>>('/places/reverse', {
+    params: { lat, lng },
+    ...placesLanguage(language),
+  })
+  const place = unwrapData(data)
+  if (typeof place.lat !== 'number' || typeof place.lng !== 'number') {
+    return null
+  }
+  return {
+    address: place.address ?? '',
+    city: place.city ?? '',
+    governorate: place.governorate ?? '',
+    wilayat: place.wilayat ?? '',
+    lat: place.lat,
+    lng: place.lng,
+    place_id: place.place_id,
+  }
+}
+
 export async function fetchOfferSelectionMode(): Promise<OfferSelectionSetting> {
   const { data } = await api.get<ApiSuccess<OfferSelectionSetting>>('/settings/offer-selection')
   return unwrapData(data)
@@ -140,11 +197,33 @@ export async function updateOfferSelectionMode(mode: 'customer' | 'admin'): Prom
   return unwrapData(data)
 }
 
-export async function publishPlatformOffer(
-  shipmentId: string | number,
-  payload: { quotation_id: number; customer_price: number },
-): Promise<void> {
+export type ProviderPlatformOfferInput = {
+  quotation_id: number
+  customer_price: number
+}
+
+export type OwnedPlatformOfferInput = {
+  total_price: number
+  truck_count: number
+  truck_type: string
+  truck_capacity_tons: number
+  trip_count: number
+  quantity_per_trip: number
+  duration_days: number
+  additional_costs?: number
+  conditions?: string
+}
+
+export type PlatformOfferInput = (ProviderPlatformOfferInput | OwnedPlatformOfferInput) & {
+  confirm?: boolean
+}
+
+export async function publishPlatformOffer(shipmentId: string | number, payload: PlatformOfferInput): Promise<void> {
   await api.post(`/shipments/${shipmentId}/platform-offers`, payload)
+}
+
+export async function confirmPlatformOffer(offerId: string | number): Promise<void> {
+  await api.post(`/platform-offers/${offerId}/confirm`)
 }
 
 export async function withdrawPlatformOffer(offerId: string | number): Promise<void> {
@@ -211,6 +290,24 @@ export async function fetchTrip(id: string | number): Promise<Trip> {
   return unwrapData(data)
 }
 
+export async function assignTrip(
+  id: string | number,
+  payload: { truck_id: number; driver_id: number; departure_time: string; driver_pay_amount: number },
+): Promise<Trip> {
+  const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/assign`, payload)
+  return unwrapData(data)
+}
+
+export async function fetchDriverPayables(query: ListQuery) {
+  const { data } = await api.get<ApiSuccess<DriverPayable[]>>('/driver-payables', { params: toParams(query) })
+  return unwrapList(data)
+}
+
+export async function payDriverPayable(id: string | number): Promise<DriverPayable> {
+  const { data } = await api.post<ApiSuccess<DriverPayable>>(`/driver-payables/${id}/pay`)
+  return unwrapData(data)
+}
+
 export async function fetchTrucks(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Truck[]>>('/trucks', { params: toParams(query) })
   return unwrapList(data)
@@ -219,6 +316,125 @@ export async function fetchTrucks(query: ListQuery) {
 export async function fetchDrivers(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<AuthUser[]>>('/drivers', { params: toParams(query) })
   return unwrapList(data)
+}
+
+export async function createDriver(payload: {
+  name: string
+  phone: string
+  email?: string
+  license_number?: string
+  license_expires_at?: string
+  trip_rate?: number | null
+}): Promise<{ driver: AuthUser; invite_url: string }> {
+  const { data } = await api.post<ApiSuccess<{ driver: AuthUser; invite_url: string }>>('/drivers', payload)
+  return unwrapData(data)
+}
+
+export async function updateDriver(
+  id: string | number,
+  payload: {
+    name: string
+    phone: string
+    email?: string
+    license_number?: string
+    license_expires_at?: string
+    trip_rate?: number | null
+    status?: string
+  },
+): Promise<AuthUser> {
+  const { data } = await api.put<ApiSuccess<AuthUser>>(`/drivers/${id}`, payload)
+  return unwrapData(data)
+}
+
+export async function fetchEquipment(query: ListQuery) {
+  const { data } = await api.get<ApiSuccess<Equipment[]>>('/equipment', { params: toParams(query) })
+  return unwrapList(data)
+}
+
+export type TruckInput = {
+  plate_number: string
+  type: string
+  capacity_tons: number
+  volume_cbm?: number
+  year?: number
+  make?: string
+  model?: string
+  status?: string
+  insurance_expires_at?: string
+}
+
+export async function createTruck(payload: TruckInput): Promise<Truck> {
+  const { data } = await api.post<ApiSuccess<Truck>>('/trucks', payload)
+  return unwrapData(data)
+}
+
+export async function updateTruck(id: string | number, payload: TruckInput): Promise<Truck> {
+  const { data } = await api.put<ApiSuccess<Truck>>(`/trucks/${id}`, payload)
+  return unwrapData(data)
+}
+
+export type EquipmentInput = {
+  name: string
+  type?: string
+  quantity: number
+  status?: string
+  truck_id?: number | null
+}
+
+export async function createEquipment(payload: EquipmentInput): Promise<Equipment> {
+  const { data } = await api.post<ApiSuccess<Equipment>>('/equipment', payload)
+  return unwrapData(data)
+}
+
+export async function updateEquipment(id: string | number, payload: EquipmentInput): Promise<Equipment> {
+  const { data } = await api.put<ApiSuccess<Equipment>>(`/equipment/${id}`, payload)
+  return unwrapData(data)
+}
+
+export type SpreadsheetImportError = {
+  row: number
+  field: string
+  message: string
+  plate_number?: string | null
+  type?: string | null
+  name?: string | null
+  phone?: string | null
+  email?: string | null
+  license_number?: string | null
+  truck_plate?: string | null
+}
+
+export type SpreadsheetImportResult = {
+  created: number
+  failed: number
+  items?: { row: number; label: string }[]
+  drivers?: {
+    row: number
+    name: string
+    phone: string | null
+    invite_url: string
+    whatsapp_sent: boolean
+  }[]
+  errors: SpreadsheetImportError[]
+}
+
+export async function downloadImportTemplate(path: string, filename: string): Promise<void> {
+  const response = await api.get<Blob>(path, { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function importSpreadsheet(path: string, file: File): Promise<SpreadsheetImportResult> {
+  const form = new FormData()
+  form.append('file', file)
+  const { data } = await api.post<ApiSuccess<SpreadsheetImportResult>>(path, form)
+  return unwrapData(data)
 }
 
 export async function fetchPayments(query: ListQuery) {

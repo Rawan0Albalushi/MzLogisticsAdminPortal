@@ -58,6 +58,7 @@ const routeVisuals: { prefix: string; icon: IconName }[] = [
   { prefix: '/payments', icon: 'payments' },
   { prefix: '/invoices', icon: 'invoices' },
   { prefix: '/wallets', icon: 'wallets' },
+  { prefix: '/driver-payables', icon: 'settlements' },
   { prefix: '/settlements', icon: 'settlements' },
   { prefix: '/reports', icon: 'reports' },
   { prefix: '/users', icon: 'users' },
