@@ -16,6 +16,8 @@ export interface ReportTable {
   title?: string
   columns: string[]
   rows: string[][]
+  widths?: string[]
+  numbered?: boolean
 }
 
 export interface ReportSection {

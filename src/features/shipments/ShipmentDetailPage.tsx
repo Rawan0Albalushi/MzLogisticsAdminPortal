@@ -21,6 +21,7 @@ import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { CustomerOfferPanel } from '@/features/shipments/CustomerOfferPanel.tsx'
+import { OnBehalfQuotationPanel } from '@/features/shipments/OnBehalfQuotationPanel.tsx'
 import { displayValue, formatDate, formatMoney, formatNumber, organizationName } from '@/shared/utils/format.ts'
 
 function quantityValue(quantity?: string | number | null, unit?: string | null) {
@@ -118,7 +119,21 @@ export function ShipmentDetailPage() {
 
   const columns: Column<Quotation>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
-    { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },
+    {
+      id: 'provider',
+      header: t('common.provider'),
+      cell: (row) => (
+        <>
+          {organizationName(row.provider)}
+          {row.submitted_on_behalf ? (
+            <>
+              {' '}
+              <span className="mz-badge mz-badge--info">{t('quotations.onBehalfBadge')}</span>
+            </>
+          ) : null}
+        </>
+      ),
+    },
     { id: 'price', header: t('quotations.price'), cell: (row) => formatMoney(row.total_price, row.currency ?? undefined) },
     { id: 'trips', header: t('quotations.tripCount'), cell: (row) => displayValue(row.trip_count) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
@@ -298,6 +313,10 @@ export function ShipmentDetailPage() {
           onConfirm={(offerId) => confirmOffer.mutate(offerId)}
           onWithdraw={(offerId) => withdrawOffer.mutate(offerId)}
         />
+      ) : null}
+
+      {shipment.status === 'published' && hasPermission(PERMISSIONS.QUOTATIONS_CREATE) ? (
+        <OnBehalfQuotationPanel shipment={shipment} />
       ) : null}
 
       <section className="mz-section">

@@ -2920,6 +2920,8 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   .mz-form > .mz-btn,
   .mz-form > button,
   .mz-form > .mz-grid-2,
+  .mz-form > .mz-field--wide,
+  .mz-form > .mz-offer__hint,
   .mz-form > .mz-field:has(.mz-textarea) {
     grid-column: 1 / -1;
   }
@@ -3750,6 +3752,50 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   border: 1px solid var(--mz-border);
   border-radius: 10px;
   background: var(--mz-surface);
+}
+
+.mz-pod-upload {
+  margin-top: 16px;
+}
+
+.mz-pod-upload__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.mz-pod-docs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.mz-pod-doc {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mz-pod-doc figcaption {
+  color: var(--mz-ink);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.mz-pod-doc img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  background: var(--mz-surface);
+  border: 1px solid var(--mz-border);
+  border-radius: 8px;
+}
+
+.mz-pod-doc span {
+  color: var(--mz-muted);
+  font-size: 0.8125rem;
 }
 
 @media (max-width: 640px) {

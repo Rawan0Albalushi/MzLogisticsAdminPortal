@@ -1,10 +1,9 @@
 import { toPng } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import { buildPdfCaptureHtml } from '@/shared/reports/buildPdfHtml.ts'
+import { pdfSheetWidth } from '@/shared/reports/reportLayout.ts'
 import { reportFileName } from '@/shared/reports/reportTheme.ts'
 import type { ReportDocument } from '@/shared/reports/types.ts'
-
-const A4_CONTENT_WIDTH_PX = 718
 
 async function waitForFonts(): Promise<void> {
   if (document.fonts) {
@@ -43,6 +42,7 @@ function addImagePages(pdf: jsPDF, dataUrl: string, pixelWidth: number, pixelHei
 }
 
 export async function generatePdfFile(report: ReportDocument): Promise<void> {
+  const sheetWidth = pdfSheetWidth(report)
   const host = window.document.createElement('div')
   host.setAttribute('data-mz-pdf-host', '')
   host.dir = report.language === 'ar' ? 'rtl' : 'ltr'
@@ -51,7 +51,7 @@ export async function generatePdfFile(report: ReportDocument): Promise<void> {
     'position:fixed',
     'top:0',
     'left:-10000px',
-    `width:${A4_CONTENT_WIDTH_PX}px`,
+    `width:${sheetWidth}px`,
     'overflow:visible',
     'background:#ffffff',
     'opacity:1',
@@ -79,7 +79,7 @@ export async function generatePdfFile(report: ReportDocument): Promise<void> {
       cacheBust: false,
       skipFonts: true,
       fontEmbedCSS: '',
-      width: A4_CONTENT_WIDTH_PX,
+      width: sheetWidth,
       height: Math.max(sheet.scrollHeight, sheet.offsetHeight, host.scrollHeight),
       style: {
         position: 'static',
@@ -97,7 +97,7 @@ export async function generatePdfFile(report: ReportDocument): Promise<void> {
     await image.decode()
 
     const pdf = new jsPDF({
-      orientation: 'portrait',
+      orientation: sheetWidth > 718 ? 'landscape' : 'portrait',
       unit: 'mm',
       format: 'a4',
       compress: true,

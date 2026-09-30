@@ -54,6 +54,7 @@ export interface DriverProfile {
   organization_id: number
   license_number?: string | null
   license_expires_at?: string | null
+  civil_id?: string | null
   trip_rate?: string | number | null
   status?: string | null
 }
@@ -180,6 +181,7 @@ export interface Quotation {
   conditions?: string | null
   valid_until?: string | null
   status: string
+  submitted_on_behalf?: boolean
   provider?: Organization | null
   shipment?: Shipment | null
   created_at?: string
@@ -259,6 +261,9 @@ export interface ProofOfDelivery {
   id: number
   receiver_name?: string | null
   notes?: string | null
+  invoice_path?: string | null
+  weight_ticket_path?: string | null
+  updated_at?: string
   created_at?: string
 }
 
@@ -291,6 +296,9 @@ export interface Trip {
   delivered_at?: string | null
   completed_at?: string | null
   driver_pay_amount?: string | number | null
+  trailer_plate?: string | null
+  delivery_note_number?: string | null
+  operations_notes?: string | null
   driver_payable?: { id: number; status: string; amount?: string | number | null; paid_at?: string | null } | null
   job?: TransportJob | null
   truck?: Truck | null

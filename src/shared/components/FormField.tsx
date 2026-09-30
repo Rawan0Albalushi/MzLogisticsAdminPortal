@@ -6,12 +6,13 @@ interface FormFieldProps {
   required?: boolean
   error?: string
   hint?: string
+  wide?: boolean
   children: ReactNode
 }
 
-export function FormField({ label, htmlFor, required, error, hint, children }: FormFieldProps) {
+export function FormField({ label, htmlFor, required, error, hint, wide, children }: FormFieldProps) {
   return (
-    <div className="mz-field">
+    <div className={wide ? 'mz-field mz-field--wide' : 'mz-field'}>
       <label htmlFor={htmlFor}>
         {label}
         {required ? ' *' : ''}

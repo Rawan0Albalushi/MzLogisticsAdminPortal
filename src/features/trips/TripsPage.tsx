@@ -12,8 +12,10 @@ import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { displayValue } from '@/shared/utils/format.ts'
+import { buildTripLogWorkbook } from '@/features/trips/tripLogExcel.ts'
+import { createTripLogReport } from '@/features/trips/tripLogReport.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
-import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
+import { listReportFilters } from '@/shared/reports/buildReport.ts'
 import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 const STATUSES = [...TRIP_TIMELINE, 'cancelled']
@@ -33,6 +35,20 @@ export function TripsPage() {
         page: list.page,
       }),
   })
+
+  async function loadTrips() {
+    return fetchAllPages((page, perPage) =>
+      fetchTrips({
+        search: list.search,
+        status: list.status,
+        city: list.city,
+        date_from: list.dateFrom,
+        date_to: list.dateTo,
+        page,
+        per_page: perPage,
+      }),
+    )
+  }
 
   const columns: Column<Trip>[] = [
     {
@@ -67,42 +83,12 @@ export function TripsPage() {
         subtitle={t('trips.subtitle')}
         actions={
           <DownloadReportButton
-            build={async () => {
-              const items = await fetchAllPages((page, perPage) =>
-                fetchTrips({
-                  search: list.search,
-                  status: list.status,
-                  city: list.city,
-                  date_from: list.dateFrom,
-                  date_to: list.dateTo,
-                  page,
-                  per_page: perPage,
-                }),
-              )
-              return createListReport({
-                title: t('trips.title'),
-                subtitle: t('trips.subtitle'),
-                filters: listReportFilters(t, list),
-                columns: [
-                  t('common.reference'),
-                  t('common.job'),
-                  t('common.pickup'),
-                  t('common.delivery'),
-                  t('common.driver'),
-                  t('common.truck'),
-                  t('common.status'),
-                ],
-                rows: items.map((row) => [
-                  row.reference,
-                  displayValue(row.job?.reference),
-                  displayValue(row.pickup_city),
-                  displayValue(row.delivery_city),
-                  displayValue(row.driver?.name),
-                  displayValue(row.truck?.plate_number),
-                  reportStatus(t, row.status),
-                ]),
-              })
+            excelTitle={t('trips.title')}
+            buildExcel={async () => {
+              const items = await loadTrips()
+              return buildTripLogWorkbook(t, items, listReportFilters(t, list))
             }}
+            build={async () => createTripLogReport(t, await loadTrips(), listReportFilters(t, list))}
           />
         }
       />

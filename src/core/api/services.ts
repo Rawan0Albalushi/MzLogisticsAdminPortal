@@ -230,6 +230,32 @@ export async function withdrawPlatformOffer(offerId: string | number): Promise<v
   await api.post(`/platform-offers/${offerId}/withdraw`)
 }
 
+export type OnBehalfQuotationInput = {
+  provider_organization_id: number
+  total_price: number
+  truck_count: number
+  truck_type: string
+  truck_capacity_tons: number
+  trip_count: number
+  quantity_per_trip: number
+  duration_days: number
+  additional_costs?: number
+  conditions?: string
+}
+
+export async function submitQuotationOnBehalf(
+  shipmentId: string | number,
+  payload: OnBehalfQuotationInput,
+): Promise<Quotation> {
+  const { data } = await api.post<ApiSuccess<Quotation>>(`/shipments/${shipmentId}/quotations/on-behalf`, payload)
+  return unwrapData(data)
+}
+
+export async function withdrawQuotation(id: string | number): Promise<Quotation> {
+  const { data } = await api.post<ApiSuccess<Quotation>>(`/quotations/${id}/withdraw`)
+  return unwrapData(data)
+}
+
 export async function fetchQuotations(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Quotation[]>>('/quotations', { params: toParams(query) })
   return unwrapList(data)
@@ -290,6 +316,29 @@ export async function fetchTrip(id: string | number): Promise<Trip> {
   return unwrapData(data)
 }
 
+export async function uploadTripPodDocuments(
+  id: string | number,
+  files: { invoice?: File | null; weightTicket?: File | null },
+): Promise<Trip> {
+  const form = new FormData()
+  if (files.invoice) {
+    form.append('invoice', files.invoice)
+  }
+  if (files.weightTicket) {
+    form.append('weight_ticket', files.weightTicket)
+  }
+  const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/pod/documents`, form)
+  return unwrapData(data)
+}
+
+export async function updateTripOperations(
+  id: string | number,
+  payload: { trailer_plate?: string | null; delivery_note_number?: string | null; operations_notes?: string | null },
+): Promise<Trip> {
+  const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/operations`, payload)
+  return unwrapData(data)
+}
+
 export async function assignTrip(
   id: string | number,
   payload: { truck_id: number; driver_id: number; departure_time: string; driver_pay_amount: number },
@@ -324,6 +373,7 @@ export async function createDriver(payload: {
   email?: string
   license_number?: string
   license_expires_at?: string
+  civil_id?: string | null
   trip_rate?: number | null
 }): Promise<{ driver: AuthUser; invite_url: string }> {
   const { data } = await api.post<ApiSuccess<{ driver: AuthUser; invite_url: string }>>('/drivers', payload)
@@ -338,6 +388,7 @@ export async function updateDriver(
     email?: string
     license_number?: string
     license_expires_at?: string
+    civil_id?: string | null
     trip_rate?: number | null
     status?: string
   },
@@ -401,6 +452,7 @@ export type SpreadsheetImportError = {
   phone?: string | null
   email?: string | null
   license_number?: string | null
+  civil_id?: string | null
   truck_plate?: string | null
 }
 

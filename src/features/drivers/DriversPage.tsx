@@ -28,6 +28,7 @@ const emptyForm = {
   phone: '',
   email: '',
   license_number: '',
+  civil_id: '',
   license_expires_at: '',
   trip_rate: '',
   status: 'available',
@@ -59,6 +60,7 @@ export function DriversPage() {
         phone: form.phone.trim(),
         email: form.email.trim() || undefined,
         license_number: form.license_number.trim() || undefined,
+        civil_id: form.civil_id.trim() || null,
         license_expires_at: form.license_expires_at || undefined,
         ...(owner === 'platform' ? { trip_rate: form.trip_rate === '' ? null : Number(form.trip_rate) } : {}),
         ...(editing ? { status: form.status } : {}),
@@ -93,6 +95,7 @@ export function DriversPage() {
             phone: row.phone ?? '',
             email: row.email ?? '',
             license_number: row.driver_profile?.license_number ?? '',
+            civil_id: row.driver_profile?.civil_id ?? '',
             license_expires_at: row.driver_profile?.license_expires_at?.slice(0, 10) ?? '',
             trip_rate: row.driver_profile?.trip_rate != null ? String(row.driver_profile.trip_rate) : '',
             status: row.driver_profile?.status ?? 'available',
@@ -112,6 +115,7 @@ export function DriversPage() {
     { id: 'name', header: t('common.name'), cell: (row) => row.name },
     { id: 'phone', header: t('common.phone'), cell: (row) => displayValue(row.phone) },
     { id: 'license', header: t('drivers.license'), cell: (row) => displayValue(row.driver_profile?.license_number) },
+    { id: 'civil', header: t('drivers.civilId'), cell: (row) => displayValue(row.driver_profile?.civil_id) },
     { id: 'expiry', header: t('drivers.licenseExpiry'), cell: (row) => formatDate(row.driver_profile?.license_expires_at) },
     ...(owner === 'platform'
       ? [{ id: 'rate', header: t('drivers.tripRate'), cell: (row: AuthUser) => formatMoney(row.driver_profile?.trip_rate) }]
@@ -166,6 +170,7 @@ export function DriversPage() {
                     t('common.name'),
                     t('common.phone'),
                     t('drivers.license'),
+                    t('drivers.civilId'),
                     t('drivers.licenseExpiry'),
                     ...(owner === 'platform' ? [t('drivers.tripRate')] : []),
                     t('common.status'),
@@ -175,6 +180,7 @@ export function DriversPage() {
                     row.name,
                     displayValue(row.phone),
                     displayValue(row.driver_profile?.license_number),
+                    displayValue(row.driver_profile?.civil_id),
                     formatDate(row.driver_profile?.license_expires_at),
                     ...(owner === 'platform' ? [formatMoney(row.driver_profile?.trip_rate)] : []),
                     reportStatus(t, row.driver_profile?.status),
@@ -244,6 +250,9 @@ export function DriversPage() {
           <FormField label={t('drivers.license')} htmlFor="driver-license">
             <input id="driver-license" className="mz-input" value={form.license_number} maxLength={80} onChange={(event) => setForm((current) => ({ ...current, license_number: event.target.value }))} />
           </FormField>
+          <FormField label={t('drivers.civilId')} htmlFor="driver-civil-id" hint={t('drivers.civilIdHint')}>
+            <input id="driver-civil-id" className="mz-input" dir="ltr" inputMode="numeric" value={form.civil_id} maxLength={20} onChange={(event) => setForm((current) => ({ ...current, civil_id: event.target.value }))} />
+          </FormField>
           <FormField label={t('drivers.licenseExpiry')} htmlFor="driver-expiry">
             <input id="driver-expiry" className="mz-input" type="date" value={form.license_expires_at} onChange={(event) => setForm((current) => ({ ...current, license_expires_at: event.target.value }))} />
           </FormField>
@@ -272,7 +281,7 @@ export function DriversPage() {
         templatePath="/drivers/import-template"
         templateFilename="drivers-import-template.xlsx"
         importPath="/drivers/import"
-        detailKeys={['name', 'phone', 'email', 'license_number']}
+        detailKeys={['name', 'phone', 'email', 'license_number', 'civil_id']}
         localizeError={(rowError) => localizeDriverImportError(t, rowError)}
         onImported={async (imported) => {
           if (imported.created > 0) {
@@ -296,6 +305,12 @@ function localizeDriverImportError(t: (key: string) => string, error: Spreadshee
   }
   if (error.field === 'email' && message.includes('taken')) {
     return t('drivers.importEmailTaken')
+  }
+  if (error.field === 'civil_id' && message.includes('already')) {
+    return t('drivers.importCivilIdTaken')
+  }
+  if (error.field === 'civil_id') {
+    return t('drivers.importCivilIdInvalid')
   }
   return error.message
 }

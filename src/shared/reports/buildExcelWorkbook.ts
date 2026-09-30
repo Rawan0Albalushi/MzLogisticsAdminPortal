@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs'
 import i18n from '@/core/i18n/index.ts'
+import { plainReportText } from '@/shared/reports/reportLayout.ts'
 import { columnWidth, reportTheme, safeSheetName } from '@/shared/reports/reportTheme.ts'
 import type { ReportDocument } from '@/shared/reports/types.ts'
 
@@ -30,7 +31,7 @@ function align(isRtl: boolean, options: Partial<ExcelJS.Alignment> = {}): Partia
     vertical: 'middle',
     horizontal: options.horizontal ?? (isRtl ? 'right' : 'left'),
     readingOrder: isRtl ? 'rtl' : 'ltr',
-    wrapText: true,
+    wrapText: false,
     shrinkToFit: false,
     ...options,
   }
@@ -64,10 +65,11 @@ function styleCell(
     italic?: boolean
     center?: boolean
     bordered?: boolean
+    wrap?: boolean
   },
 ): void {
   if (options.value !== undefined) {
-    cell.value = options.value
+    cell.value = typeof options.value === 'string' ? plainReportText(options.value) : options.value
   }
   cell.font = font(isRtl, {
     bold: options.bold,
@@ -81,7 +83,10 @@ function styleCell(
   if (options.bordered !== false) {
     cell.border = thinBorder
   }
-  cell.alignment = align(isRtl, options.center ? { horizontal: 'center' } : undefined)
+  cell.alignment = align(isRtl, {
+    ...(options.center ? { horizontal: 'center' as const } : {}),
+    wrapText: options.wrap ?? false,
+  })
 }
 
 function writeCells(
@@ -111,6 +116,7 @@ function writeCells(
       italic: options.italic,
       center: options.header && index === 0,
       bordered: options.bordered,
+      wrap: options.header,
     })
   })
   row.height = options.height ?? 22
@@ -170,7 +176,7 @@ export async function buildExcelWorkbook(document: ReportDocument): Promise<Exce
     pageSetup: {
       paperSize: 9,
       orientation: 'landscape',
-      fitToPage: true,
+      fitToPage: false,
       fitToWidth: 1,
       fitToHeight: 0,
       horizontalCentered: true,
@@ -300,7 +306,7 @@ export async function buildExcelWorkbook(document: ReportDocument): Promise<Exce
 
     if (section.table) {
       const headers = [i18n.t('reports.rowNumber'), ...section.table.columns]
-      writeCells(sheet, rowIndex, isRtl, headers, { header: true, height: 32 })
+      writeCells(sheet, rowIndex, isRtl, headers, { header: true, height: 36 })
       headers.forEach((label, index) => {
         widths[index] = Math.max(widths[index] ?? 16, columnWidth([label]))
       })

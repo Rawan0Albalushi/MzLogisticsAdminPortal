@@ -1,8 +1,17 @@
 import i18n from '@/core/i18n/index.ts'
+import { pdfSheetWidth, tableColumnPercents } from '@/shared/reports/reportLayout.ts'
 import { escapeHtml } from '@/shared/reports/reportTheme.ts'
-import type { ReportDocument } from '@/shared/reports/types.ts'
+import type { ReportDocument, ReportTable } from '@/shared/reports/types.ts'
 
-export function buildPdfHtml(document: ReportDocument, options: { forFile?: boolean } = {}): string {
+function columnWidths(table: ReportTable, sheetWidth: number): string[] {
+  if (table.widths && table.widths.length > 0) {
+    return table.numbered === false ? table.widths : ['4%', ...table.widths]
+  }
+  return tableColumnPercents(table, sheetWidth)
+}
+
+export function buildPdfHtml(document: ReportDocument, options: { forFile?: boolean; sheetWidth?: number } = {}): string {
+  const sheetWidth = options.sheetWidth ?? pdfSheetWidth(document)
   const isRtl = document.language === 'ar'
   const dir = isRtl ? 'rtl' : 'ltr'
   const align = isRtl ? 'right' : 'left'
@@ -53,9 +62,10 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
              </div>
              <div class="table-wrap">
                <table>
+                 <colgroup>${columnWidths(table, sheetWidth).map((width) => `<col style="width:${escapeHtml(width)}" />`).join('')}</colgroup>
                  <thead>
                    <tr>
-                     <th class="num">${escapeHtml(i18n.t('reports.rowNumber'))}</th>
+                     ${table.numbered === false ? '' : `<th class="num">${escapeHtml(i18n.t('reports.rowNumber'))}</th>`}
                      ${table.columns.map((column) => `<th>${escapeHtml(column)}</th>`).join('')}
                    </tr>
                  </thead>
@@ -63,7 +73,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
                    ${table.rows
                      .map(
                        (row, index) => `<tr>
-                         <td class="num">${index + 1}</td>
+                         ${table.numbered === false ? '' : `<td class="num">${index + 1}</td>`}
                          ${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}
                        </tr>`,
                      )
@@ -139,7 +149,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
         cursor: pointer;
       }
       .sheet {
-        width: ${options.forFile ? '718px' : 'min(1100px, calc(100% - 32px))'};
+        width: ${options.forFile ? `${sheetWidth}px` : 'min(1100px, calc(100% - 32px))'};
         margin: ${options.forFile ? '0' : '20px auto 36px'};
         background: #fff;
         border: 1px solid #e0daea;
@@ -225,7 +235,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
       .chip em { color: #6b647c; font-style: normal; font-weight: 600; }
       .metrics {
         display: grid;
-        grid-template-columns: repeat(${options.forFile ? 2 : 4}, minmax(0, 1fr));
+        grid-template-columns: repeat(${options.forFile ? 3 : 4}, minmax(0, 1fr));
         gap: 10px;
       }
       .metric {
@@ -236,7 +246,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
         background: #fff;
       }
       .metric span, .metric small { display: block; color: #6b647c; font-size: 11px; }
-      .metric strong { display: block; margin: 5px 0 2px; font-size: 20px; }
+      .metric strong { display: block; margin: 5px 0 2px; font-size: ${options.forFile ? '16px' : '20px'}; overflow-wrap: break-word; }
       .table-meta { margin: 4px 0 8px; color: #6b647c; font-size: 12px; }
       .table-wrap {
         overflow: visible;
@@ -357,7 +367,7 @@ export function buildPdfHtml(document: ReportDocument, options: { forFile?: bool
 }
 
 export function buildPdfCaptureHtml(document: ReportDocument): string {
-  const full = buildPdfHtml(document, { forFile: true })
+  const full = buildPdfHtml(document, { forFile: true, sheetWidth: pdfSheetWidth(document) })
   const styleStart = full.indexOf('<style>')
   const styleEnd = full.indexOf('</style>')
   const articleStart = full.indexOf('<article')

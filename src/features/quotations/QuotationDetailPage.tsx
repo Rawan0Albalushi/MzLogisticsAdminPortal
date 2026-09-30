@@ -1,8 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { fetchQuotation } from '@/core/api/services.ts'
+import { getApiMessage } from '@/core/api/client.ts'
+import { fetchQuotation, withdrawQuotation } from '@/core/api/services.ts'
 import type { Quotation } from '@/core/api/types.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
@@ -60,7 +65,25 @@ function truckTypeValue(quotation: Quotation, fallback: (type: string) => string
 export function QuotationDetailPage() {
   const { id = '' } = useParams()
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const queryClient = useQueryClient()
+  const [confirmWithdraw, setConfirmWithdraw] = useState(false)
+  const [actionError, setActionError] = useState('')
   const query = useQuery({ queryKey: ['quotation', id], queryFn: () => fetchQuotation(id), enabled: Boolean(id) })
+  const withdraw = useMutation({
+    mutationFn: () => withdrawQuotation(id),
+    onSuccess: async () => {
+      setConfirmWithdraw(false)
+      setActionError('')
+      await queryClient.invalidateQueries({ queryKey: ['quotation', id] })
+      await queryClient.invalidateQueries({ queryKey: ['quotations'] })
+      await queryClient.invalidateQueries({ queryKey: ['shipment'] })
+    },
+    onError: (err) => {
+      setConfirmWithdraw(false)
+      setActionError(getApiMessage(err, t('shipments.onBehalfFailed')))
+    },
+  })
 
   if (query.isLoading) {
     return <LoadingState />
@@ -80,6 +103,10 @@ export function QuotationDetailPage() {
   const baseAmount =
     totalAmount != null && additionalAmount != null && additionalAmount > 0 ? totalAmount - additionalAmount : null
   const validityExpired = quotation.status === 'submitted' && isPastDate(quotation.valid_until)
+  const canWithdraw =
+    quotation.submitted_on_behalf === true &&
+    quotation.status === 'submitted' &&
+    hasPermission(PERMISSIONS.QUOTATIONS_CREATE)
   const routeLabel =
     shipment?.pickup_city || shipment?.delivery_city ? (
       <RouteLabel from={displayValue(shipment?.pickup_city)} to={displayValue(shipment?.delivery_city)} />
@@ -112,8 +139,18 @@ export function QuotationDetailPage() {
         title={quotation.reference}
         subtitle={t('quotations.detailTitle')}
         crumbs={[{ label: t('quotations.title'), to: '/quotations' }, { label: quotation.reference }]}
-        actions={<StatusBadge status={quotation.status} />}
+        actions={
+          <>
+            <StatusBadge status={quotation.status} />
+            {canWithdraw ? (
+              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setConfirmWithdraw(true)}>
+                {t('shipments.withdrawOnBehalf')}
+              </button>
+            ) : null}
+          </>
+        }
       />
+      {actionError ? <div className="mz-alert">{actionError}</div> : null}
 
       <div className="mz-grid-2">
         <section className="mz-card">
@@ -123,6 +160,7 @@ export function QuotationDetailPage() {
               <div className="mz-profile__body">
                 <h2 className="mz-profile__name">{quotation.reference}</h2>
                 <p className="mz-profile__aka">{formatMoney(quotation.total_price, currency)}</p>
+                {quotation.submitted_on_behalf ? <p className="mz-offer__hint">{t('quotations.submittedOnBehalf')}</p> : null}
                 <div className="mz-profile__contacts">
                   <StatusBadge status={quotation.status} />
                   {quotation.provider ? (
@@ -264,6 +302,17 @@ export function QuotationDetailPage() {
           </section>
         </>
       ) : null}
+      <ConfirmDialog
+        open={confirmWithdraw}
+        title={t('shipments.withdrawOnBehalf')}
+        danger
+        busy={withdraw.isPending}
+        confirmLabel={t('shipments.withdrawOnBehalf')}
+        onConfirm={() => withdraw.mutate()}
+        onClose={() => setConfirmWithdraw(false)}
+      >
+        <p>{t('shipments.withdrawOnBehalfBody')}</p>
+      </ConfirmDialog>
     </>
   )
 }

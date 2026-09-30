@@ -2,14 +2,18 @@ import { useEffect, useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { downloadReport } from '@/shared/reports/downloadReport.ts'
+import { downloadBlob, reportFileName } from '@/shared/reports/reportTheme.ts'
+import { reportLanguage } from '@/shared/reports/buildReport.ts'
 import type { ReportDocument, ReportFormat } from '@/shared/reports/types.ts'
 
 interface DownloadReportButtonProps {
   build: () => ReportDocument | Promise<ReportDocument>
+  buildExcel?: () => Promise<BlobPart>
+  excelTitle?: string
   disabled?: boolean
 }
 
-export function DownloadReportButton({ build, disabled }: DownloadReportButtonProps) {
+export function DownloadReportButton({ build, buildExcel, excelTitle, disabled }: DownloadReportButtonProps) {
   const { t } = useTranslation()
   const menuId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -43,8 +47,17 @@ export function DownloadReportButton({ build, disabled }: DownloadReportButtonPr
     setBusy(true)
     setError('')
     try {
-      const document = await build()
-      await downloadReport(document, format)
+      if (format === 'excel' && buildExcel) {
+        const buffer = await buildExcel()
+        downloadBlob(
+          buffer,
+          reportFileName(excelTitle || t('reports.title'), reportLanguage(), 'xlsx'),
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        )
+      } else {
+        const document = await build()
+        await downloadReport(document, format)
+      }
       setOpen(false)
     } catch (cause) {
       console.error('MZ report export failed', cause)
