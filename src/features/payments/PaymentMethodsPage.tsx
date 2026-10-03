@@ -233,6 +233,8 @@ export function PaymentMethodsPage() {
     },
   })
 
+  const bankBusy = bankQuery.isLoading || bankMutation.isPending
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     saveMutation.mutate()
@@ -249,59 +251,76 @@ export function PaymentMethodsPage() {
           </button>
         }
       />
-      {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
-      {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
-      <form
-        className="mz-form mz-section"
-        onSubmit={(event) => {
-          event.preventDefault()
-          bankMutation.mutate()
-        }}
-      >
-        <SectionTitle icon="payments" title={t('paymentMethods.bankTitle')} />
-        <p className="mz-field__hint">{t('paymentMethods.bankHint')}</p>
-        <div className="mz-grid-2">
-          <FormField label={t('paymentMethods.bankName')} htmlFor="bank-name">
-            <input
-              id="bank-name"
-              className="mz-input"
-              value={bankAccount.bank_name}
-              maxLength={120}
-              onChange={(event) => setBankAccount((current) => ({ ...current, bank_name: event.target.value }))}
-            />
-          </FormField>
-          <FormField label={t('paymentMethods.accountName')} htmlFor="bank-account-name">
-            <input
-              id="bank-account-name"
-              className="mz-input"
-              value={bankAccount.account_name}
-              maxLength={120}
-              onChange={(event) => setBankAccount((current) => ({ ...current, account_name: event.target.value }))}
-            />
-          </FormField>
-          <FormField label={t('paymentMethods.accountNumber')} htmlFor="bank-account-number">
-            <input
-              id="bank-account-number"
-              className="mz-input"
-              value={bankAccount.account_number}
-              maxLength={64}
-              onChange={(event) => setBankAccount((current) => ({ ...current, account_number: event.target.value }))}
-            />
-          </FormField>
-          <FormField label={t('paymentMethods.iban')} htmlFor="bank-iban">
-            <input
-              id="bank-iban"
-              className="mz-input"
-              value={bankAccount.iban}
-              maxLength={64}
-              onChange={(event) => setBankAccount((current) => ({ ...current, iban: event.target.value }))}
-            />
-          </FormField>
+      {feedback ? <div className="mz-alert mz-alert--ok mz-section-alert">{feedback}</div> : null}
+      {error ? <div className="mz-alert mz-section-alert">{error}</div> : null}
+      <section className="mz-card mz-bank-account">
+        <div className="mz-card__body">
+          <SectionTitle icon="payments" title={t('paymentMethods.bankTitle')} />
+          <form
+            className="mz-bank-account__form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              bankMutation.mutate()
+            }}
+          >
+            <p className="mz-offer__hint">{t('paymentMethods.bankHint')}</p>
+            <div className="mz-grid-2 mz-grid-2--equal">
+              <FormField label={t('paymentMethods.bankName')} htmlFor="bank-name">
+                <input
+                  id="bank-name"
+                  className="mz-input"
+                  value={bankAccount.bank_name}
+                  maxLength={120}
+                  disabled={bankBusy}
+                  onChange={(event) => setBankAccount((current) => ({ ...current, bank_name: event.target.value }))}
+                />
+              </FormField>
+              <FormField label={t('paymentMethods.accountName')} htmlFor="bank-account-name">
+                <input
+                  id="bank-account-name"
+                  className="mz-input"
+                  value={bankAccount.account_name}
+                  maxLength={120}
+                  disabled={bankBusy}
+                  onChange={(event) => setBankAccount((current) => ({ ...current, account_name: event.target.value }))}
+                />
+              </FormField>
+              <FormField label={t('paymentMethods.accountNumber')} htmlFor="bank-account-number">
+                <input
+                  id="bank-account-number"
+                  className="mz-input"
+                  dir="ltr"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={bankAccount.account_number}
+                  maxLength={64}
+                  disabled={bankBusy}
+                  onChange={(event) => setBankAccount((current) => ({ ...current, account_number: event.target.value }))}
+                />
+              </FormField>
+              <FormField label={t('paymentMethods.iban')} htmlFor="bank-iban">
+                <input
+                  id="bank-iban"
+                  className="mz-input"
+                  dir="ltr"
+                  autoComplete="off"
+                  spellCheck={false}
+                  value={bankAccount.iban}
+                  maxLength={64}
+                  disabled={bankBusy}
+                  onChange={(event) => setBankAccount((current) => ({ ...current, iban: event.target.value }))}
+                />
+              </FormField>
+            </div>
+            <div className="mz-form-actions">
+              <button type="submit" className="mz-btn mz-btn--primary" disabled={bankBusy}>
+                {bankMutation.isPending ? t('common.saving') : t('common.save')}
+              </button>
+            </div>
+          </form>
         </div>
-        <button type="submit" className="mz-btn mz-btn--primary" disabled={bankMutation.isPending}>
-          {bankMutation.isPending ? t('common.saving') : t('common.save')}
-        </button>
-      </form>
+      </section>
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter
