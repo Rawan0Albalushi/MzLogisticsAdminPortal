@@ -1,17 +1,16 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchJobs } from '@/core/api/services.ts'
-import { organizationName } from '@/shared/utils/format.ts'
+import { fetchProjects } from '@/core/api/services.ts'
+import { projectName } from '@/shared/utils/format.ts'
 
-interface JobFilterProps {
+interface ProjectFilterProps {
   value: string
   label?: string
-  projectId?: string
   onChange: (value: string) => void
 }
 
-export function JobFilter({ value, label, projectId = '', onChange }: JobFilterProps) {
+export function ProjectFilter({ value, label, onChange }: ProjectFilterProps) {
   const { t } = useTranslation()
   const listId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -49,15 +48,15 @@ export function JobFilter({ value, label, projectId = '', onChange }: JobFilterP
     }
   }, [open])
 
-  const jobs = useQuery({
-    queryKey: ['jobs', 'trip-filter', search, projectId],
-    queryFn: () => fetchJobs({ search, project: projectId || undefined, page: 1, per_page: 20 }),
+  const projects = useQuery({
+    queryKey: ['projects', 'invoice-filter', search],
+    queryFn: () => fetchProjects({ search, page: 1, per_page: 20 }),
     enabled: open,
     placeholderData: keepPreviousData,
   })
 
   const selected = Boolean(value)
-  const triggerLabel = selected ? label || chosenLabel || '…' : t('common.allJobs')
+  const triggerLabel = selected ? label || chosenLabel || '…' : t('common.allProjects')
 
   const choose = (next: string, nextLabel = '') => {
     setChosenLabel(nextLabel)
@@ -72,7 +71,7 @@ export function JobFilter({ value, label, projectId = '', onChange }: JobFilterP
       <button
         type="button"
         className={`mz-job-filter__trigger${selected ? '' : ' is-empty'}`}
-        aria-label={t('common.job')}
+        aria-label={t('jobs.project')}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
@@ -85,7 +84,7 @@ export function JobFilter({ value, label, projectId = '', onChange }: JobFilterP
               className="mz-job-filter__clear"
               role="button"
               tabIndex={0}
-              aria-label={t('common.allJobs')}
+              aria-label={t('common.allProjects')}
               onClick={(event) => {
                 event.stopPropagation()
                 choose('')
@@ -107,17 +106,17 @@ export function JobFilter({ value, label, projectId = '', onChange }: JobFilterP
         </span>
       </button>
       {open ? (
-        <div className="mz-job-filter__popover" role="dialog" aria-label={t('common.job')}>
+        <div className="mz-job-filter__popover" role="dialog" aria-label={t('jobs.project')}>
           <input
             ref={searchRef}
             className="mz-input mz-job-filter__search"
             type="search"
             value={draft}
-            placeholder={t('common.searchJob')}
-            aria-label={t('common.searchJob')}
+            placeholder={t('common.searchProject')}
+            aria-label={t('common.searchProject')}
             onChange={(event) => setDraft(event.target.value)}
           />
-          <ul className="mz-job-filter__list" id={listId} role="listbox" aria-label={t('common.job')}>
+          <ul className="mz-job-filter__list" id={listId} role="listbox" aria-label={t('jobs.project')}>
             <li>
               <button
                 type="button"
@@ -126,30 +125,29 @@ export function JobFilter({ value, label, projectId = '', onChange }: JobFilterP
                 className={`mz-job-filter__option${selected ? '' : ' is-active'}`}
                 onClick={() => choose('')}
               >
-                <span>{t('common.allJobs')}</span>
+                <span>{t('common.allProjects')}</span>
               </button>
             </li>
-            {jobs.isLoading ? (
+            {projects.isLoading ? (
               <li className="mz-job-filter__empty">{t('common.loading')}</li>
-            ) : jobs.isError ? (
+            ) : projects.isError ? (
               <li className="mz-job-filter__empty">{t('common.error')}</li>
-            ) : (jobs.data?.items.length ?? 0) === 0 ? (
+            ) : (projects.data?.items.length ?? 0) === 0 ? (
               <li className="mz-job-filter__empty">{t('common.noResults')}</li>
             ) : (
-              jobs.data?.items.map((job) => {
-                const active = String(job.id) === value
-                const customer = job.customer ? organizationName(job.customer) : ''
+              projects.data?.items.map((project) => {
+                const active = String(project.id) === value
                 return (
-                  <li key={job.id}>
+                  <li key={project.id}>
                     <button
                       type="button"
                       role="option"
                       aria-selected={active}
                       className={`mz-job-filter__option${active ? ' is-active' : ''}`}
-                      onClick={() => choose(String(job.id), job.reference)}
+                      onClick={() => choose(String(project.id), projectName(project))}
                     >
-                      <span>{job.reference}</span>
-                      {customer ? <small>{customer}</small> : null}
+                      <span>{projectName(project)}</span>
+                      <small>{project.project_id}</small>
                     </button>
                   </li>
                 )

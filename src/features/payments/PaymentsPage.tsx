@@ -9,6 +9,7 @@ import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { awaitsBankTransfer, ConfirmTransferDialog, paymentMethodLabel } from '@/features/payments/ConfirmTransferDialog.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { JobProjectFilters, useRecordScopeLabels } from '@/shared/components/JobProjectFilters.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
@@ -26,18 +27,21 @@ export function PaymentsPage() {
   const { hasPermission } = useAuth()
   const canConfirm = hasPermission(PERMISSIONS.PAYMENTS_MANAGE)
   const list = useListQuery()
+  const scope = useRecordScopeLabels(list.jobId, list.project)
   const catalog = useCatalog()
   const [confirmPayment, setConfirmPayment] = useState<Payment | null>(null)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const statuses = catalog.data?.payment_statuses ?? ['pending', 'processing', 'completed', 'failed', 'refunded']
   const query = useQuery({
-    queryKey: ['payments', list.search, list.status, list.method, list.dateFrom, list.dateTo, list.page],
+    queryKey: ['payments', list.search, list.status, list.method, list.project, list.jobId, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
       fetchPayments({
         search: list.search,
         status: list.status,
         method: list.method,
+        project: list.project,
+        job_id: list.jobId,
         date_from: list.dateFrom,
         date_to: list.dateTo,
         page: list.page,
@@ -94,6 +98,8 @@ export function PaymentsPage() {
                   search: list.search,
                   status: list.status,
                   method: list.method,
+                  project: list.project,
+                  job_id: list.jobId,
                   date_from: list.dateFrom,
                   date_to: list.dateTo,
                   page,
@@ -103,7 +109,7 @@ export function PaymentsPage() {
               return createListReport({
                 title: t('payments.title'),
                 subtitle: t('payments.subtitle'),
-                filters: listReportFilters(t, list),
+                filters: listReportFilters(t, { ...list, job: scope.jobLabel, project: scope.projectLabel }),
                 columns: [
                   t('common.reference'),
                   t('common.amount'),
@@ -153,6 +159,12 @@ export function PaymentsPage() {
           from={list.dateFrom}
           to={list.dateTo}
           onChange={(nextFrom, nextTo) => list.setFilters({ date_from: nextFrom, date_to: nextTo })}
+        />
+        <JobProjectFilters
+          jobId={list.jobId}
+          projectId={list.project}
+          onProjectChange={(value) => list.setFilters({ project: value, job_id: '' })}
+          onJobChange={(value) => list.setFilter('job_id', value)}
         />
       </FilterBar>
       <DataTable

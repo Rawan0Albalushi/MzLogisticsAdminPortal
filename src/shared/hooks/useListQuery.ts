@@ -15,6 +15,7 @@ export function useListQuery() {
   const city = params.get('city') ?? ''
   const method = params.get('method') ?? ''
   const jobId = params.get('job_id') ?? ''
+  const project = params.get('project') ?? ''
 
   const setFilter = useCallback(
     (key: string, value: string) => {
@@ -70,10 +71,11 @@ export function useListQuery() {
       city,
       method,
       jobId,
+      project,
       setFilter,
       setFilters,
       setPage,
     }),
-    [page, search, status, type, role, accountType, dateFrom, dateTo, city, method, jobId, setFilter, setFilters, setPage],
+    [page, search, status, type, role, accountType, dateFrom, dateTo, city, method, jobId, project, setFilter, setFilters, setPage],
   )
 }

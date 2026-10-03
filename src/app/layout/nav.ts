@@ -49,6 +49,7 @@ export const navGroups: NavGroup[] = [
       { to: '/settlements', labelKey: 'nav.settlements', permission: PERMISSIONS.SETTLEMENTS_VIEW, icon: 'settlements' },
       { to: '/driver-payables', labelKey: 'nav.driverPayables', permission: PERMISSIONS.SETTLEMENTS_VIEW, icon: 'settlements' },
       { to: '/reports', labelKey: 'nav.reports', permission: PERMISSIONS.REPORTS_VIEW, icon: 'reports' },
+      { to: '/finance/statement', labelKey: 'nav.profitStatement', permission: PERMISSIONS.PAYMENTS_VIEW, icon: 'commission' },
     ],
   },
   {

@@ -65,6 +65,9 @@ const SettlementsPage = lazy(() =>
 const DriverPayablesPage = lazy(() =>
   import('@/features/finance/DriverPayablesPage.tsx').then((m) => ({ default: m.DriverPayablesPage })),
 )
+const FinanceStatementPage = lazy(() =>
+  import('@/features/finance/FinanceStatementPage.tsx').then((m) => ({ default: m.FinanceStatementPage })),
+)
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage.tsx').then((m) => ({ default: m.ReportsPage })))
 const ProfilePage = lazy(() => import('@/features/users/ProfilePage.tsx').then((m) => ({ default: m.ProfilePage })))
 const UsersPage = lazy(() => import('@/features/users/UsersPage.tsx').then((m) => ({ default: m.UsersPage })))
@@ -175,7 +178,10 @@ const router = createBrowserRouter([
             : { path: '/tracking', element: <Navigate to="/trips" replace /> },
           {
             element: <ProtectedRoute permission={PERMISSIONS.PAYMENTS_VIEW} />,
-            children: [{ path: '/payments', element: withSuspense(<PaymentsPage />) }],
+            children: [
+              { path: '/finance/statement', element: withSuspense(<FinanceStatementPage />) },
+              { path: '/payments', element: withSuspense(<PaymentsPage />) },
+            ],
           },
           {
             element: <ProtectedRoute permission={PERMISSIONS.PAYMENTS_MANAGE} />,

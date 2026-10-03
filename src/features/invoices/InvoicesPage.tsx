@@ -9,6 +9,7 @@ import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { canRecordBankTransfer, RecordTransferDialog } from '@/features/invoices/RecordTransferDialog.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { JobProjectFilters, useRecordScopeLabels } from '@/shared/components/JobProjectFilters.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
@@ -25,16 +26,19 @@ export function InvoicesPage() {
   const { hasPermission } = useAuth()
   const canConfirm = hasPermission(PERMISSIONS.PAYMENTS_MANAGE)
   const list = useListQuery()
+  const scope = useRecordScopeLabels(list.jobId, list.project)
   const [recordInvoice, setRecordInvoice] = useState<Invoice | null>(null)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const query = useQuery({
-    queryKey: ['invoices', list.search, list.type, list.status, list.dateFrom, list.dateTo, list.page],
+    queryKey: ['invoices', list.search, list.type, list.status, list.project, list.jobId, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
       fetchInvoices({
         search: list.search,
         type: list.type,
         status: list.status,
+        project: list.project,
+        job_id: list.jobId,
         date_from: list.dateFrom,
         date_to: list.dateTo,
         page: list.page,
@@ -94,6 +98,8 @@ export function InvoicesPage() {
                   search: list.search,
                   type: list.type,
                   status: list.status,
+                  project: list.project,
+                  job_id: list.jobId,
                   date_from: list.dateFrom,
                   date_to: list.dateTo,
                   page,
@@ -103,7 +109,11 @@ export function InvoicesPage() {
               return createListReport({
                 title: t('invoices.title'),
                 subtitle: t('invoices.subtitle'),
-                filters: listReportFilters(t, list),
+                filters: listReportFilters(t, {
+                  ...list,
+                  job: scope.jobLabel,
+                  project: scope.projectLabel,
+                }),
                 columns: [
                   t('common.reference'),
                   t('common.type'),
@@ -134,6 +144,12 @@ export function InvoicesPage() {
           value={list.search}
           onChange={(value) => list.setFilter('search', value)}
           placeholder={t('common.searchReference')}
+        />
+        <JobProjectFilters
+          jobId={list.jobId}
+          projectId={list.project}
+          onProjectChange={(value) => list.setFilters({ project: value, job_id: '' })}
+          onJobChange={(value) => list.setFilter('job_id', value)}
         />
         <StatusFilter
           value={list.type}

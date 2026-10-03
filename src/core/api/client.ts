@@ -15,6 +15,13 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+
+  // Axios 1.x JSON-encodes FormData when Content-Type is application/json,
+  // which drops file fields. Leave the header unset so the browser sends multipart.
+  if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    config.headers.setContentType(false)
+  }
+
   return config
 })
 

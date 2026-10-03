@@ -217,6 +217,48 @@ export interface ProjectInput {
   name_ar: string
 }
 
+export interface PlatformStatement {
+  execution: 'marketplace' | 'fleet' | string
+  currency?: string | null
+  collected: number
+  platform_revenue: number
+  provider_share: number
+  driver_expense: number
+  net_profit: number
+  customer_outstanding: number
+  driver_outstanding: number
+}
+
+export interface FinanceStatementJob extends PlatformStatement {
+  id: number
+  reference: string
+  project?: Pick<Project, 'id' | 'project_id' | 'name_en' | 'name_ar'> | null
+  customer?: Pick<Organization, 'id' | 'name' | 'name_ar'> | null
+}
+
+export interface FinanceStatementProject {
+  id: number | null
+  project_id: string | null
+  name_en: string | null
+  name_ar: string | null
+  unassigned: boolean
+  jobs_count: number
+  collected: number
+  platform_revenue: number
+  provider_share: number
+  driver_expense: number
+  net_profit: number
+  customer_outstanding: number
+  driver_outstanding: number
+}
+
+export interface FinanceStatement {
+  currency: string
+  summary: Omit<PlatformStatement, 'execution' | 'currency'>
+  projects: FinanceStatementProject[]
+  jobs: FinanceStatementJob[]
+}
+
 export interface TransportJob {
   id: number
   reference: string
@@ -225,6 +267,7 @@ export interface TransportJob {
   total_price?: string | number | null
   driver_cost?: string | number | null
   net_amount?: string | number | null
+  platform_statement?: PlatformStatement | null
   currency?: string | null
   total_quantity?: string | number | null
   delivered_quantity?: string | number | null

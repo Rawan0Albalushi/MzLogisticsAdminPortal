@@ -887,6 +887,12 @@ html[dir='rtl'] .mz-userchip {
   margin-bottom: 12px;
 }
 
+.mz-page-header:has(.mz-report-menu__list, .mz-report-menu__error),
+.mz-filters:has(.mz-job-filter__popover, .mz-date-range__popover, .mz-picker__panel) {
+  position: relative;
+  z-index: 6;
+}
+
 .mz-search,
 .mz-select,
 .mz-input,
@@ -1468,6 +1474,15 @@ html[dir='rtl'] .mz-glyph--mirror {
 .mz-link {
   color: var(--mz-purple);
   font-weight: 500;
+}
+
+button.mz-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .mz-link:hover {

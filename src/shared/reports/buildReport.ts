@@ -68,6 +68,7 @@ interface ListFilterSource {
   city?: string
   method?: string
   job?: string
+  project?: string
 }
 
 export function listReportFilters(t: TFunction, list: ListFilterSource): ReportFilter[] {
@@ -92,6 +93,9 @@ export function listReportFilters(t: TFunction, list: ListFilterSource): ReportF
   }
   if (list.job) {
     filters.push({ label: t('common.job'), value: list.job })
+  }
+  if (list.project) {
+    filters.push({ label: t('jobs.project'), value: list.project })
   }
   if (list.method) {
     filters.push({ label: t('payments.method'), value: reportStatus(t, list.method) })

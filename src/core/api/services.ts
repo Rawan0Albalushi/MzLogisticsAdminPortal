@@ -12,6 +12,7 @@ import type {
   CreateShipmentInput,
   CreateStaffUserInput,
   DashboardStats,
+  FinanceStatement,
   DriverPayable,
   Invoice,
   ListQuery,
@@ -638,6 +639,14 @@ export async function fetchBankAccount(): Promise<BankAccount> {
 
 export async function updateBankAccount(payload: BankAccount): Promise<BankAccount> {
   const { data } = await api.put<ApiSuccess<BankAccount>>('/settings/bank-account', payload)
+  return unwrapData(data)
+}
+
+export async function fetchFinanceStatement(query: ListQuery & { project_id?: string; unassigned?: boolean } = {}) {
+  const params = toParams(query)
+  if (query.project_id) params.project_id = query.project_id
+  if (query.unassigned) params.unassigned = 1
+  const { data } = await api.get<ApiSuccess<FinanceStatement>>('/finance/statement', { params })
   return unwrapData(data)
 }
 

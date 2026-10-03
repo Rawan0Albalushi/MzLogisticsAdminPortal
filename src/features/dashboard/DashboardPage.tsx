@@ -230,6 +230,11 @@ export function DashboardPage() {
         <section className="mz-panel">
           <div className="mz-panel__head">
             <h2>{t('dashboard.finance')}</h2>
+            {user?.user_type === 'platform' && hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
+              <Link className="mz-link" to="/finance/statement">
+                {t('nav.profitStatement')}
+              </Link>
+            ) : null}
           </div>
           <div className="mz-kpi-grid">
             {hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
@@ -240,6 +245,14 @@ export function DashboardPage() {
                 hint={t('dashboard.paymentsCompletedHint')}
                 to="/payments"
                 tone="success"
+              />
+            ) : null}
+            {user?.user_type === 'platform' && hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
+              <KpiCard
+                icon={kpiIcons.commission}
+                label={t('dashboard.commission')}
+                value={formatMoney(stats.commission_amount)}
+                hint={t('dashboard.commissionHint')}
               />
             ) : null}
             {hasPermission(PERMISSIONS.WALLETS_VIEW) ? (

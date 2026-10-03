@@ -22,6 +22,18 @@ function resetCapturedText(root: HTMLElement): void {
   }
 }
 
+function captureScale(width: number, height: number): number {
+  const maxSide = 8192
+  const maxArea = 14_000_000
+  const safeWidth = Math.max(width, 1)
+  const safeHeight = Math.max(height, 1)
+  let scale = Math.min(2, maxSide / safeWidth, maxSide / safeHeight)
+  if (safeWidth * safeHeight * scale * scale > maxArea) {
+    scale = Math.sqrt(maxArea / (safeWidth * safeHeight))
+  }
+  return Math.max(0.25, Math.min(2, scale))
+}
+
 function addImagePages(pdf: jsPDF, dataUrl: string, pixelWidth: number, pixelHeight: number): void {
   const pageWidth = pdf.internal.pageSize.getWidth()
   const pageHeight = pdf.internal.pageSize.getHeight()
@@ -73,14 +85,16 @@ export async function generatePdfFile(report: ReportDocument): Promise<void> {
     resetCapturedText(host)
     await waitForFonts()
 
+    const captureWidth = sheetWidth
+    const captureHeight = Math.max(sheet.scrollHeight, sheet.offsetHeight, host.scrollHeight, 1)
     const dataUrl = await toPng(host, {
-      pixelRatio: 2,
+      pixelRatio: captureScale(captureWidth, captureHeight),
       backgroundColor: '#ffffff',
       cacheBust: false,
       skipFonts: true,
       fontEmbedCSS: '',
-      width: sheetWidth,
-      height: Math.max(sheet.scrollHeight, sheet.offsetHeight, host.scrollHeight),
+      width: captureWidth,
+      height: captureHeight,
       style: {
         position: 'static',
         left: '0',

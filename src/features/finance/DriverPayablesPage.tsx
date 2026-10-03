@@ -9,6 +9,7 @@ import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { JobProjectFilters } from '@/shared/components/JobProjectFilters.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
@@ -33,8 +34,15 @@ export function DriverPayablesPage() {
   const [error, setError] = useState('')
 
   const query = useQuery({
-    queryKey: ['driver-payables', list.search, list.status, list.page],
-    queryFn: () => fetchDriverPayables({ search: list.search, status: list.status, page: list.page }),
+    queryKey: ['driver-payables', list.search, list.status, list.project, list.jobId, list.page],
+    queryFn: () =>
+      fetchDriverPayables({
+        search: list.search,
+        status: list.status,
+        project: list.project,
+        job_id: list.jobId,
+        page: list.page,
+      }),
   })
 
   const pay = useMutation({
@@ -137,6 +145,12 @@ export function DriverPayablesPage() {
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('common.allStatuses')}
           label={(status) => t(`status.${status}`)}
+        />
+        <JobProjectFilters
+          jobId={list.jobId}
+          projectId={list.project}
+          onProjectChange={(value) => list.setFilters({ project: value, job_id: '' })}
+          onJobChange={(value) => list.setFilter('job_id', value)}
         />
       </FilterBar>
       <DataTable

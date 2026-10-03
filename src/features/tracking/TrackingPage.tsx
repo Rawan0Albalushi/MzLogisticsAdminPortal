@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { fetchTrips } from '@/core/api/services.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { JobProjectFilters, useRecordScopeLabels } from '@/shared/components/JobProjectFilters.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
@@ -21,6 +22,7 @@ const TRACK_STATUSES = ['assigned', 'arrived_at_pickup', 'loaded', 'in_transit',
 export function TrackingPage() {
   const { t } = useTranslation()
   const list = useListQuery()
+  const scope = useRecordScopeLabels(list.jobId, list.project)
   const status = list.status || 'in_transit'
   const downloadButton = (
     <DownloadReportButton
@@ -30,6 +32,8 @@ export function TrackingPage() {
             status,
             search: list.search,
             city: list.city,
+            project: list.project,
+            job_id: list.jobId,
             page,
             per_page: perPage,
           }),
@@ -37,7 +41,7 @@ export function TrackingPage() {
         return createListReport({
           title: t('tracking.title'),
           subtitle: t('tracking.subtitle'),
-          filters: listReportFilters(t, { ...list, status }),
+          filters: listReportFilters(t, { ...list, status, job: scope.jobLabel, project: scope.projectLabel }),
           columns: [
             t('common.reference'),
             t('common.driver'),
@@ -63,12 +67,14 @@ export function TrackingPage() {
     />
   )
   const query = useQuery({
-    queryKey: ['tracking', status, list.search, list.city, list.page],
+    queryKey: ['tracking', status, list.search, list.city, list.project, list.jobId, list.page],
     queryFn: () =>
       fetchTrips({
         status,
         search: list.search,
         city: list.city,
+        project: list.project,
+        job_id: list.jobId,
         page: list.page,
         per_page: 24,
       }),
@@ -110,6 +116,12 @@ export function TrackingPage() {
           onChange={(value) => list.setFilter('status', value)}
           allLabel={t('tracking.inTransitOnly')}
           label={(value) => t(`status.${value}`)}
+        />
+        <JobProjectFilters
+          jobId={list.jobId}
+          projectId={list.project}
+          onProjectChange={(value) => list.setFilters({ project: value, job_id: '' })}
+          onJobChange={(value) => list.setFilter('job_id', value)}
         />
       </FilterBar>
       {trips.length === 0 ? (

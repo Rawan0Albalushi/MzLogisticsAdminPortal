@@ -150,12 +150,50 @@ export function JobDetailPage() {
             <InfoGrid
               fields={[
                 { icon: 'payments', label: t('quotations.price'), value: formatMoney(job.total_price, currency) },
-                ...(job.driver_cost != null
+                ...(job.platform_statement
                   ? [
-                      { icon: 'drivers' as const, label: t('jobs.driverCost'), value: formatMoney(job.driver_cost, currency) },
-                      { icon: 'settlements' as const, label: t('jobs.netAmount'), value: formatMoney(job.net_amount, currency) },
+                      {
+                        icon: 'payments' as const,
+                        label: t('financeStatement.collected'),
+                        value: formatMoney(job.platform_statement.collected, currency),
+                      },
+                      {
+                        icon: 'commission' as const,
+                        label: t('financeStatement.platformRevenue'),
+                        value: formatMoney(job.platform_statement.platform_revenue, currency),
+                      },
+                      {
+                        icon: 'providers' as const,
+                        label: t('financeStatement.providerShare'),
+                        value: formatMoney(job.platform_statement.provider_share, currency),
+                      },
+                      {
+                        icon: 'drivers' as const,
+                        label: t('financeStatement.driverExpense'),
+                        value: formatMoney(job.platform_statement.driver_expense, currency),
+                      },
+                      {
+                        icon: 'settlements' as const,
+                        label: t('financeStatement.netProfit'),
+                        value: formatMoney(job.platform_statement.net_profit, currency),
+                      },
+                      {
+                        icon: 'invoices' as const,
+                        label: t('financeStatement.customerOutstanding'),
+                        value: formatMoney(job.platform_statement.customer_outstanding, currency),
+                      },
+                      {
+                        icon: 'drivers' as const,
+                        label: t('financeStatement.driverOutstanding'),
+                        value: formatMoney(job.platform_statement.driver_outstanding, currency),
+                      },
                     ]
-                  : []),
+                  : job.driver_cost != null
+                    ? [
+                        { icon: 'drivers' as const, label: t('jobs.driverCost'), value: formatMoney(job.driver_cost, currency) },
+                        { icon: 'settlements' as const, label: t('jobs.netAmount'), value: formatMoney(job.net_amount, currency) },
+                      ]
+                    : []),
                 { icon: 'customers', label: t('common.customer'), value: customerLink },
                 { icon: 'providers', label: t('common.provider'), value: providerLink },
                 { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },

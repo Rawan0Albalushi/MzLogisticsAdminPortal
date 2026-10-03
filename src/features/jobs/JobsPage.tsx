@@ -5,6 +5,7 @@ import { fetchJobs } from '@/core/api/services.ts'
 import type { TransportJob } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
+import { JobProjectFilters, useRecordScopeLabels } from '@/shared/components/JobProjectFilters.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
@@ -19,14 +20,16 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 export function JobsPage() {
   const { t } = useTranslation()
   const list = useListQuery()
+  const scope = useRecordScopeLabels('', list.project)
   const catalog = useCatalog()
   const statuses = catalog.data?.job_statuses ?? ['pending_dispatch', 'in_progress', 'completed', 'cancelled']
   const query = useQuery({
-    queryKey: ['jobs', list.search, list.status, list.dateFrom, list.dateTo, list.page],
+    queryKey: ['jobs', list.search, list.status, list.project, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
       fetchJobs({
         search: list.search,
         status: list.status,
+        project: list.project,
         date_from: list.dateFrom,
         date_to: list.dateTo,
         page: list.page,
@@ -79,6 +82,7 @@ export function JobsPage() {
                 fetchJobs({
                   search: list.search,
                   status: list.status,
+                  project: list.project,
                   date_from: list.dateFrom,
                   date_to: list.dateTo,
                   page,
@@ -88,7 +92,7 @@ export function JobsPage() {
               return createListReport({
                 title: t('jobs.title'),
                 subtitle: t('jobs.subtitle'),
-                filters: listReportFilters(t, list),
+                filters: listReportFilters(t, { ...list, project: scope.projectLabel }),
                 columns: [
                   t('common.reference'),
                   t('common.customer'),
@@ -115,6 +119,13 @@ export function JobsPage() {
           value={list.search}
           onChange={(value) => list.setFilter('search', value)}
           placeholder={t('common.searchReference')}
+        />
+        <JobProjectFilters
+          showJob={false}
+          jobId=""
+          projectId={list.project}
+          onProjectChange={(value) => list.setFilter('project', value)}
+          onJobChange={() => undefined}
         />
         <StatusFilter
           value={list.status}
