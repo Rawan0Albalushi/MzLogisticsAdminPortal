@@ -3,29 +3,33 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getApiMessage } from '@/core/api/client.ts'
 import {
+  fetchFleetForPlan,
   fetchProviders,
   fetchTruckTypes,
   submitQuotationOnBehalf,
   withdrawQuotation,
 } from '@/core/api/services.ts'
 import type { Organization, Shipment } from '@/core/api/types.ts'
+import { QuoteExecutionFields } from '@/features/quotations/QuoteExecutionFields.tsx'
+import { earliestTransportStart } from '@/features/quotations/transportStart.ts'
+import { billableTripCount, quotationTotal } from '@/features/quotations/quotationPrice.ts'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
-import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
-import { organizationName } from '@/shared/utils/format.ts'
+import { formatMoney, organizationName } from '@/shared/utils/format.ts'
 
 interface OnBehalfQuotationPanelProps {
   shipment: Shipment
 }
 
 const emptyForm = {
-  total_price: '',
+  price_per_trip: '',
   truck_count: '1',
   truck_type: '',
   truck_capacity_tons: '',
   trip_count: '1',
   quantity_per_trip: '',
   duration_days: '1',
+  transport_start_date: '',
   additional_costs: '',
   conditions: '',
 }
@@ -153,43 +157,58 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [providerId, setProviderId] = useState('')
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState({
+    ...emptyForm,
+    transport_start_date: earliestTransportStart(shipment.required_date),
+  })
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [confirmWithdraw, setConfirmWithdraw] = useState(false)
+  const [planValid, setPlanValid] = useState(true)
   const truckTypes = useQuery({ queryKey: ['truck-types'], queryFn: fetchTruckTypes })
+  const providerFleet = useQuery({
+    queryKey: ['trucks', 'offer-plan', providerId],
+    queryFn: () => fetchFleetForPlan({ organization_id: providerId }),
+    enabled: providerId !== '',
+  })
   const activeTruckTypes = (truckTypes.data ?? []).filter((row) => row.is_active)
   const existing = (shipment.quotations ?? []).find(
     (row) => providerId !== '' && String(row.provider?.id) === providerId && row.status !== 'withdrawn',
   )
   const canReplace = existing?.submitted_on_behalf === true && existing.status === 'submitted'
   const blocked = Boolean(existing)
-  const price = Number(form.total_price)
+  const price = Number(form.price_per_trip)
+  const trips = billableTripCount(Number(form.truck_count), Number(form.trip_count))
+  const total = trips != null && Number.isFinite(price) && price > 0 ? quotationTotal(price, trips) : null
   const ready =
     providerId !== '' &&
     !blocked &&
-    form.total_price.trim() !== '' &&
+    form.price_per_trip.trim() !== '' &&
     Number.isFinite(price) &&
     price > 0 &&
+    trips != null &&
     Number(form.truck_count) >= 1 &&
     form.truck_type !== '' &&
     Number(form.truck_capacity_tons) > 0 &&
     Number(form.trip_count) >= 1 &&
     Number(form.quantity_per_trip) > 0 &&
-    Number(form.duration_days) >= 1
+    Number(form.duration_days) >= 1 &&
+    form.transport_start_date !== '' &&
+    planValid
 
   const submit = useMutation({
     mutationFn: () => {
       const additional = form.additional_costs.trim()
       return submitQuotationOnBehalf(shipment.id, {
         provider_organization_id: Number(providerId),
-        total_price: price,
+        price_per_trip: price,
         truck_count: Number(form.truck_count),
         truck_type: form.truck_type,
         truck_capacity_tons: Number(form.truck_capacity_tons),
         trip_count: Number(form.trip_count),
         quantity_per_trip: Number(form.quantity_per_trip),
         duration_days: Number(form.duration_days),
+        transport_start_date: form.transport_start_date,
         ...(additional !== '' && Number.isFinite(Number(additional)) ? { additional_costs: Number(additional) } : {}),
         ...(form.conditions.trim() ? { conditions: form.conditions.trim() } : {}),
       })
@@ -227,20 +246,18 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
   }
 
   return (
-    <section className="mz-card mz-section">
-      <div className="mz-card__body mz-offer">
-        <SectionTitle icon="quotations" title={t('shipments.onBehalfTitle')} />
+    <>
+      <form
+        className="mz-form mz-offer-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!ready || submit.isPending) return
+          submit.mutate()
+        }}
+      >
         <p className="mz-offer__hint">{t('shipments.onBehalfHint')}</p>
         {message ? <div className="mz-alert mz-alert--ok">{message}</div> : null}
         {error ? <div className="mz-alert">{error}</div> : null}
-        <form
-          className="mz-form mz-offer-form"
-          onSubmit={(event) => {
-            event.preventDefault()
-            if (!ready || submit.isPending) return
-            submit.mutate()
-          }}
-        >
           <FormField label={t('common.provider')} htmlFor="on-behalf-provider" required wide>
             <ProviderPicker
               value={providerId}
@@ -248,6 +265,16 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
                 setProviderId(id)
                 setMessage('')
                 setError('')
+                setPlanValid(true)
+                setForm((current) => ({
+                  ...current,
+                  truck_count: '1',
+                  truck_type: '',
+                  truck_capacity_tons: '',
+                  trip_count: '1',
+                  quantity_per_trip: '',
+                  duration_days: '1',
+                }))
               }}
             />
           </FormField>
@@ -260,89 +287,46 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
               </button>
             </div>
           ) : null}
-          <FormField label={t('quotations.price')} htmlFor="on-behalf-price" required hint={t('shipments.onBehalfPriceHint')}>
+          <FormField label={t('quotations.pricePerTrip')} htmlFor="on-behalf-price" required hint={t('quotations.pricePerTripHint')}>
             <input
               id="on-behalf-price"
               className="mz-input"
               inputMode="decimal"
-              value={form.total_price}
+              value={form.price_per_trip}
               disabled={blocked}
-              onChange={(event) => update('total_price', event.target.value)}
+              onChange={(event) => update('price_per_trip', event.target.value)}
               required
             />
           </FormField>
-          <FormField label={t('quotations.truckCount')} htmlFor="on-behalf-trucks" required>
+          <FormField
+            label={t('quotations.transportStartDate')}
+            htmlFor="on-behalf-start"
+            required
+            hint={t('quotations.transportStartHint')}
+          >
             <input
-              id="on-behalf-trucks"
+              id="on-behalf-start"
               className="mz-input"
-              inputMode="numeric"
-              value={form.truck_count}
-              disabled={blocked}
-              onChange={(event) => update('truck_count', event.target.value)}
+              type="date"
               required
+              min={earliestTransportStart(shipment.required_date)}
+              value={form.transport_start_date}
+              disabled={blocked}
+              onChange={(event) => update('transport_start_date', event.target.value)}
             />
           </FormField>
-          <FormField label={t('quotations.truckType')} htmlFor="on-behalf-type" required>
-            <select
-              id="on-behalf-type"
-              className="mz-select"
-              value={form.truck_type}
-              disabled={blocked}
-              onChange={(event) => update('truck_type', event.target.value)}
-              required
-            >
-              <option value="">{t('shipments.chooseTruckType')}</option>
-              {activeTruckTypes.map((row) => (
-                <option key={row.id} value={row.code}>
-                  {row.name_ar && row.name_ar !== row.name ? `${row.name} / ${row.name_ar}` : row.name}
-                </option>
-              ))}
-            </select>
-          </FormField>
-          <FormField label={t('quotations.truckCapacity')} htmlFor="on-behalf-capacity" required>
-            <input
-              id="on-behalf-capacity"
-              className="mz-input"
-              inputMode="decimal"
-              value={form.truck_capacity_tons}
-              disabled={blocked}
-              onChange={(event) => update('truck_capacity_tons', event.target.value)}
-              required
-            />
-          </FormField>
-          <FormField label={t('quotations.tripCount')} htmlFor="on-behalf-trips" required>
-            <input
-              id="on-behalf-trips"
-              className="mz-input"
-              inputMode="numeric"
-              value={form.trip_count}
-              disabled={blocked}
-              onChange={(event) => update('trip_count', event.target.value)}
-              required
-            />
-          </FormField>
-          <FormField label={t('quotations.quantityPerTrip')} htmlFor="on-behalf-quantity" required>
-            <input
-              id="on-behalf-quantity"
-              className="mz-input"
-              inputMode="decimal"
-              value={form.quantity_per_trip}
-              disabled={blocked}
-              onChange={(event) => update('quantity_per_trip', event.target.value)}
-              required
-            />
-          </FormField>
-          <FormField label={t('quotations.duration')} htmlFor="on-behalf-duration" required>
-            <input
-              id="on-behalf-duration"
-              className="mz-input"
-              inputMode="numeric"
-              value={form.duration_days}
-              disabled={blocked}
-              onChange={(event) => update('duration_days', event.target.value)}
-              required
-            />
-          </FormField>
+          <QuoteExecutionFields
+            shipment={shipment}
+            trucks={providerFleet.data ?? []}
+            fleetReady={providerId === '' || providerFleet.isFetched || providerFleet.isError}
+            truckTypes={activeTruckTypes}
+            idPrefix="on-behalf"
+            resetKey={`${shipment.id}:${providerId}`}
+            disabled={blocked}
+            value={form}
+            onChange={(next) => setForm((current) => ({ ...current, ...next }))}
+            onValidChange={setPlanValid}
+          />
           <FormField label={t('quotations.additionalCosts')} htmlFor="on-behalf-extra">
             <input
               id="on-behalf-extra"
@@ -363,13 +347,15 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
               onChange={(event) => update('conditions', event.target.value)}
             />
           </FormField>
-          <div className="mz-form-actions">
-            <button type="submit" className="mz-btn mz-btn--primary" disabled={!ready || submit.isPending || withdraw.isPending}>
-              {t('shipments.submitOnBehalf')}
-            </button>
-          </div>
-        </form>
-      </div>
+        {total != null && trips != null ? (
+          <p className="mz-offer__hint">{t('quotations.calculatedTotal', { amount: formatMoney(total), count: trips })}</p>
+        ) : null}
+        <div className="mz-form-actions">
+          <button type="submit" className="mz-btn mz-btn--primary" disabled={!ready || submit.isPending || withdraw.isPending}>
+            {t('shipments.submitOnBehalf')}
+          </button>
+        </div>
+      </form>
       <ConfirmDialog
         open={confirmWithdraw}
         title={t('shipments.withdrawOnBehalf')}
@@ -381,6 +367,6 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
       >
         <p>{t('shipments.withdrawOnBehalfBody')}</p>
       </ConfirmDialog>
-    </section>
+    </>
   )
 }

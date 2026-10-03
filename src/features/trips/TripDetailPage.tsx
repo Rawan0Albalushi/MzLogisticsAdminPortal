@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, getApiMessage } from '@/core/api/client.ts'
-import { fetchTrip, updateTripOperations, uploadTripPodDocuments } from '@/core/api/services.ts'
+import { fetchTrip, updateTripOperations, updateTripStatus, uploadTripPodDocuments } from '@/core/api/services.ts'
 import type { Trip } from '@/core/api/types.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -21,6 +21,8 @@ import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
+import { TRIP_STATUS_ACTIONS } from '@/core/constants/statuses.ts'
+import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { displayValue, formatCoords, formatDateTime, formatMoney, formatNumber } from '@/shared/utils/format.ts'
 
 function PodDocumentPreview({ path, label }: { path: string; label: string }) {
@@ -215,6 +217,81 @@ function TripOperationsForm({ trip }: { trip: Trip }) {
   )
 }
 
+function TripStatusActions({ trip }: { trip: Trip }) {
+  const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const [feedback, setFeedback] = useState('')
+  const options = TRIP_STATUS_ACTIONS[trip.status] ?? []
+  const forward = options.find((status) => status !== 'cancelled')
+  const canCancel = options.includes('cancelled')
+
+  const save = useMutation({
+    mutationFn: (status: string) => updateTripStatus(trip.id, status),
+    onSuccess: async () => {
+      setPendingStatus(null)
+      setError('')
+      setFeedback(t('trips.statusSaved'))
+      await queryClient.invalidateQueries({ queryKey: ['trip', String(trip.id)] })
+      await queryClient.invalidateQueries({ queryKey: ['trips'] })
+      if (trip.job?.id) {
+        await queryClient.invalidateQueries({ queryKey: ['job', String(trip.job.id)] })
+      }
+    },
+    onError: (err) => {
+      setFeedback('')
+      setError(getApiMessage(err, t('trips.statusFailed')))
+    },
+  })
+
+  if (!forward && !canCancel) {
+    return null
+  }
+
+  const confirming = pendingStatus != null
+  const cancelling = pendingStatus === 'cancelled'
+
+  return (
+    <div className="mz-trip-status">
+      <p className="mz-field__hint">{t('trips.updateStatusHint')}</p>
+      {error ? <div className="mz-alert">{error}</div> : null}
+      {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
+      <div className="mz-trip-status__actions">
+        {forward ? (
+          <button type="button" className="mz-btn mz-btn--primary" onClick={() => setPendingStatus(forward)}>
+            {t('trips.markStatus', { status: t(`status.${forward}`) })}
+          </button>
+        ) : null}
+        {canCancel ? (
+          <button type="button" className="mz-btn mz-btn--danger" onClick={() => setPendingStatus('cancelled')}>
+            {t('trips.cancelTrip')}
+          </button>
+        ) : null}
+      </div>
+      <ConfirmDialog
+        open={confirming}
+        title={t('trips.confirmStatusTitle')}
+        danger={cancelling}
+        busy={save.isPending}
+        confirmLabel={pendingStatus ? t('trips.markStatus', { status: t(`status.${pendingStatus}`) }) : undefined}
+        onClose={() => {
+          if (!save.isPending) {
+            setPendingStatus(null)
+          }
+        }}
+        onConfirm={() => {
+          if (pendingStatus) {
+            save.mutate(pendingStatus)
+          }
+        }}
+      >
+        <p>{cancelling ? t('trips.confirmCancelBody') : t('trips.confirmStatusBody', { status: t(`status.${pendingStatus ?? ''}`) })}</p>
+      </ConfirmDialog>
+    </div>
+  )
+}
+
 function numericValue(value?: string | number | null) {
   if (value == null || value === '') {
     return null
@@ -242,6 +319,7 @@ export function TripDetailPage() {
   const canAssign = platformJob && hasPermission(PERMISSIONS.TRIPS_ASSIGN) && (trip.status === 'unassigned' || trip.status === 'assigned')
   const canEditOperations = trip.status !== 'cancelled' && (hasPermission(PERMISSIONS.TRIPS_UPDATE) || hasPermission(PERMISSIONS.TRIPS_ASSIGN))
   const canUploadPodDocuments = hasPermission(PERMISSIONS.TRIPS_UPDATE)
+  const canUpdateStatus = hasPermission(PERMISSIONS.TRIPS_UPDATE)
   const routeLabel =
     trip.pickup_city || trip.delivery_city ? (
       <RouteLabel from={displayValue(trip.pickup_city)} to={displayValue(trip.delivery_city)} />
@@ -266,6 +344,7 @@ export function TripDetailPage() {
         <div className="mz-card__body">
           <SectionTitle icon="trips" title={t('trips.timeline')} />
           <TripTimeline status={trip.status} />
+          {canUpdateStatus ? <TripStatusActions trip={trip} /> : null}
         </div>
       </section>
 

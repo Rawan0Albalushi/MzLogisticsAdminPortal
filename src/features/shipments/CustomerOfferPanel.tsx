@@ -2,8 +2,12 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchTruckTypes, type PlatformOfferInput } from '@/core/api/services.ts'
+import { fetchFleetForPlan, fetchTruckTypes, type PlatformOfferInput } from '@/core/api/services.ts'
 import type { PlatformOffer, Quotation, Shipment } from '@/core/api/types.ts'
+import { QuoteExecutionFields } from '@/features/quotations/QuoteExecutionFields.tsx'
+import { earliestTransportStart } from '@/features/quotations/transportStart.ts'
+import { billableTripCount, quotationTotal } from '@/features/quotations/quotationPrice.ts'
+import { OnBehalfQuotationPanel } from '@/features/shipments/OnBehalfQuotationPanel.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
@@ -22,6 +26,7 @@ interface CustomerOfferPanelProps {
   onPublish: (payload: PlatformOfferInput) => void
   onConfirm: (offerId: number) => void
   onWithdraw: (offerId: number) => void
+  canSubmitOnBehalf?: boolean
 }
 
 function roundMoney(value: number) {
@@ -68,24 +73,49 @@ export function CustomerOfferPanel({
   onPublish,
   onConfirm,
   onWithdraw,
+  canSubmitOnBehalf = false,
 }: CustomerOfferPanelProps) {
   const { t } = useTranslation()
   const [selectedQuotationId, setSelectedQuotationId] = useState('')
   const [priceMode, setPriceMode] = useState<PriceMode>('fixed')
   const [amountInput, setAmountInput] = useState('')
-  const [source, setSource] = useState<'provider' | 'platform'>('provider')
+  const [source, setSource] = useState<'provider' | 'platform' | 'onBehalf'>('provider')
   const [ownedForm, setOwnedForm] = useState({
-    total_price: '',
+    price_per_trip: '',
     truck_count: '1',
     truck_type: '',
     truck_capacity_tons: '',
     trip_count: '1',
     quantity_per_trip: '',
     duration_days: '1',
+    transport_start_date: earliestTransportStart(shipment.required_date),
     additional_costs: '',
     conditions: '',
   })
+  const [planValid, setPlanValid] = useState(true)
+  const [seenShipmentId, setSeenShipmentId] = useState(shipment.id)
+  if (seenShipmentId !== shipment.id) {
+    setSeenShipmentId(shipment.id)
+    setOwnedForm({
+      price_per_trip: '',
+      truck_count: '1',
+      truck_type: '',
+      truck_capacity_tons: '',
+      trip_count: '1',
+      quantity_per_trip: '',
+      duration_days: '1',
+      transport_start_date: earliestTransportStart(shipment.required_date),
+      additional_costs: '',
+      conditions: '',
+    })
+    setPlanValid(true)
+  }
   const truckTypes = useQuery({ queryKey: ['truck-types'], queryFn: fetchTruckTypes })
+  const platformFleet = useQuery({
+    queryKey: ['trucks', 'offer-plan', 'platform'],
+    queryFn: () => fetchFleetForPlan({ owner: 'platform' }),
+    enabled: source === 'platform',
+  })
 
   const quotations = (shipment.quotations ?? []).filter((row) => row.status === 'submitted')
   const selectable = quotations.filter((row) => !isExpired(row.valid_until))
@@ -119,17 +149,22 @@ export function CustomerOfferPanel({
   const priceTooLow = margin != null && margin < 0
   const canPublish = canManage && shipment.status === 'published' && selectable.length > 0
   const canCompose = canManage && shipment.status === 'published'
-  const ownedPrice = Number(ownedForm.total_price)
+  const ownedPrice = Number(ownedForm.price_per_trip)
+  const ownedTrips = billableTripCount(Number(ownedForm.truck_count), Number(ownedForm.trip_count))
+  const ownedTotal = ownedTrips != null && Number.isFinite(ownedPrice) && ownedPrice > 0 ? quotationTotal(ownedPrice, ownedTrips) : null
   const ownedReady =
-    ownedForm.total_price.trim() !== '' &&
+    ownedForm.price_per_trip.trim() !== '' &&
     Number.isFinite(ownedPrice) &&
     ownedPrice > 0 &&
+    ownedTrips != null &&
     Number(ownedForm.truck_count) >= 1 &&
     ownedForm.truck_type !== '' &&
     Number(ownedForm.truck_capacity_tons) > 0 &&
     Number(ownedForm.trip_count) >= 1 &&
     Number(ownedForm.quantity_per_trip) > 0 &&
-    Number(ownedForm.duration_days) >= 1
+    Number(ownedForm.duration_days) >= 1 &&
+    ownedForm.transport_start_date !== '' &&
+    planValid
   const activeTruckTypes = (truckTypes.data ?? []).filter((row) => row.is_active)
   const unitLabel = shipment.quantity_unit
     ? t(`common.quantityUnits.${shipment.quantity_unit}`, { defaultValue: shipment.quantity_unit })
@@ -191,9 +226,34 @@ export function CustomerOfferPanel({
                 />
                 {t('shipments.offerFromPlatform')}
               </label>
+              {canSubmitOnBehalf ? (
+                <label className={source === 'onBehalf' ? 'is-active' : undefined}>
+                  <input
+                    type="radio"
+                    name="offer-source"
+                    checked={source === 'onBehalf'}
+                    onChange={() => setSource('onBehalf')}
+                  />
+                  {t('shipments.onBehalfTitle')}
+                </label>
+              ) : null}
             </div>
           </div>
+        ) : canSubmitOnBehalf ? (
+          <div className="mz-segment" role="radiogroup" aria-label={t('shipments.onBehalfTitle')}>
+            <label className={source === 'onBehalf' ? 'is-active' : undefined}>
+              <input
+                type="radio"
+                name="offer-source"
+                checked={source === 'onBehalf'}
+                onChange={() => setSource('onBehalf')}
+              />
+              {t('shipments.onBehalfTitle')}
+            </label>
+          </div>
         ) : null}
+
+        {source === 'onBehalf' && canSubmitOnBehalf ? <OnBehalfQuotationPanel shipment={shipment} /> : null}
 
         {source === 'platform' && canCompose ? (
           <form
@@ -204,13 +264,14 @@ export function CustomerOfferPanel({
               const confirm = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'confirm'
               const additional = ownedForm.additional_costs.trim()
               onPublish({
-                total_price: ownedPrice,
+                price_per_trip: ownedPrice,
                 truck_count: Number(ownedForm.truck_count),
                 truck_type: ownedForm.truck_type,
                 truck_capacity_tons: Number(ownedForm.truck_capacity_tons),
                 trip_count: Number(ownedForm.trip_count),
                 quantity_per_trip: Number(ownedForm.quantity_per_trip),
                 duration_days: Number(ownedForm.duration_days),
+                transport_start_date: ownedForm.transport_start_date,
                 ...(additional !== '' && Number.isFinite(Number(additional)) ? { additional_costs: Number(additional) } : {}),
                 ...(ownedForm.conditions.trim() ? { conditions: ownedForm.conditions.trim() } : {}),
                 confirm,
@@ -218,82 +279,43 @@ export function CustomerOfferPanel({
             }}
           >
             <p className="mz-offer__hint">{t('shipments.platformOfferFormHint')}</p>
-            <FormField label={t('shipments.customerPrice')} htmlFor="owned-price" required>
+            <FormField label={t('quotations.pricePerTrip')} htmlFor="owned-price" required hint={t('quotations.pricePerTripHint')}>
               <input
                 id="owned-price"
                 className="mz-input"
                 inputMode="decimal"
-                value={ownedForm.total_price}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, total_price: event.target.value }))}
+                value={ownedForm.price_per_trip}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, price_per_trip: event.target.value }))}
                 required
               />
             </FormField>
-            <FormField label={t('quotations.truckCount')} htmlFor="owned-trucks" required>
+            <FormField
+              label={t('quotations.transportStartDate')}
+              htmlFor="owned-start"
+              required
+              hint={t('quotations.transportStartHint')}
+            >
               <input
-                id="owned-trucks"
+                id="owned-start"
                 className="mz-input"
-                inputMode="numeric"
-                value={ownedForm.truck_count}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_count: event.target.value }))}
+                type="date"
                 required
+                min={earliestTransportStart(shipment.required_date)}
+                value={ownedForm.transport_start_date}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, transport_start_date: event.target.value }))}
               />
             </FormField>
-            <FormField label={t('quotations.truckType')} htmlFor="owned-type" required>
-              <select
-                id="owned-type"
-                className="mz-select"
-                value={ownedForm.truck_type}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_type: event.target.value }))}
-                required
-              >
-                <option value="">{t('shipments.chooseTruckType')}</option>
-                {activeTruckTypes.map((row) => (
-                  <option key={row.id} value={row.code}>
-                    {row.name_ar && row.name_ar !== row.name ? `${row.name} / ${row.name_ar}` : row.name}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label={t('quotations.truckCapacity')} htmlFor="owned-capacity" required>
-              <input
-                id="owned-capacity"
-                className="mz-input"
-                inputMode="decimal"
-                value={ownedForm.truck_capacity_tons}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, truck_capacity_tons: event.target.value }))}
-                required
-              />
-            </FormField>
-            <FormField label={t('quotations.tripCount')} htmlFor="owned-trips" required>
-              <input
-                id="owned-trips"
-                className="mz-input"
-                inputMode="numeric"
-                value={ownedForm.trip_count}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, trip_count: event.target.value }))}
-                required
-              />
-            </FormField>
-            <FormField label={t('quotations.quantityPerTrip')} htmlFor="owned-quantity" required>
-              <input
-                id="owned-quantity"
-                className="mz-input"
-                inputMode="decimal"
-                value={ownedForm.quantity_per_trip}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, quantity_per_trip: event.target.value }))}
-                required
-              />
-            </FormField>
-            <FormField label={t('quotations.duration')} htmlFor="owned-duration" required>
-              <input
-                id="owned-duration"
-                className="mz-input"
-                inputMode="numeric"
-                value={ownedForm.duration_days}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, duration_days: event.target.value }))}
-                required
-              />
-            </FormField>
+            <QuoteExecutionFields
+              shipment={shipment}
+              trucks={platformFleet.data ?? []}
+              fleetReady={platformFleet.isFetched || platformFleet.isError}
+              truckTypes={activeTruckTypes}
+              idPrefix="owned"
+              resetKey={String(shipment.id)}
+              value={ownedForm}
+              onChange={(next) => setOwnedForm((current) => ({ ...current, ...next }))}
+              onValidChange={setPlanValid}
+            />
             <FormField label={t('quotations.additionalCosts')} htmlFor="owned-extra">
               <input
                 id="owned-extra"
@@ -312,6 +334,9 @@ export function CustomerOfferPanel({
                 onChange={(event) => setOwnedForm((current) => ({ ...current, conditions: event.target.value }))}
               />
             </FormField>
+            {ownedTotal != null && ownedTrips != null ? (
+              <p className="mz-offer__hint">{t('quotations.calculatedTotal', { amount: formatMoney(ownedTotal), count: ownedTrips })}</p>
+            ) : null}
             <p className="mz-offer__hint">{t('shipments.offerActionHint')}</p>
             <div className="mz-form-actions">
               <button type="submit" value="publish" className="mz-btn mz-btn--ghost" disabled={publishing || confirming || !ownedReady}>
@@ -469,6 +494,7 @@ export function CustomerOfferPanel({
 }
 
 interface OfferDetail {
+  price_per_trip?: string | number | null
   truck_count?: number | null
   truck_type?: string | null
   truck_type_label?: string | null
@@ -476,6 +502,7 @@ interface OfferDetail {
   trip_count?: number | null
   quantity_per_trip?: string | number | null
   duration_days?: number | null
+  transport_start_date?: string | null
   additional_costs?: string | number | null
   valid_until?: string | null
   currency?: string | null
@@ -488,6 +515,9 @@ function OfferFacts({ detail, unitLabel, note }: { detail: OfferDetail; unitLabe
     if (value == null || value === '') return
     rows.push({ label, value: String(value) })
   }
+  if (moneyAmount(detail.price_per_trip)) {
+    push(t('quotations.pricePerTrip'), formatMoney(detail.price_per_trip, detail.currency ?? undefined))
+  }
   push(t('quotations.truckCount'), detail.truck_count == null ? null : formatDetail(detail.truck_count))
   push(t('quotations.truckType'), detail.truck_type_label || detail.truck_type)
   if (detail.truck_capacity_tons != null && detail.truck_capacity_tons !== '') {
@@ -499,6 +529,9 @@ function OfferFacts({ detail, unitLabel, note }: { detail: OfferDetail; unitLabe
     push(t('quotations.quantityPerTrip'), unitLabel ? `${amount} ${unitLabel}` : amount)
   }
   push(t('quotations.duration'), detail.duration_days == null ? null : formatDetail(detail.duration_days))
+  if (detail.transport_start_date) {
+    push(t('quotations.transportStartDate'), formatDate(detail.transport_start_date))
+  }
   if (moneyAmount(detail.additional_costs)) {
     push(t('quotations.additionalCosts'), formatMoney(detail.additional_costs, detail.currency ?? undefined))
   }
@@ -601,6 +634,7 @@ function PublishedOffer({
           trip_count: offer.trip_count,
           quantity_per_trip: offer.quantity_per_trip,
           duration_days: offer.duration_days,
+          transport_start_date: offer.transport_start_date ?? quotation?.transport_start_date,
           additional_costs: offer.additional_costs ?? quotation?.additional_costs,
           valid_until: offer.valid_until,
           currency: offer.currency,

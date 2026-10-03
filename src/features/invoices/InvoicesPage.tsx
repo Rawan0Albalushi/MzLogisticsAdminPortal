@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchInvoices } from '@/core/api/services.ts'
+import { downloadPaymentReceipt, fetchInvoices } from '@/core/api/services.ts'
+import { getApiMessage } from '@/core/api/client.ts'
 import type { Invoice } from '@/core/api/types.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { canRecordBankTransfer, RecordTransferDialog } from '@/features/invoices/RecordTransferDialog.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
@@ -16,7 +21,12 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function InvoicesPage() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canConfirm = hasPermission(PERMISSIONS.PAYMENTS_MANAGE)
   const list = useListQuery()
+  const [recordInvoice, setRecordInvoice] = useState<Invoice | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const [error, setError] = useState('')
   const query = useQuery({
     queryKey: ['invoices', list.search, list.type, list.status, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
@@ -38,6 +48,35 @@ export function InvoicesPage() {
     { id: 'issued', header: t('invoices.issuedAt'), cell: (row) => formatDate(row.issued_at) },
     { id: 'due', header: t('invoices.dueAt'), cell: (row) => formatDate(row.due_at) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => {
+        const payment = row.payment
+        return (
+          <div className="mz-table-actions">
+            {canConfirm && canRecordBankTransfer(row) ? (
+              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setRecordInvoice(row)}>
+                {t('invoices.recordTransfer')}
+              </button>
+            ) : null}
+            {payment?.has_receipt ? (
+              <button
+                type="button"
+                className="mz-btn mz-btn--ghost"
+                onClick={() => {
+                  void downloadPaymentReceipt(payment.id, `${payment.reference}-receipt`).catch((err) => {
+                    setError(getApiMessage(err, t('payments.receiptFailed')))
+                  })
+                }}
+              >
+                {t('payments.receipt')}
+              </button>
+            ) : null}
+          </div>
+        )
+      },
+    },
   ]
 
   return (
@@ -86,6 +125,8 @@ export function InvoicesPage() {
           />
         }
       />
+      {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
+      {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
       <FilterBar>
         <SearchInput
           value={list.search}
@@ -121,6 +162,15 @@ export function InvoicesPage() {
         onRetry={() => void query.refetch()}
         meta={query.data?.meta}
         onPageChange={list.setPage}
+      />
+      <RecordTransferDialog
+        invoice={recordInvoice}
+        open={recordInvoice !== null}
+        onClose={() => setRecordInvoice(null)}
+        onRecorded={() => {
+          setError('')
+          setFeedback(t('invoices.recordSuccess'))
+        }}
       />
     </>
   )

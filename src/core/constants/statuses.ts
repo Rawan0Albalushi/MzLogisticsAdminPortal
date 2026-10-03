@@ -11,6 +11,19 @@ export const TRIP_TIMELINE = [
 
 export type TripTimelineStatus = (typeof TRIP_TIMELINE)[number]
 
+/** Next statuses an operator may set. Assignment stays on the assign form, so "assigned" is omitted. */
+export const TRIP_STATUS_ACTIONS: Record<string, readonly string[]> = {
+  unassigned: ['cancelled'],
+  assigned: ['arrived_at_pickup', 'cancelled'],
+  arrived_at_pickup: ['loaded', 'cancelled'],
+  loaded: ['in_transit', 'cancelled'],
+  in_transit: ['arrived', 'cancelled'],
+  arrived: ['delivered', 'cancelled'],
+  delivered: ['completed'],
+  completed: [],
+  cancelled: [],
+}
+
 export const ORGANIZATION_VERIFY_STATUSES = ['active', 'suspended', 'rejected'] as const
 
 export const CUSTOMER_ACCOUNT_TYPES = ['individual', 'company'] as const
@@ -21,7 +34,7 @@ export const DRIVER_LIST_STATUSES = ['available', 'on_trip', 'inactive'] as cons
 
 export const TRUCK_LIST_STATUSES = ['available', 'assigned', 'maintenance', 'inactive'] as const
 
-export const PAYMENT_METHODS = ['thawani', 'cash'] as const
+export const PAYMENT_METHODS = ['thawani', 'cash', 'bank_transfer'] as const
 
 export const INVOICE_TYPES = ['customer', 'provider', 'commission'] as const
 

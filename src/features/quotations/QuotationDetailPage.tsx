@@ -187,6 +187,9 @@ export function QuotationDetailPage() {
             <SectionTitle icon="payments" title={t('quotations.offerSection')} />
             <InfoGrid
               fields={[
+                ...(quotation.price_per_trip != null && quotation.price_per_trip !== ''
+                  ? [{ icon: 'trips' as const, label: t('quotations.pricePerTrip'), value: formatMoney(quotation.price_per_trip, currency) }]
+                  : []),
                 { icon: 'payments', label: t('quotations.price'), value: formatMoney(quotation.total_price, currency) },
                 ...(baseAmount != null
                   ? [{ icon: 'commission' as const, label: t('quotations.basePrice'), value: formatMoney(baseAmount, currency) }]
@@ -219,6 +222,11 @@ export function QuotationDetailPage() {
                     value: formatQuantity(quotation.quantity_per_trip, shipment?.quantity_unit),
                   },
                   { icon: 'clock', label: t('quotations.duration'), value: numericValue(quotation.duration_days) },
+                  {
+                    icon: 'calendar',
+                    label: t('quotations.transportStartDate'),
+                    value: quotation.transport_start_date ? formatDate(quotation.transport_start_date) : null,
+                  },
                 ]}
               />
             </div>

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchDriverPayables, payDriverPayable } from '@/core/api/services.ts'
+import { downloadDriverPayableReceipt, fetchDriverPayables, payDriverPayable } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import type { DriverPayable } from '@/core/api/types.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
@@ -13,6 +13,7 @@ import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
+import { FormField } from '@/shared/components/FormField.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, formatDateTime, formatMoney } from '@/shared/utils/format.ts'
 
@@ -25,6 +26,8 @@ export function DriverPayablesPage() {
   const list = useListQuery()
   const queryClient = useQueryClient()
   const [payId, setPayId] = useState<number | null>(null)
+  const [receipt, setReceipt] = useState<File | null>(null)
+  const [dialogError, setDialogError] = useState('')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
 
@@ -34,19 +37,30 @@ export function DriverPayablesPage() {
   })
 
   const pay = useMutation({
-    mutationFn: (id: number) => payDriverPayable(id),
+    mutationFn: ({ id, file }: { id: number; file: File | null }) => payDriverPayable(id, file),
     onSuccess: async () => {
       setFeedback(t('driverPay.paidSuccess'))
       setError('')
-      setPayId(null)
+      closePayDialog()
       await queryClient.invalidateQueries({ queryKey: ['driver-payables'] })
       await queryClient.invalidateQueries({ queryKey: ['trip'] })
     },
     onError: (err) => {
-      setError(getApiMessage(err, t('driverPay.paidFailed')))
-      setPayId(null)
+      setDialogError(getApiMessage(err, t('driverPay.paidFailed')))
     },
   })
+
+  function openPayDialog(id: number) {
+    setReceipt(null)
+    setDialogError('')
+    setPayId(id)
+  }
+
+  function closePayDialog() {
+    setPayId(null)
+    setReceipt(null)
+    setDialogError('')
+  }
 
   const columns: Column<DriverPayable>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
@@ -81,14 +95,35 @@ export function DriverPayablesPage() {
     {
       id: 'actions',
       header: t('common.actions'),
-      cell: (row) =>
-        canManage && row.status === 'pending' ? (
-          <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setPayId(row.id)}>
-            {t('driverPay.markPaid')}
-          </button>
-        ) : (
-          displayValue(null)
-        ),
+      cell: (row) => {
+        const canPay = canManage && row.status === 'pending'
+        if (!canPay && !row.has_receipt) {
+          return displayValue(null)
+        }
+
+        return (
+          <div className="mz-table-actions">
+            {canPay ? (
+              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openPayDialog(row.id)}>
+                {t('driverPay.markPaid')}
+              </button>
+            ) : null}
+            {row.has_receipt ? (
+              <button
+                type="button"
+                className="mz-btn mz-btn--ghost"
+                onClick={() => {
+                  void downloadDriverPayableReceipt(row.id, `${row.reference}-receipt`).catch((err) => {
+                    setError(getApiMessage(err, t('driverPay.receiptFailed')))
+                  })
+                }}
+              >
+                {t('driverPay.receipt')}
+              </button>
+            ) : null}
+          </div>
+        )
+      },
     },
   ]
 
@@ -124,12 +159,30 @@ export function DriverPayablesPage() {
         busy={pay.isPending}
         onConfirm={() => {
           if (payId !== null) {
-            pay.mutate(payId)
+            setDialogError('')
+            pay.mutate({ id: payId, file: receipt })
           }
         }}
-        onClose={() => setPayId(null)}
+        onClose={() => {
+          if (!pay.isPending) {
+            closePayDialog()
+          }
+        }}
       >
-        <p>{t('driverPay.confirmPaid')}</p>
+        <div className="mz-form">
+          <p>{t('driverPay.confirmPaid')}</p>
+          {dialogError ? <div className="mz-alert">{dialogError}</div> : null}
+          <FormField label={t('driverPay.receipt')} htmlFor="driver-pay-receipt" hint={t('driverPay.receiptHint')}>
+            <input
+              id="driver-pay-receipt"
+              className="mz-input"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,application/pdf"
+              disabled={pay.isPending}
+              onChange={(event) => setReceipt(event.target.files?.[0] ?? null)}
+            />
+          </FormField>
+        </div>
       </ConfirmDialog>
     </>
   )

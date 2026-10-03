@@ -38,6 +38,7 @@ export function ShipmentDetailPage() {
   const { hasPermission } = useAuth()
   const queryClient = useQueryClient()
   const [confirmCancel, setConfirmCancel] = useState(false)
+  const [onBehalfOpen, setOnBehalfOpen] = useState(false)
   const [error, setError] = useState('')
   const [offerMessage, setOfferMessage] = useState('')
   const [offerError, setOfferError] = useState('')
@@ -111,6 +112,7 @@ export function ShipmentDetailPage() {
   const customerName = organizationName(shipment.customer)
   const canCancel =
     hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) && shipment.status !== 'cancelled' && shipment.status !== 'awarded'
+  const canSubmitOnBehalf = shipment.status === 'published' && hasPermission(PERMISSIONS.QUOTATIONS_CREATE)
   const customerLink = shipment.customer ? (
     <Link className="mz-link" to={`/customers/${shipment.customer.id}`}>
       {customerName}
@@ -312,11 +314,20 @@ export function ShipmentDetailPage() {
           onPublish={(payload) => publishOffer.mutate(payload)}
           onConfirm={(offerId) => confirmOffer.mutate(offerId)}
           onWithdraw={(offerId) => withdrawOffer.mutate(offerId)}
+          canSubmitOnBehalf={canSubmitOnBehalf}
         />
-      ) : null}
-
-      {shipment.status === 'published' && hasPermission(PERMISSIONS.QUOTATIONS_CREATE) ? (
-        <OnBehalfQuotationPanel shipment={shipment} />
+      ) : canSubmitOnBehalf ? (
+        <section className="mz-card mz-section">
+          <div className="mz-card__body mz-offer">
+            <div className="mz-segment" role="radiogroup" aria-label={t('shipments.onBehalfTitle')}>
+              <label className={onBehalfOpen ? 'is-active' : undefined}>
+                <input type="checkbox" checked={onBehalfOpen} onChange={() => setOnBehalfOpen((current) => !current)} />
+                {t('shipments.onBehalfTitle')}
+              </label>
+            </div>
+            {onBehalfOpen ? <OnBehalfQuotationPanel shipment={shipment} /> : null}
+          </div>
+        </section>
       ) : null}
 
       <section className="mz-section">

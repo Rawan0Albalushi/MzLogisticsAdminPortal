@@ -152,6 +152,7 @@ export interface PlatformOffer {
   trip_count?: number | null
   quantity_per_trip?: string | number | null
   duration_days?: number | null
+  transport_start_date?: string | null
   conditions?: string | null
   valid_until?: string | null
   status: string
@@ -169,6 +170,7 @@ export interface Quotation {
   reference: string
   shipment_request_id: number
   total_price?: string | number | null
+  price_per_trip?: string | number | null
   currency?: string | null
   truck_count?: number | null
   truck_type?: string | null
@@ -177,6 +179,7 @@ export interface Quotation {
   trip_count?: number | null
   quantity_per_trip?: string | number | null
   duration_days?: number | null
+  transport_start_date?: string | null
   additional_costs?: string | number | null
   conditions?: string | null
   valid_until?: string | null
@@ -288,6 +291,7 @@ export interface Trip {
   otp_required?: boolean
   otp_code?: string | null
   assigned_at?: string | null
+  planned_service_date?: string | null
   scheduled_departure_at?: string | null
   arrived_pickup_at?: string | null
   loaded_at?: string | null
@@ -314,6 +318,7 @@ export interface DriverPayable {
   currency?: string | null
   status: string
   paid_at?: string | null
+  has_receipt?: boolean
   driver?: { id: number; name: string } | null
   trip?: { id: number; reference: string } | null
   job?: { id: number; reference: string } | null
@@ -332,7 +337,16 @@ export interface Payment {
   gateway?: string | null
   gateway_reference?: string | null
   paid_at?: string | null
+  has_receipt?: boolean
+  transfer_reference?: string | null
   created_at?: string
+}
+
+export interface BankAccount {
+  bank_name: string
+  account_name: string
+  account_number: string
+  iban: string
 }
 
 export interface Invoice {
@@ -404,7 +418,7 @@ export interface PaymentMethod {
   name: string
   name_ar: string
   label?: string
-  processor: 'thawani' | 'cash' | string
+  processor: 'thawani' | 'cash' | 'bank_transfer' | string
   is_active: boolean
   is_system: boolean
   sort_order: number
@@ -543,6 +557,9 @@ export interface CreateShipmentInput {
   required_date: string
   notes?: string
   publish?: boolean
+  billing_trigger?: string
+  billing_unit?: string
+  due_days?: number
 }
 
 export interface CreateStaffUserInput {

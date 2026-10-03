@@ -7,6 +7,24 @@ import type { Trip } from '@/core/api/types.ts'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 
+function localDateInput(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${date.getFullYear()}-${month}-${day}`
+}
+
+function departureDateInput(scheduled?: string | null, planned?: string | null): string {
+  const today = localDateInput(new Date())
+  let candidate = ''
+  if (scheduled) {
+    const parsed = new Date(scheduled)
+    if (!Number.isNaN(parsed.getTime())) candidate = localDateInput(parsed)
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate)) candidate = (planned ?? '').slice(0, 10)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(candidate) || candidate < today) return today
+  return candidate
+}
+
 function departureInput(value?: string | null): string {
   if (!value) {
     return '10:00'
@@ -26,6 +44,7 @@ export function TripAssignForm({ trip }: { trip: Trip }) {
   const [form, setForm] = useState({
     truck_id: trip.truck?.id ? String(trip.truck.id) : '',
     driver_id: trip.driver?.id ? String(trip.driver.id) : '',
+    departure_date: departureDateInput(trip.scheduled_departure_at, trip.planned_service_date),
     departure_time: departureInput(trip.scheduled_departure_at),
     driver_pay: trip.driver_pay_amount != null ? String(trip.driver_pay_amount) : '',
   })
@@ -44,6 +63,7 @@ export function TripAssignForm({ trip }: { trip: Trip }) {
       assignTrip(trip.id, {
         truck_id: Number(form.truck_id),
         driver_id: Number(form.driver_id),
+        departure_date: form.departure_date,
         departure_time: form.departure_time.slice(0, 5),
         driver_pay_amount: Number(form.driver_pay),
       }),
@@ -101,6 +121,17 @@ export function TripAssignForm({ trip }: { trip: Trip }) {
             </option>
           ))}
         </select>
+      </FormField>
+      <FormField label={t('trips.plannedServiceDate')} htmlFor="assign-service-date" required hint={t('trips.departureTimeHint')}>
+        <input
+          id="assign-service-date"
+          className="mz-input"
+          type="date"
+          required
+          min={localDateInput(new Date())}
+          value={form.departure_date}
+          onChange={(event) => setForm((current) => ({ ...current, departure_date: event.target.value }))}
+        />
       </FormField>
       <FormField label={t('trips.departureTime')} htmlFor="assign-departure" required>
         <input id="assign-departure" className="mz-input" type="time" required value={form.departure_time} onChange={(event) => setForm((current) => ({ ...current, departure_time: event.target.value }))} />

@@ -1606,6 +1606,20 @@ html[dir='rtl'] .mz-timeline__step::after {
   font-weight: 600;
 }
 
+.mz-trip-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.mz-trip-status__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .mz-lang {
   display: inline-flex;
   border: 1px solid var(--mz-border);
@@ -1652,6 +1666,33 @@ html[dir='rtl'] .mz-timeline__step::after {
 
 .mz-field__error {
   color: var(--mz-danger);
+}
+
+.mz-payment-terms {
+  display: grid;
+  gap: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mz-border);
+}
+
+.mz-payment-terms__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+}
+
+.mz-payment-terms__hint {
+  margin: -8px 0 0;
+}
+
+.mz-payment-terms__label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mz-payment-terms .mz-input {
+  max-width: 280px;
 }
 
 .mz-dialog-backdrop {
@@ -2921,6 +2962,7 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   .mz-form > button,
   .mz-form > .mz-grid-2,
   .mz-form > .mz-field--wide,
+  .mz-form > .mz-payment-terms,
   .mz-form > .mz-offer__hint,
   .mz-form > .mz-field:has(.mz-textarea) {
     grid-column: 1 / -1;
@@ -3502,6 +3544,37 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   color: var(--mz-muted);
 }
 
+.mz-offer__plan {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  padding: 12px 14px;
+  border: 1px solid var(--mz-border);
+  border-radius: 10px;
+  background: var(--mz-surface);
+}
+
+.mz-offer__plan p {
+  margin: 0;
+  color: var(--mz-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.mz-offer__plan .mz-offer__hint {
+  color: var(--mz-muted);
+}
+
+.mz-offer__plan.is-invalid {
+  border-color: color-mix(in srgb, var(--mz-danger) 35%, var(--mz-border));
+  background: var(--mz-danger-soft);
+}
+
+.mz-offer__plan .mz-btn {
+  justify-self: start;
+  min-height: 36px;
+}
+
 .mz-offer-form {
   max-width: none;
 }
@@ -3661,6 +3734,7 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   cursor: pointer;
   color: var(--mz-muted);
   font-weight: 600;
+  text-align: center;
 }
 
 .mz-segment label.is-active {

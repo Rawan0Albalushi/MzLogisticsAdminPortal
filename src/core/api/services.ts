@@ -2,6 +2,7 @@ import { api, unwrapData, unwrapList } from '@/core/api/client.ts'
 import type {
   ApiSuccess,
   AuthUser,
+  BankAccount,
   Catalog,
   AccessCatalog,
   AccessRole,
@@ -203,13 +204,14 @@ export type ProviderPlatformOfferInput = {
 }
 
 export type OwnedPlatformOfferInput = {
-  total_price: number
+  price_per_trip: number
   truck_count: number
   truck_type: string
   truck_capacity_tons: number
   trip_count: number
   quantity_per_trip: number
   duration_days: number
+  transport_start_date: string
   additional_costs?: number
   conditions?: string
 }
@@ -232,13 +234,14 @@ export async function withdrawPlatformOffer(offerId: string | number): Promise<v
 
 export type OnBehalfQuotationInput = {
   provider_organization_id: number
-  total_price: number
+  price_per_trip: number
   truck_count: number
   truck_type: string
   truck_capacity_tons: number
   trip_count: number
   quantity_per_trip: number
   duration_days: number
+  transport_start_date: string
   additional_costs?: number
   conditions?: string
 }
@@ -331,6 +334,11 @@ export async function uploadTripPodDocuments(
   return unwrapData(data)
 }
 
+export async function updateTripStatus(id: string | number, status: string): Promise<Trip> {
+  const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/status`, { status })
+  return unwrapData(data)
+}
+
 export async function updateTripOperations(
   id: string | number,
   payload: { trailer_plate?: string | null; delivery_note_number?: string | null; operations_notes?: string | null },
@@ -341,7 +349,7 @@ export async function updateTripOperations(
 
 export async function assignTrip(
   id: string | number,
-  payload: { truck_id: number; driver_id: number; departure_time: string; driver_pay_amount: number },
+  payload: { truck_id: number; driver_id: number; departure_date: string; departure_time: string; driver_pay_amount: number },
 ): Promise<Trip> {
   const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/assign`, payload)
   return unwrapData(data)
@@ -352,14 +360,44 @@ export async function fetchDriverPayables(query: ListQuery) {
   return unwrapList(data)
 }
 
-export async function payDriverPayable(id: string | number): Promise<DriverPayable> {
+export async function payDriverPayable(id: string | number, receipt?: File | null): Promise<DriverPayable> {
+  if (receipt) {
+    const form = new FormData()
+    form.append('receipt', receipt)
+    const { data } = await api.post<ApiSuccess<DriverPayable>>(`/driver-payables/${id}/pay`, form)
+    return unwrapData(data)
+  }
+
   const { data } = await api.post<ApiSuccess<DriverPayable>>(`/driver-payables/${id}/pay`)
   return unwrapData(data)
+}
+
+export async function downloadDriverPayableReceipt(id: string | number, filename: string): Promise<void> {
+  const response = await api.get<Blob>(`/driver-payables/${id}/receipt`, { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 export async function fetchTrucks(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Truck[]>>('/trucks', { params: toParams(query) })
   return unwrapList(data)
+}
+
+export async function fetchFleetForPlan(query: Pick<ListQuery, 'owner' | 'organization_id'>) {
+  const perPage = 100
+  const first = await fetchTrucks({ ...query, page: 1, per_page: perPage })
+  const pages = Math.min(first.meta.last_page, 10)
+  if (pages <= 1) return first.items
+  const rest = await Promise.all(
+    Array.from({ length: pages - 1 }, (_, index) => fetchTrucks({ ...query, page: index + 2, per_page: perPage })),
+  )
+  return [...first.items, ...rest.flatMap((page) => page.items)]
 }
 
 export async function fetchDrivers(query: ListQuery) {
@@ -486,6 +524,62 @@ export async function importSpreadsheet(path: string, file: File): Promise<Sprea
   const form = new FormData()
   form.append('file', file)
   const { data } = await api.post<ApiSuccess<SpreadsheetImportResult>>(path, form)
+  return unwrapData(data)
+}
+
+export async function recordInvoiceBankTransfer(
+  id: string | number,
+  receipt: File,
+  transferReference: string,
+): Promise<{ payment: Payment; job: TransportJob | null }> {
+  const form = new FormData()
+  form.append('receipt', receipt)
+  if (transferReference.trim()) {
+    form.append('transfer_reference', transferReference.trim())
+  }
+  const { data } = await api.post<ApiSuccess<{ payment: Payment; job: TransportJob | null }>>(
+    `/invoices/${id}/record-transfer`,
+    form,
+  )
+  return unwrapData(data)
+}
+
+export async function confirmBankTransfer(
+  id: string | number,
+  receipt: File,
+  transferReference: string,
+): Promise<{ payment: Payment; job: TransportJob | null }> {
+  const form = new FormData()
+  form.append('receipt', receipt)
+  if (transferReference.trim()) {
+    form.append('transfer_reference', transferReference.trim())
+  }
+  const { data } = await api.post<ApiSuccess<{ payment: Payment; job: TransportJob | null }>>(
+    `/payments/${id}/confirm-transfer`,
+    form,
+  )
+  return unwrapData(data)
+}
+
+export async function downloadPaymentReceipt(id: string | number, filename: string): Promise<void> {
+  const response = await api.get<Blob>(`/payments/${id}/receipt`, { responseType: 'blob' })
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+export async function fetchBankAccount(): Promise<BankAccount> {
+  const { data } = await api.get<ApiSuccess<BankAccount>>('/settings/bank-account')
+  return unwrapData(data)
+}
+
+export async function updateBankAccount(payload: BankAccount): Promise<BankAccount> {
+  const { data } = await api.put<ApiSuccess<BankAccount>>('/settings/bank-account', payload)
   return unwrapData(data)
 }
 

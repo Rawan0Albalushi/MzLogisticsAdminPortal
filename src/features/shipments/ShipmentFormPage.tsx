@@ -5,6 +5,14 @@ import { useTranslation } from 'react-i18next'
 import { createShipment, fetchCustomers, fetchOrganization } from '@/core/api/services.ts'
 import type { Organization, PlaceLocation } from '@/core/api/types.ts'
 import { LocationPicker } from '@/features/shipments/LocationPicker.tsx'
+import {
+  addDays,
+  daysBetween,
+  PAYMENT_DUE_DAYS_MAX,
+  PaymentTermsFields,
+  type BillingUnit,
+  type DueMode,
+} from '@/features/shipments/PaymentTermsFields.tsx'
 import { getApiMessage } from '@/core/api/client.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
@@ -175,8 +183,13 @@ export function ShipmentFormPage() {
   const presetId = params.get('customer') ?? ''
   const [customerId, setCustomerId] = useState(presetId)
   const [error, setError] = useState('')
+  const [dueDateError, setDueDateError] = useState('')
   const [pickup, setPickup] = useState<PlaceLocation | null>(null)
   const [delivery, setDelivery] = useState<PlaceLocation | null>(null)
+  const [billingUnit, setBillingUnit] = useState<BillingUnit>('job')
+  const [dueMode, setDueMode] = useState<DueMode>('immediate')
+  const [dueDate, setDueDate] = useState('')
+  const prefilledCustomer = useRef('')
   const [form, setForm] = useState({
     cargo_type: '',
     cargo_description: '',
@@ -198,9 +211,30 @@ export function ShipmentFormPage() {
     Boolean(presetId) &&
     preset.isSuccess &&
     (!preset.data || !isCustomerOrganization(preset.data) || preset.data.status !== 'active')
+  const selectedCustomer = useQuery({
+    queryKey: ['organization', customerId],
+    queryFn: () => fetchOrganization(customerId),
+    enabled: Boolean(customerId),
+  })
+
+  useEffect(() => {
+    if (!customerId || prefilledCustomer.current === customerId) return
+    if (!selectedCustomer.isSuccess || String(selectedCustomer.data.id) !== customerId) return
+    prefilledCustomer.current = customerId
+    const contract = selectedCustomer.data.payment_contract
+    setBillingUnit(contract?.billing_unit === 'trip' ? 'trip' : 'job')
+    const days = contract?.billing_trigger === 'on_delivery' ? Number(contract.due_days) || 0 : 0
+    if (days > 0) {
+      setDueMode('date')
+      setDueDate(addDays(form.required_date, days))
+      return
+    }
+    setDueMode('immediate')
+    setDueDate('')
+  }, [customerId, form.required_date, selectedCustomer.data, selectedCustomer.isSuccess])
 
   const save = useMutation({
-    mutationFn: (route: { pickup: PlaceLocation; delivery: PlaceLocation }) => {
+    mutationFn: (input: { pickup: PlaceLocation; delivery: PlaceLocation; dueDays: number }) => {
       const weight = Number(form.weight_tons)
       const volume = form.volume_cbm.trim() === '' ? undefined : Number(form.volume_cbm)
       const quantity = form.quantity_unit === 'tons' || form.quantity.trim() === '' ? undefined : Number(form.quantity)
@@ -212,17 +246,20 @@ export function ShipmentFormPage() {
         volume_cbm: volume,
         quantity,
         quantity_unit: form.quantity_unit,
-        pickup_address: route.pickup.address || undefined,
-        pickup_city: route.pickup.city,
-        pickup_lat: route.pickup.lat,
-        pickup_lng: route.pickup.lng,
-        delivery_address: route.delivery.address || undefined,
-        delivery_city: route.delivery.city,
-        delivery_lat: route.delivery.lat,
-        delivery_lng: route.delivery.lng,
+        pickup_address: input.pickup.address || undefined,
+        pickup_city: input.pickup.city,
+        pickup_lat: input.pickup.lat,
+        pickup_lng: input.pickup.lng,
+        delivery_address: input.delivery.address || undefined,
+        delivery_city: input.delivery.city,
+        delivery_lat: input.delivery.lat,
+        delivery_lng: input.delivery.lng,
         required_date: form.required_date,
         notes: form.notes.trim() || undefined,
         publish: form.publish,
+        billing_trigger: 'on_delivery',
+        billing_unit: billingUnit,
+        due_days: input.dueDays,
       })
     },
     onSuccess: async (shipment) => {
@@ -235,6 +272,7 @@ export function ShipmentFormPage() {
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError('')
+    setDueDateError('')
     if (!pickup) {
       setError(t('location.pickupMapRequired'))
       return
@@ -243,7 +281,23 @@ export function ShipmentFormPage() {
       setError(t('location.deliveryMapRequired'))
       return
     }
-    save.mutate({ pickup, delivery })
+    let dueDays = 0
+    if (dueMode === 'date') {
+      if (!dueDate) {
+        setDueDateError(t('paymentContract.dueDateRequired'))
+        return
+      }
+      dueDays = daysBetween(form.required_date, dueDate)
+      if (dueDays < 1) {
+        setDueDateError(t('paymentContract.dueDateOrder'))
+        return
+      }
+      if (dueDays > PAYMENT_DUE_DAYS_MAX) {
+        setDueDateError(t('paymentContract.dueDateMax', { days: PAYMENT_DUE_DAYS_MAX }))
+        return
+      }
+    }
+    save.mutate({ pickup, delivery, dueDays })
   }
 
   return (
@@ -364,6 +418,23 @@ export function ShipmentFormPage() {
                 onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
               />
             </FormField>
+            <PaymentTermsFields
+              billingUnit={billingUnit}
+              dueMode={dueMode}
+              dueDate={dueDate}
+              requiredDate={form.required_date}
+              dueDateError={dueDateError}
+              onBillingUnitChange={setBillingUnit}
+              onDueModeChange={(value) => {
+                setDueMode(value)
+                setDueDateError('')
+                if (value === 'immediate') setDueDate('')
+              }}
+              onDueDateChange={(value) => {
+                setDueDate(value)
+                setDueDateError('')
+              }}
+            />
             <label className="mz-check">
               <input
                 type="checkbox"

@@ -1,7 +1,12 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { fetchPayments } from '@/core/api/services.ts'
+import { downloadPaymentReceipt, fetchPayments } from '@/core/api/services.ts'
+import { getApiMessage } from '@/core/api/client.ts'
 import type { Payment } from '@/core/api/types.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
+import { awaitsBankTransfer, ConfirmTransferDialog, paymentMethodLabel } from '@/features/payments/ConfirmTransferDialog.tsx'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
@@ -17,8 +22,13 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function PaymentsPage() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canConfirm = hasPermission(PERMISSIONS.PAYMENTS_MANAGE)
   const list = useListQuery()
   const catalog = useCatalog()
+  const [confirmPayment, setConfirmPayment] = useState<Payment | null>(null)
+  const [feedback, setFeedback] = useState('')
+  const [error, setError] = useState('')
   const statuses = catalog.data?.payment_statuses ?? ['pending', 'processing', 'completed', 'failed', 'refunded']
   const query = useQuery({
     queryKey: ['payments', list.search, list.status, list.method, list.dateFrom, list.dateTo, list.page],
@@ -38,7 +48,33 @@ export function PaymentsPage() {
     { id: 'amount', header: t('common.amount'), cell: (row) => formatMoney(row.amount, row.currency ?? undefined) },
     { id: 'commission', header: t('common.commission'), cell: (row) => formatMoney(row.commission_amount, row.currency ?? undefined) },
     { id: 'provider', header: t('payments.providerAmount'), cell: (row) => formatMoney(row.provider_amount, row.currency ?? undefined) },
-    { id: 'method', header: t('payments.method'), cell: (row) => displayValue(row.method) },
+    { id: 'method', header: t('payments.method'), cell: (row) => paymentMethodLabel(t, row.method) },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => (
+        <div className="mz-table-actions">
+          {canConfirm && awaitsBankTransfer(row) ? (
+            <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setConfirmPayment(row)}>
+              {t('payments.confirmTransfer')}
+            </button>
+          ) : null}
+          {row.has_receipt ? (
+            <button
+              type="button"
+              className="mz-btn mz-btn--ghost"
+              onClick={() => {
+                void downloadPaymentReceipt(row.id, `${row.reference}-receipt`).catch((err) => {
+                  setError(getApiMessage(err, t('payments.receiptFailed')))
+                })
+              }}
+            >
+              {t('payments.receipt')}
+            </button>
+          ) : null}
+        </div>
+      ),
+    },
     { id: 'gateway', header: t('payments.gateway'), cell: (row) => displayValue(row.gateway) },
     { id: 'paid', header: t('payments.paidAt'), cell: (row) => formatDateTime(row.paid_at) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
@@ -82,7 +118,7 @@ export function PaymentsPage() {
                   formatMoney(row.amount, row.currency ?? undefined),
                   formatMoney(row.commission_amount, row.currency ?? undefined),
                   formatMoney(row.provider_amount, row.currency ?? undefined),
-                  displayValue(row.method),
+                  paymentMethodLabel(t, row.method),
                   displayValue(row.gateway),
                   formatDateTime(row.paid_at),
                   reportStatus(t, row.status),
@@ -92,6 +128,8 @@ export function PaymentsPage() {
           />
         }
       />
+      {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
+      {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
       <FilterBar>
         <SearchInput
           value={list.search}
@@ -110,7 +148,7 @@ export function PaymentsPage() {
           options={[...PAYMENT_METHODS]}
           onChange={(value) => list.setFilter('method', value)}
           allLabel={t('common.allMethods')}
-          label={(method) => t(`status.${method}`, { defaultValue: method })}
+          label={(method) => paymentMethodLabel(t, method)}
         />
         <DateRangeFilter
           from={list.dateFrom}
@@ -127,6 +165,15 @@ export function PaymentsPage() {
         onRetry={() => void query.refetch()}
         meta={query.data?.meta}
         onPageChange={list.setPage}
+      />
+      <ConfirmTransferDialog
+        payment={confirmPayment}
+        open={confirmPayment !== null}
+        onClose={() => setConfirmPayment(null)}
+        onConfirmed={() => {
+          setError('')
+          setFeedback(t('payments.confirmSuccess'))
+        }}
       />
     </>
   )

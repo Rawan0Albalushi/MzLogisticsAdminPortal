@@ -1,14 +1,16 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   createPaymentMethod,
   deletePaymentMethod,
+  fetchBankAccount,
   fetchPaymentMethods,
+  updateBankAccount,
   updatePaymentMethod,
 } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
-import type { PaymentMethod } from '@/core/api/types.ts'
+import type { BankAccount, PaymentMethod } from '@/core/api/types.ts'
 import { ACTIVE_STATUSES, PAYMENT_METHODS } from '@/core/constants/statuses.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
@@ -18,13 +20,14 @@ import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
+import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { displayValue } from '@/shared/utils/format.ts'
 
 const emptyForm = {
   code: '',
   name: '',
   name_ar: '',
-  processor: 'thawani' as 'thawani' | 'cash',
+  processor: 'thawani' as 'thawani' | 'cash' | 'bank_transfer',
   is_active: true,
   sort_order: '10',
 }
@@ -43,6 +46,16 @@ export function PaymentMethodsPage() {
   const [form, setForm] = useState(emptyForm)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
+  const [bankAccount, setBankAccount] = useState<BankAccount>({
+    bank_name: '',
+    account_name: '',
+    account_number: '',
+    iban: '',
+  })
+  const bankQuery = useQuery({
+    queryKey: ['bank-account'],
+    queryFn: fetchBankAccount,
+  })
 
   const filteredRows = useMemo(() => {
     const items = query.data ?? []
@@ -70,7 +83,14 @@ export function PaymentMethodsPage() {
   const processors = [
     { value: 'thawani', label: t('paymentMethods.processorThawani') },
     { value: 'cash', label: t('paymentMethods.processorCash') },
+    { value: 'bank_transfer', label: t('paymentMethods.processorBankTransfer') },
   ] as const
+
+  useEffect(() => {
+    if (bankQuery.data) {
+      setBankAccount(bankQuery.data)
+    }
+  }, [bankQuery.data])
 
   function methodName(row: PaymentMethod) {
     return i18n.language.startsWith('ar') && row.name_ar ? row.name_ar : row.name
@@ -88,7 +108,10 @@ export function PaymentMethodsPage() {
       code: row.code,
       name: row.name,
       name_ar: row.name_ar,
-      processor: row.processor === 'cash' ? 'cash' : 'thawani',
+      processor:
+        row.processor === 'cash' || row.processor === 'bank_transfer' || row.processor === 'thawani'
+          ? row.processor
+          : 'thawani',
       is_active: row.is_active,
       sort_order: String(row.sort_order),
     })
@@ -154,7 +177,7 @@ export function PaymentMethodsPage() {
     {
       id: 'processor',
       header: t('paymentMethods.processor'),
-      cell: (row) => (row.processor === 'cash' ? t('paymentMethods.processorCash') : t('paymentMethods.processorThawani')),
+      cell: (row) => processorLabel(row.processor),
     },
     {
       id: 'status',
@@ -187,6 +210,29 @@ export function PaymentMethodsPage() {
     },
   ]
 
+  function processorLabel(value: string) {
+    if (value === 'cash') {
+      return t('paymentMethods.processorCash')
+    }
+    if (value === 'bank_transfer') {
+      return t('paymentMethods.processorBankTransfer')
+    }
+    return t('paymentMethods.processorThawani')
+  }
+
+  const bankMutation = useMutation({
+    mutationFn: () => updateBankAccount(bankAccount),
+    onSuccess: async (saved) => {
+      setBankAccount(saved)
+      setFeedback(t('paymentMethods.bankSaved'))
+      setError('')
+      await queryClient.invalidateQueries({ queryKey: ['bank-account'] })
+    },
+    onError: (err) => {
+      setError(getApiMessage(err, t('paymentMethods.bankSaveFailed')))
+    },
+  })
+
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     saveMutation.mutate()
@@ -205,6 +251,57 @@ export function PaymentMethodsPage() {
       />
       {feedback ? <div className="mz-alert mz-alert--ok" style={{ marginBottom: 12 }}>{feedback}</div> : null}
       {error ? <div className="mz-alert" style={{ marginBottom: 12 }}>{error}</div> : null}
+      <form
+        className="mz-form mz-section"
+        onSubmit={(event) => {
+          event.preventDefault()
+          bankMutation.mutate()
+        }}
+      >
+        <SectionTitle icon="payments" title={t('paymentMethods.bankTitle')} />
+        <p className="mz-field__hint">{t('paymentMethods.bankHint')}</p>
+        <div className="mz-grid-2">
+          <FormField label={t('paymentMethods.bankName')} htmlFor="bank-name">
+            <input
+              id="bank-name"
+              className="mz-input"
+              value={bankAccount.bank_name}
+              maxLength={120}
+              onChange={(event) => setBankAccount((current) => ({ ...current, bank_name: event.target.value }))}
+            />
+          </FormField>
+          <FormField label={t('paymentMethods.accountName')} htmlFor="bank-account-name">
+            <input
+              id="bank-account-name"
+              className="mz-input"
+              value={bankAccount.account_name}
+              maxLength={120}
+              onChange={(event) => setBankAccount((current) => ({ ...current, account_name: event.target.value }))}
+            />
+          </FormField>
+          <FormField label={t('paymentMethods.accountNumber')} htmlFor="bank-account-number">
+            <input
+              id="bank-account-number"
+              className="mz-input"
+              value={bankAccount.account_number}
+              maxLength={64}
+              onChange={(event) => setBankAccount((current) => ({ ...current, account_number: event.target.value }))}
+            />
+          </FormField>
+          <FormField label={t('paymentMethods.iban')} htmlFor="bank-iban">
+            <input
+              id="bank-iban"
+              className="mz-input"
+              value={bankAccount.iban}
+              maxLength={64}
+              onChange={(event) => setBankAccount((current) => ({ ...current, iban: event.target.value }))}
+            />
+          </FormField>
+        </div>
+        <button type="submit" className="mz-btn mz-btn--primary" disabled={bankMutation.isPending}>
+          {bankMutation.isPending ? t('common.saving') : t('common.save')}
+        </button>
+      </form>
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter
@@ -219,9 +316,7 @@ export function PaymentMethodsPage() {
           options={[...PAYMENT_METHODS]}
           onChange={(value) => list.setFilter('method', value)}
           allLabel={t('common.allProcessors')}
-          label={(value) =>
-            value === 'cash' ? t('paymentMethods.processorCash') : t('paymentMethods.processorThawani')
-          }
+          label={(value) => processorLabel(value)}
         />
       </FilterBar>
       <DataTable
@@ -278,7 +373,12 @@ export function PaymentMethodsPage() {
               id="payment-method-processor"
               className="mz-select"
               value={form.processor}
-              onChange={(event) => setForm((current) => ({ ...current, processor: event.target.value as 'thawani' | 'cash' }))}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  processor: event.target.value as 'thawani' | 'cash' | 'bank_transfer',
+                }))
+              }
               disabled={Boolean(editing?.is_system)}
             >
               {processors.map((processor) => (
