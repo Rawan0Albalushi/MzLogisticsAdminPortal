@@ -14,9 +14,10 @@ import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
-import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
+import { ProjectFormDialog } from '@/features/projects/ProjectFormDialog.tsx'
 import { organizationName, projectName } from '@/shared/utils/format.ts'
 
 export function ProjectDetailPage() {
@@ -111,22 +112,18 @@ export function ProjectDetailPage() {
       id: 'actions',
       header: t('common.actions'),
       cell: (row) => (
-        <span style={{ display: 'inline-flex', gap: 12 }}>
-          <Link className="mz-link" to={`/jobs/${row.id}`}>
-            {t('common.view')}
-          </Link>
+        <div className="mz-table-actions">
+          <TableIconButton icon="view" label={t('common.view')} to={`/jobs/${row.id}`} />
           {canManage ? (
-            <button
-              type="button"
-              className="mz-link"
-              style={{ background: 'none', border: 0, padding: 0, cursor: 'pointer', font: 'inherit' }}
+            <TableIconButton
+              icon="detach"
+              tone="danger"
+              label={t('projects.detach')}
               disabled={detachMutation.isPending}
               onClick={() => detachMutation.mutate(row.id)}
-            >
-              {t('projects.detach')}
-            </button>
+            />
           ) : null}
-        </span>
+        </div>
       ),
     },
   ]
@@ -227,51 +224,17 @@ export function ProjectDetailPage() {
           )}
         </div>
       </section>
-      <ConfirmDialog
+      <ProjectFormDialog
         open={formOpen}
         title={t('projects.edit')}
-        confirmLabel={saveMutation.isPending ? t('common.saving') : t('common.save')}
+        formId="project-edit-form"
+        form={form}
+        error={error}
         busy={saveMutation.isPending}
-        onConfirm={() => {
-          const formEl = document.getElementById('project-edit-form') as HTMLFormElement | null
-          formEl?.requestSubmit()
-        }}
+        onChange={setForm}
         onClose={() => setFormOpen(false)}
-      >
-        <form id="project-edit-form" className="mz-form" onSubmit={onSubmit}>
-          <FormField label={t('projects.projectId')} htmlFor="edit-project-id" required>
-            <input
-              id="edit-project-id"
-              className="mz-input"
-              value={form.project_id}
-              onChange={(event) => setForm((current) => ({ ...current, project_id: event.target.value }))}
-              required
-              maxLength={64}
-            />
-          </FormField>
-          <FormField label={t('projects.nameEn')} htmlFor="edit-project-name-en" required>
-            <input
-              id="edit-project-name-en"
-              className="mz-input"
-              value={form.name_en}
-              onChange={(event) => setForm((current) => ({ ...current, name_en: event.target.value }))}
-              required
-              maxLength={120}
-            />
-          </FormField>
-          <FormField label={t('projects.nameAr')} htmlFor="edit-project-name-ar" required>
-            <input
-              id="edit-project-name-ar"
-              className="mz-input"
-              dir="rtl"
-              value={form.name_ar}
-              onChange={(event) => setForm((current) => ({ ...current, name_ar: event.target.value }))}
-              required
-              maxLength={120}
-            />
-          </FormField>
-        </form>
-      </ConfirmDialog>
+        onSubmit={onSubmit}
+      />
     </>
   )
 }

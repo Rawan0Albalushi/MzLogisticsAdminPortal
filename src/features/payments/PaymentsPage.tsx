@@ -11,6 +11,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
@@ -46,7 +47,6 @@ export function PaymentsPage() {
   const columns: Column<Payment>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
     { id: 'amount', header: t('common.amount'), cell: (row) => formatMoney(row.amount, row.currency ?? undefined) },
-    { id: 'commission', header: t('common.commission'), cell: (row) => formatMoney(row.commission_amount, row.currency ?? undefined) },
     { id: 'provider', header: t('payments.providerAmount'), cell: (row) => formatMoney(row.provider_amount, row.currency ?? undefined) },
     { id: 'method', header: t('payments.method'), cell: (row) => paymentMethodLabel(t, row.method) },
     {
@@ -55,22 +55,23 @@ export function PaymentsPage() {
       cell: (row) => (
         <div className="mz-table-actions">
           {canConfirm && awaitsBankTransfer(row) ? (
-            <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setConfirmPayment(row)}>
-              {t('payments.confirmTransfer')}
-            </button>
+            <TableIconButton
+              icon="confirm"
+              tone="success"
+              label={t('payments.confirmTransfer')}
+              onClick={() => setConfirmPayment(row)}
+            />
           ) : null}
           {row.has_receipt ? (
-            <button
-              type="button"
-              className="mz-btn mz-btn--ghost"
+            <TableIconButton
+              icon="receipt"
+              label={t('payments.receipt')}
               onClick={() => {
                 void downloadPaymentReceipt(row.id, `${row.reference}-receipt`).catch((err) => {
                   setError(getApiMessage(err, t('payments.receiptFailed')))
                 })
               }}
-            >
-              {t('payments.receipt')}
-            </button>
+            />
           ) : null}
         </div>
       ),
@@ -106,7 +107,6 @@ export function PaymentsPage() {
                 columns: [
                   t('common.reference'),
                   t('common.amount'),
-                  t('common.commission'),
                   t('payments.providerAmount'),
                   t('payments.method'),
                   t('payments.gateway'),
@@ -116,7 +116,6 @@ export function PaymentsPage() {
                 rows: items.map((row) => [
                   row.reference,
                   formatMoney(row.amount, row.currency ?? undefined),
-                  formatMoney(row.commission_amount, row.currency ?? undefined),
                   formatMoney(row.provider_amount, row.currency ?? undefined),
                   paymentMethodLabel(t, row.method),
                   displayValue(row.gateway),

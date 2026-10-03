@@ -5,12 +5,13 @@ import { useTranslation } from 'react-i18next'
 import { fetchCustomers } from '@/core/api/services.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
-import { CUSTOMER_ACCOUNT_TYPES, ORGANIZATION_LIST_STATUSES } from '@/core/constants/statuses.ts'
+import { ORGANIZATION_LIST_STATUSES } from '@/core/constants/statuses.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, enumString, formatDate, isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
@@ -24,12 +25,11 @@ export function CustomersPage() {
   const canCreate = hasPermission(PERMISSIONS.CUSTOMERS_MANAGE)
   const list = useListQuery()
   const query = useQuery({
-    queryKey: ['customers', list.search, list.status, list.accountType, list.city, list.dateFrom, list.dateTo, list.page],
+    queryKey: ['customers', list.search, list.status, list.city, list.dateFrom, list.dateTo, list.page],
     queryFn: () =>
       fetchCustomers({
         search: list.search,
         status: list.status,
-        account_type: list.accountType,
         city: list.city,
         date_from: list.dateFrom,
         date_to: list.dateTo,
@@ -52,11 +52,6 @@ export function CustomersPage() {
         </Link>
       ),
     },
-    {
-      id: 'accountType',
-      header: t('customers.accountType'),
-      cell: (row) => <StatusBadge status={enumString(row.account_type)} />,
-    },
     { id: 'email', header: t('common.email'), cell: (row) => displayValue(row.email) },
     { id: 'city', header: t('common.city'), cell: (row) => displayValue(row.city) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
@@ -65,9 +60,10 @@ export function CustomersPage() {
       id: 'actions',
       header: t('common.actions'),
       cell: (row) => (
-        <Link className="mz-link" to={`/customers/${row.id}`}>
-          {t('common.view')}
-        </Link>
+        <div className="mz-table-actions">
+          <TableIconButton icon="view" label={t('common.view')} to={`/customers/${row.id}`} />
+          {canCreate ? <TableIconButton icon="edit" label={t('common.edit')} to={`/customers/${row.id}/edit`} /> : null}
+        </div>
       ),
     },
   ]
@@ -90,7 +86,6 @@ export function CustomersPage() {
                 fetchCustomers({
                   search: list.search,
                   status: list.status,
-                  account_type: list.accountType,
                   city: list.city,
                   date_from: list.dateFrom,
                   date_to: list.dateTo,
@@ -105,7 +100,6 @@ export function CustomersPage() {
                 filters: listReportFilters(t, list),
                 columns: [
                   t('common.name'),
-                  t('customers.accountType'),
                   t('common.email'),
                   t('common.city'),
                   t('common.status'),
@@ -113,7 +107,6 @@ export function CustomersPage() {
                 ],
                 rows: rows.map((row) => [
                   organizationName(row),
-                  reportStatus(t, enumString(row.account_type)),
                   displayValue(row.email),
                   displayValue(row.city),
                   reportStatus(t, row.status),
@@ -128,13 +121,6 @@ export function CustomersPage() {
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <SearchInput value={list.city} onChange={(value) => list.setFilter('city', value)} placeholder={t('common.cityPlaceholder')} />
-        <StatusFilter
-          value={list.accountType}
-          options={[...CUSTOMER_ACCOUNT_TYPES]}
-          onChange={(value) => list.setFilter('account_type', value)}
-          allLabel={t('customers.allAccountTypes')}
-          label={(value) => t(`status.${value}`)}
-        />
         <StatusFilter
           value={list.status}
           options={[...ORGANIZATION_LIST_STATUSES]}

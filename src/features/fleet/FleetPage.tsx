@@ -21,6 +21,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
@@ -205,11 +206,7 @@ export function FleetPage() {
           {
             id: 'actions',
             header: t('common.actions'),
-            cell: (row: Truck) => (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openTruck(row)}>
-                {t('common.edit')}
-              </button>
-            ),
+            cell: (row: Truck) => <TableIconButton icon="edit" label={t('common.edit')} onClick={() => openTruck(row)} />,
           },
         ]
       : []),
@@ -227,9 +224,7 @@ export function FleetPage() {
             id: 'actions',
             header: t('common.actions'),
             cell: (row: Equipment) => (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openEquipment(row)}>
-                {t('common.edit')}
-              </button>
+              <TableIconButton icon="edit" label={t('common.edit')} onClick={() => openEquipment(row)} />
             ),
           },
         ]

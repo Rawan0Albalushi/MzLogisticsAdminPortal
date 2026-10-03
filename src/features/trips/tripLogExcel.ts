@@ -6,7 +6,7 @@ import { tripLogColumns, tripLogGroups, tripLogRow, tripLogTitle } from '@/featu
 import { reportTheme } from '@/shared/reports/reportTheme.ts'
 import type { ReportFilter } from '@/shared/reports/types.ts'
 
-const widths = [24, 18, 16, 16, 16, 16, 20, 16, 16, 22, 20, 20, 20, 14, 36, 16, 18, 14, 14, 16, 18, 28]
+const widths = [8, 24, 16, 16, 16, 16, 20, 16, 16, 22, 20, 20, 20, 14, 36, 16, 18, 18, 14, 16, 18, 28]
 
 const edge = { style: 'thin' as const, color: { argb: `FF${reportTheme.border}` } }
 const border: ExcelJS.Borders = {
@@ -114,7 +114,7 @@ export async function buildTripLogWorkbook(t: TFunction, trips: Trip[], filters:
 
     items.forEach((trip, offset) => {
       const row = sheet.getRow(rowIndex)
-      const values = tripLogRow(t, trip)
+      const values = tripLogRow(t, trip, offset + 1)
       values.forEach((value, index) => {
         const cell = row.getCell(index + 1)
         paint(cell, isRtl, value, offset % 2 === 0 ? reportTheme.white : reportTheme.stripe, reportTheme.ink, false, 11)

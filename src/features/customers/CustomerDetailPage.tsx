@@ -41,8 +41,6 @@ export function CustomerDetailPage() {
   }
 
   const org = query.data
-  const accountType = enumString(org.account_type)
-  const isCompany = accountType === 'company'
   const primaryName = organizationName(org)
   const secondaryName = i18n.language.startsWith('ar')
     ? org.name && org.name !== primaryName
@@ -68,12 +66,16 @@ export function CustomerDetailPage() {
         crumbs={[{ label: t('customers.title'), to: '/customers' }, { label: primaryName }]}
         actions={
           <>
+            {hasPermission(PERMISSIONS.CUSTOMERS_MANAGE) ? (
+              <Link className="mz-btn mz-btn--ghost" to={`/customers/${org.id}/edit`}>
+                {t('common.edit')}
+              </Link>
+            ) : null}
             {org.status === 'active' && hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) ? (
               <Link className="mz-btn mz-btn--primary" to={`/shipments/new?customer=${org.id}`}>
                 {t('shipments.createForCustomer')}
               </Link>
             ) : null}
-            <StatusBadge status={accountType} />
             <StatusBadge status={org.status} />
           </>
         }
@@ -131,19 +133,17 @@ export function CustomerDetailPage() {
           </div>
         </section>
         <div className="mz-stack">
-          {isCompany ? (
-            <section className="mz-card">
-              <div className="mz-card__body">
-                <SectionTitle icon="providers" title={t('customers.companySection')} />
-                <InfoGrid
-                  fields={[
-                    { icon: 'invoices', label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
-                    { icon: 'quotations', label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
-                  ]}
-                />
-              </div>
-            </section>
-          ) : null}
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <SectionTitle icon="providers" title={t('customers.companySection')} />
+              <InfoGrid
+                fields={[
+                  { icon: 'invoices', label: t('customers.commercialRegister'), value: org.commercial_register, dir: 'ltr' },
+                  { icon: 'quotations', label: t('customers.taxNumber'), value: org.tax_number, dir: 'ltr' },
+                ]}
+              />
+            </div>
+          </section>
           <section className="mz-card">
             <div className="mz-card__body">
               <SectionTitle icon="roles" title={t('customers.accountSection')} />
@@ -151,7 +151,6 @@ export function CustomerDetailPage() {
                 fields={[
                   { icon: 'profile', label: t('common.name'), value: org.name, dir: org.name && /[A-Za-z]/.test(org.name) ? 'ltr' : undefined },
                   { icon: 'profile', label: t('customers.nameAr'), value: org.name_ar },
-                  { icon: 'users', label: t('customers.accountType'), value: <StatusBadge status={accountType} /> },
                   { icon: 'roles', label: t('common.status'), value: <StatusBadge status={org.status} /> },
                   { icon: 'calendar', label: t('common.createdAt'), value: formatDate(org.created_at) },
                 ]}

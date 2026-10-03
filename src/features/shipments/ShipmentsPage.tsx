@@ -9,6 +9,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
@@ -57,9 +58,12 @@ export function ShipmentsPage() {
       id: 'actions',
       header: t('common.actions'),
       cell: (row) => (
-        <Link className="mz-link" to={`/shipments/${row.id}`}>
-          {t('common.view')}
-        </Link>
+        <div className="mz-table-actions">
+          <TableIconButton icon="view" label={t('common.view')} to={`/shipments/${row.id}`} />
+          {canCreate && row.status === 'draft' ? (
+            <TableIconButton icon="edit" label={t('common.edit')} to={`/shipments/${row.id}/edit`} />
+          ) : null}
+        </div>
       ),
     },
   ]

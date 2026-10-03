@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { createDriver, fetchDrivers, updateDriver, type SpreadsheetImportError } from '@/core/api/services.ts'
+import { createDriver, fetchDrivers, resendDriverInvite, updateDriver, type SpreadsheetImportError } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -11,11 +11,12 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { displayValue, formatDate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatActivationCode, formatDate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
 import { ExcelImportDialog } from '@/shared/components/ExcelImportDialog.tsx'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
@@ -47,6 +48,7 @@ export function DriversPage() {
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
   const [importOpen, setImportOpen] = useState(false)
+  const [invite, setInvite] = useState<{ code: string; whatsappSent: boolean; copied: boolean } | null>(null)
 
   const query = useQuery({
     queryKey: ['drivers', owner, list.search, list.status, list.page],
@@ -66,18 +68,44 @@ export function DriversPage() {
         ...(editing ? { status: form.status } : {}),
       }
       if (editing) {
-        return updateDriver(editing.id, payload)
+        await updateDriver(editing.id, payload)
+        return { kind: 'updated' as const }
       }
-      return createDriver(payload)
+      const created = await createDriver(payload)
+      return { kind: 'created' as const, activationCode: created.activation_code, whatsappSent: created.whatsapp_sent }
     },
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       setFormOpen(false)
       setError('')
-      setFeedback(t('drivers.saved'))
       await queryClient.invalidateQueries({ queryKey: ['drivers'] })
+      if (result.kind === 'created' && result.activationCode) {
+        setFeedback('')
+        setInvite({ code: result.activationCode, whatsappSent: result.whatsappSent, copied: false })
+        return
+      }
+      setFeedback(t('drivers.saved'))
     },
     onError: (err) => setError(getApiMessage(err, t('drivers.saveFailed'))),
   })
+
+  const resendInvite = useMutation({
+    mutationFn: (driverId: number) => resendDriverInvite(driverId),
+    onSuccess: (result) => {
+      setError('')
+      setInvite({ code: result.activation_code, whatsappSent: result.whatsapp_sent, copied: false })
+    },
+    onError: (err) => setError(getApiMessage(err, t('drivers.inviteFailed'))),
+  })
+
+  async function copyInvite() {
+    if (!invite?.code) return
+    try {
+      await navigator.clipboard.writeText(formatActivationCode(invite.code))
+      setInvite((current) => (current ? { ...current, copied: true } : current))
+    } catch {
+      setInvite((current) => (current ? { ...current, copied: false } : current))
+    }
+  }
 
   function switchOwner(next: Owner) {
     setOwner(next)
@@ -131,9 +159,17 @@ export function DriversPage() {
             id: 'actions',
             header: t('common.actions'),
             cell: (row: AuthUser) => (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openForm(row)}>
-                {t('common.edit')}
-              </button>
+              <div className="mz-table-actions">
+                {row.must_set_password ? (
+                  <TableIconButton
+                    icon="invite"
+                    label={t('drivers.showInvite')}
+                    disabled={resendInvite.isPending}
+                    onClick={() => resendInvite.mutate(row.id)}
+                  />
+                ) : null}
+                <TableIconButton icon="edit" label={t('common.edit')} onClick={() => openForm(row)} />
+              </div>
             ),
           },
         ]
@@ -205,6 +241,7 @@ export function DriversPage() {
       </div>
       </div>
       {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
+      {error && !formOpen ? <div className="mz-alert mz-section-alert">{error}</div> : null}
       <FilterBar>
         <SearchInput value={list.search} onChange={(value) => list.setFilter('search', value)} />
         <StatusFilter
@@ -291,6 +328,27 @@ export function DriversPage() {
         }}
         onClose={() => setImportOpen(false)}
       />
+      <ConfirmDialog
+        open={invite !== null}
+        title={t('drivers.inviteTitle')}
+        confirmLabel={t('drivers.copyInvite')}
+        cancelLabel={t('common.close')}
+        onConfirm={() => void copyInvite()}
+        onClose={() => setInvite(null)}
+      >
+        <div className="mz-invite-link">
+          <p>{t('drivers.inviteReady')}</p>
+          {invite?.whatsappSent ? <p>{t('drivers.whatsappSent')}</p> : null}
+          {invite?.copied ? <div className="mz-alert mz-alert--ok">{t('drivers.inviteCopied')}</div> : null}
+          <p className="mz-activation-code" dir="ltr">
+            {invite
+              ? formatActivationCode(invite.code)
+                  .split(' ')
+                  .map((part, index) => <span key={`${index}-${part}`}>{part}</span>)
+              : null}
+          </p>
+        </div>
+      </ConfirmDialog>
     </>
   )
 }

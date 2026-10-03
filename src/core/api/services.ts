@@ -7,6 +7,7 @@ import type {
   AccessCatalog,
   AccessRole,
   CreateCustomerInput,
+  CreateProviderInput,
   CreateSettlementInput,
   CreateShipmentInput,
   CreateStaffUserInput,
@@ -32,6 +33,8 @@ import type {
   CatalogTruckType,
   TruckTypeInput,
   UpdateCommissionRateInput,
+  UpdateOrganizationInput,
+  UpdateShipmentInput,
   UpdateStaffUserInput,
   VerifyOrganizationInput,
   Wallet,
@@ -91,6 +94,11 @@ export async function createCustomer(payload: CreateCustomerInput): Promise<Orga
   return unwrapData(data)
 }
 
+export async function createProvider(payload: CreateProviderInput): Promise<Organization> {
+  const { data } = await api.post<ApiSuccess<Organization>>('/providers', payload)
+  return unwrapData(data)
+}
+
 export async function fetchProviders(query: ListQuery) {
   const { data } = await api.get<ApiSuccess<Organization[]>>('/providers', { params: toParams(query) })
   return unwrapList(data)
@@ -98,6 +106,11 @@ export async function fetchProviders(query: ListQuery) {
 
 export async function fetchOrganization(id: string | number): Promise<Organization> {
   const { data } = await api.get<ApiSuccess<Organization>>(`/organizations/${id}`)
+  return unwrapData(data)
+}
+
+export async function updateOrganization(id: string | number, payload: UpdateOrganizationInput): Promise<Organization> {
+  const { data } = await api.patch<ApiSuccess<Organization>>(`/organizations/${id}`, payload)
   return unwrapData(data)
 }
 
@@ -143,6 +156,11 @@ export async function fetchShipment(id: string | number): Promise<Shipment> {
 
 export async function createShipment(payload: CreateShipmentInput): Promise<Shipment> {
   const { data } = await api.post<ApiSuccess<Shipment>>('/shipments', payload)
+  return unwrapData(data)
+}
+
+export async function updateShipment(id: string | number, payload: UpdateShipmentInput): Promise<Shipment> {
+  const { data } = await api.put<ApiSuccess<Shipment>>(`/shipments/${id}`, payload)
   return unwrapData(data)
 }
 
@@ -334,6 +352,39 @@ export async function uploadTripPodDocuments(
   return unwrapData(data)
 }
 
+export async function submitTripPod(
+  id: string | number,
+  proof: {
+    otp?: string
+    receivedQuantity?: number
+    notes?: string
+    photos: File[]
+    invoice?: File | null
+    weightTicket?: File | null
+  },
+): Promise<void> {
+  const form = new FormData()
+  if (proof.otp) {
+    form.append('otp', proof.otp)
+  }
+  if (proof.receivedQuantity != null && !Number.isNaN(proof.receivedQuantity)) {
+    form.append('received_quantity', String(proof.receivedQuantity))
+  }
+  if (proof.notes) {
+    form.append('notes', proof.notes)
+  }
+  proof.photos.forEach((file, index) => {
+    form.append(`photos[${index}]`, file)
+  })
+  if (proof.invoice) {
+    form.append('invoice', proof.invoice)
+  }
+  if (proof.weightTicket) {
+    form.append('weight_ticket', proof.weightTicket)
+  }
+  await api.post(`/trips/${id}/pod`, form)
+}
+
 export async function updateTripStatus(id: string | number, status: string): Promise<Trip> {
   const { data } = await api.post<ApiSuccess<Trip>>(`/trips/${id}/status`, { status })
   return unwrapData(data)
@@ -413,8 +464,15 @@ export async function createDriver(payload: {
   license_expires_at?: string
   civil_id?: string | null
   trip_rate?: number | null
-}): Promise<{ driver: AuthUser; invite_url: string }> {
-  const { data } = await api.post<ApiSuccess<{ driver: AuthUser; invite_url: string }>>('/drivers', payload)
+}): Promise<{ driver: AuthUser; activation_code: string; whatsapp_sent: boolean }> {
+  const { data } = await api.post<ApiSuccess<{ driver: AuthUser; activation_code: string; whatsapp_sent: boolean }>>('/drivers', payload)
+  return unwrapData(data)
+}
+
+export async function resendDriverInvite(id: string | number): Promise<{ driver: AuthUser; activation_code: string; whatsapp_sent: boolean }> {
+  const { data } = await api.post<ApiSuccess<{ driver: AuthUser; activation_code: string; whatsapp_sent: boolean }>>(
+    `/drivers/${id}/resend-invite`,
+  )
   return unwrapData(data)
 }
 
@@ -502,7 +560,7 @@ export type SpreadsheetImportResult = {
     row: number
     name: string
     phone: string | null
-    invite_url: string
+    activation_code: string
     whatsapp_sent: boolean
   }[]
   errors: SpreadsheetImportError[]

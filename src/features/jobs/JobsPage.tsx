@@ -7,6 +7,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { useCatalog } from '@/shared/hooks/useCatalog.ts'
@@ -62,11 +63,7 @@ export function JobsPage() {
     {
       id: 'actions',
       header: t('common.actions'),
-      cell: (row) => (
-        <Link className="mz-link" to={`/jobs/${row.id}`}>
-          {t('common.view')}
-        </Link>
-      ),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/jobs/${row.id}`} />,
     },
   ]
 

@@ -11,6 +11,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
@@ -104,22 +105,18 @@ export function DriverPayablesPage() {
         return (
           <div className="mz-table-actions">
             {canPay ? (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openPayDialog(row.id)}>
-                {t('driverPay.markPaid')}
-              </button>
+              <TableIconButton icon="confirm" tone="success" label={t('driverPay.markPaid')} onClick={() => openPayDialog(row.id)} />
             ) : null}
             {row.has_receipt ? (
-              <button
-                type="button"
-                className="mz-btn mz-btn--ghost"
+              <TableIconButton
+                icon="receipt"
+                label={t('driverPay.receipt')}
                 onClick={() => {
                   void downloadDriverPayableReceipt(row.id, `${row.reference}-receipt`).catch((err) => {
                     setError(getApiMessage(err, t('driverPay.receiptFailed')))
                   })
                 }}
-              >
-                {t('driverPay.receipt')}
-              </button>
+              />
             ) : null}
           </div>
         )

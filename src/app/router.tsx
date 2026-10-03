@@ -15,8 +15,14 @@ const CustomerFormPage = lazy(() =>
 const CustomerDetailPage = lazy(() =>
   import('@/features/customers/CustomerDetailPage.tsx').then((m) => ({ default: m.CustomerDetailPage })),
 )
+const OrganizationEditPage = lazy(() =>
+  import('@/features/organizations/OrganizationEditPage.tsx').then((m) => ({ default: m.OrganizationEditPage })),
+)
 const ProvidersPage = lazy(() =>
   import('@/features/service-providers/ProvidersPage.tsx').then((m) => ({ default: m.ProvidersPage })),
+)
+const ProviderFormPage = lazy(() =>
+  import('@/features/service-providers/ProviderFormPage.tsx').then((m) => ({ default: m.ProviderFormPage })),
 )
 const ProviderDetailPage = lazy(() =>
   import('@/features/service-providers/ProviderDetailPage.tsx').then((m) => ({ default: m.ProviderDetailPage })),
@@ -90,7 +96,10 @@ const router = createBrowserRouter([
               { path: '/customers', element: withSuspense(<CustomersPage />) },
               {
                 element: <ProtectedRoute permission={PERMISSIONS.CUSTOMERS_MANAGE} />,
-                children: [{ path: '/customers/new', element: withSuspense(<CustomerFormPage />) }],
+                children: [
+                  { path: '/customers/new', element: withSuspense(<CustomerFormPage />) },
+                  { path: '/customers/:id/edit', element: withSuspense(<OrganizationEditPage kind="customer" />) },
+                ],
               },
               { path: '/customers/:id', element: withSuspense(<CustomerDetailPage />) },
             ],
@@ -99,6 +108,13 @@ const router = createBrowserRouter([
             element: <ProtectedRoute permission={PERMISSIONS.PROVIDERS_VIEW} />,
             children: [
               { path: '/providers', element: withSuspense(<ProvidersPage />) },
+              {
+                element: <ProtectedRoute permission={PERMISSIONS.PROVIDERS_MANAGE} />,
+                children: [
+                  { path: '/providers/new', element: withSuspense(<ProviderFormPage />) },
+                  { path: '/providers/:id/edit', element: withSuspense(<OrganizationEditPage kind="provider" />) },
+                ],
+              },
               { path: '/providers/:id', element: withSuspense(<ProviderDetailPage />) },
             ],
           },
@@ -120,7 +136,10 @@ const router = createBrowserRouter([
               { path: '/shipments', element: withSuspense(<ShipmentsPage />) },
               {
                 element: <ProtectedRoute permission={PERMISSIONS.SHIPMENTS_MANAGE} />,
-                children: [{ path: '/shipments/new', element: withSuspense(<ShipmentFormPage />) }],
+                children: [
+                  { path: '/shipments/new', element: withSuspense(<ShipmentFormPage />) },
+                  { path: '/shipments/:id/edit', element: withSuspense(<ShipmentFormPage />) },
+                ],
               },
               { path: '/shipments/:id', element: withSuspense(<ShipmentDetailPage />) },
             ],

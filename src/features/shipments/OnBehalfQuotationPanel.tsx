@@ -287,17 +287,18 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
               </button>
             </div>
           ) : null}
-          <FormField label={t('quotations.pricePerTrip')} htmlFor="on-behalf-price" required hint={t('quotations.pricePerTripHint')}>
-            <input
-              id="on-behalf-price"
-              className="mz-input"
-              inputMode="decimal"
-              value={form.price_per_trip}
-              disabled={blocked}
-              onChange={(event) => update('price_per_trip', event.target.value)}
-              required
-            />
-          </FormField>
+          <QuoteExecutionFields
+            shipment={shipment}
+            trucks={providerFleet.data ?? []}
+            fleetReady={providerId === '' || providerFleet.isFetched || providerFleet.isError}
+            truckTypes={activeTruckTypes}
+            idPrefix="on-behalf"
+            resetKey={`${shipment.id}:${providerId}`}
+            disabled={blocked}
+            value={form}
+            onChange={(next) => setForm((current) => ({ ...current, ...next }))}
+            onValidChange={setPlanValid}
+          />
           <FormField
             label={t('quotations.transportStartDate')}
             htmlFor="on-behalf-start"
@@ -315,18 +316,17 @@ export function OnBehalfQuotationPanel({ shipment }: OnBehalfQuotationPanelProps
               onChange={(event) => update('transport_start_date', event.target.value)}
             />
           </FormField>
-          <QuoteExecutionFields
-            shipment={shipment}
-            trucks={providerFleet.data ?? []}
-            fleetReady={providerId === '' || providerFleet.isFetched || providerFleet.isError}
-            truckTypes={activeTruckTypes}
-            idPrefix="on-behalf"
-            resetKey={`${shipment.id}:${providerId}`}
-            disabled={blocked}
-            value={form}
-            onChange={(next) => setForm((current) => ({ ...current, ...next }))}
-            onValidChange={setPlanValid}
-          />
+          <FormField label={t('quotations.pricePerTrip')} htmlFor="on-behalf-price" required hint={t('quotations.pricePerTripHint')}>
+            <input
+              id="on-behalf-price"
+              className="mz-input"
+              inputMode="decimal"
+              value={form.price_per_trip}
+              disabled={blocked}
+              onChange={(event) => update('price_per_trip', event.target.value)}
+              required
+            />
+          </FormField>
           <FormField label={t('quotations.additionalCosts')} htmlFor="on-behalf-extra">
             <input
               id="on-behalf-extra"

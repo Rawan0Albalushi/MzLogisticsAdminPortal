@@ -216,3 +216,8 @@ export function formatPaymentTerms(
   }
   return i18n.t('paymentContract.fullNetDays', { days: dueDays })
 }
+
+export function formatActivationCode(code: string): string {
+  const digits = code.replace(/\D/g, '')
+  return digits.length === 6 ? `${digits.slice(0, 3)} ${digits.slice(3)}` : code
+}

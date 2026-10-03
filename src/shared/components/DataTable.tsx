@@ -5,6 +5,7 @@ import type { ApiMeta } from '@/core/api/types.ts'
 import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 
 export interface Column<T> {
   id: string
@@ -122,22 +123,18 @@ export function DataTable<T>({
             {t('common.of')} {meta.last_page}
           </span>
           <div className="mz-pagination__controls">
-            <button
-              type="button"
-              className="mz-btn mz-btn--ghost"
+            <TableIconButton
+              icon="prev"
+              label={t('common.previous')}
               disabled={meta.current_page <= 1}
               onClick={() => onPageChange(meta.current_page - 1)}
-            >
-              {t('common.previous')}
-            </button>
-            <button
-              type="button"
-              className="mz-btn mz-btn--ghost"
+            />
+            <TableIconButton
+              icon="next"
+              label={t('common.next')}
               disabled={meta.current_page >= meta.last_page}
               onClick={() => onPageChange(meta.current_page + 1)}
-            >
-              {t('common.next')}
-            </button>
+            />
           </div>
         </div>
       ) : null}

@@ -2,14 +2,17 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchProviders } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
+import { PERMISSIONS } from '@/core/constants/permissions.ts'
 import type { Organization } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
 import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
@@ -18,6 +21,8 @@ const STATUSES = ['pending', 'active', 'suspended', 'rejected']
 
 export function ProvidersPage() {
   const { t } = useTranslation()
+  const { hasPermission } = useAuth()
+  const canCreate = hasPermission(PERMISSIONS.PROVIDERS_MANAGE)
   const list = useListQuery()
   const query = useQuery({
     queryKey: ['providers', list.search, list.status, list.city, list.dateFrom, list.dateTo, list.page],
@@ -44,20 +49,16 @@ export function ProvidersPage() {
     },
     { id: 'cr', header: t('customers.commercialRegister'), cell: (row) => displayValue(row.commercial_register) },
     { id: 'city', header: t('common.city'), cell: (row) => displayValue(row.city) },
-    {
-      id: 'commission',
-      header: t('providers.commissionRate'),
-      cell: (row) => formatCommissionRate(row.effective_commission_rate ?? row.commission_rate),
-    },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
     { id: 'created', header: t('common.createdAt'), cell: (row) => formatDate(row.created_at) },
     {
       id: 'actions',
       header: t('common.actions'),
       cell: (row) => (
-        <Link className="mz-link" to={`/providers/${row.id}`}>
-          {t('common.view')}
-        </Link>
+        <div className="mz-table-actions">
+          <TableIconButton icon="view" label={t('common.view')} to={`/providers/${row.id}`} />
+          {canCreate ? <TableIconButton icon="edit" label={t('common.edit')} to={`/providers/${row.id}/edit`} /> : null}
+        </div>
       ),
     },
   ]
@@ -68,7 +69,13 @@ export function ProvidersPage() {
         title={t('providers.title')}
         subtitle={t('providers.subtitle')}
         actions={
-          <DownloadReportButton
+          <>
+            {canCreate ? (
+              <Link className="mz-btn mz-btn--primary" to="/providers/new">
+                {t('providers.create')}
+              </Link>
+            ) : null}
+            <DownloadReportButton
             build={async () => {
               const items = await fetchAllPages((page, perPage) =>
                 fetchProviders({
@@ -89,7 +96,6 @@ export function ProvidersPage() {
                   t('common.name'),
                   t('customers.commercialRegister'),
                   t('common.city'),
-                  t('providers.commissionRate'),
                   t('common.status'),
                   t('common.createdAt'),
                 ],
@@ -97,13 +103,13 @@ export function ProvidersPage() {
                   organizationName(row),
                   displayValue(row.commercial_register),
                   displayValue(row.city),
-                  formatCommissionRate(row.effective_commission_rate ?? row.commission_rate),
                   reportStatus(t, row.status),
                   formatDate(row.created_at),
                 ]),
               })
             }}
           />
+          </>
         }
       />
       <FilterBar>

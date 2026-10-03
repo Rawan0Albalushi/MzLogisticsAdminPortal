@@ -317,18 +317,6 @@ export function QuoteExecutionFields({
 
   return (
     <>
-      <FormField label={t('quotations.truckCount')} htmlFor={`${idPrefix}-trucks`} required>
-        <input
-          id={`${idPrefix}-trucks`}
-          className="mz-input"
-          inputMode="numeric"
-          value={value.truck_count}
-          disabled={disabled}
-          onChange={(event) => changeTrucks(event.target.value)}
-          required
-        />
-      </FormField>
-      {planNote}
       <FormField label={t('quotations.truckType')} htmlFor={`${idPrefix}-type`} required>
         <select
           id={`${idPrefix}-type`}
@@ -354,6 +342,18 @@ export function QuoteExecutionFields({
           value={value.truck_capacity_tons}
           disabled={disabled}
           onChange={(event) => changeCapacity(event.target.value)}
+          required
+        />
+      </FormField>
+      {planNote}
+      <FormField label={t('quotations.truckCount')} htmlFor={`${idPrefix}-trucks`} required>
+        <input
+          id={`${idPrefix}-trucks`}
+          className="mz-input"
+          inputMode="numeric"
+          value={value.truck_count}
+          disabled={disabled}
+          onChange={(event) => changeTrucks(event.target.value)}
           required
         />
       </FormField>

@@ -1,9 +1,9 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, getApiMessage } from '@/core/api/client.ts'
-import { fetchTrip, updateTripOperations, updateTripStatus, uploadTripPodDocuments } from '@/core/api/services.ts'
+import { fetchTrip, submitTripPod, updateTripOperations, updateTripStatus, uploadTripPodDocuments } from '@/core/api/services.ts'
 import type { Trip } from '@/core/api/types.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -12,16 +12,14 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
-import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { TripTimeline } from '@/features/trips/TripTimeline.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
-import { IconWell } from '@/shared/components/IconWell.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
-import { AppIcon } from '@/shared/icons/NavIcons.tsx'
+import { DetailList } from '@/shared/components/DetailList.tsx'
 import { LIVE_TRACKING_ENABLED } from '@/core/constants/features.ts'
-import { TRIP_STATUS_ACTIONS } from '@/core/constants/statuses.ts'
+import { TRIP_STATUS_ACTIONS, pathToNextTripStage, tripStageId } from '@/core/constants/statuses.ts'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { displayValue, formatCoords, formatDateTime, formatMoney, formatNumber } from '@/shared/utils/format.ts'
 
@@ -174,7 +172,7 @@ function TripOperationsForm({ trip }: { trip: Trip }) {
   }
 
   return (
-    <form className="mz-form mz-section" onSubmit={onSubmit}>
+    <form className="mz-form" onSubmit={onSubmit}>
       <SectionTitle icon="dispatch" title={t('trips.operationsSection')} />
       {error ? <div className="mz-alert">{error}</div> : null}
       {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
@@ -217,20 +215,89 @@ function TripOperationsForm({ trip }: { trip: Trip }) {
   )
 }
 
+function plannedQuantityInput(trip: Trip) {
+  const value = trip.planned_quantity
+  if (value == null || value === '') {
+    return ''
+  }
+  const amount = Number(value)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return ''
+  }
+  return String(value)
+}
+
 function TripStatusActions({ trip }: { trip: Trip }) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [pendingStatus, setPendingStatus] = useState<string | null>(null)
+  const [pendingStatus, setPendingStatus] = useState<'advance' | 'cancelled' | null>(null)
   const [error, setError] = useState('')
+  const [proofError, setProofError] = useState('')
   const [feedback, setFeedback] = useState('')
+  const [proof, setProof] = useState({ otp: '', quantity: plannedQuantityInput(trip), notes: '' })
+  const [photos, setPhotos] = useState<File[]>([])
+  const [invoice, setInvoice] = useState<File | null>(null)
+  const [weightTicket, setWeightTicket] = useState<File | null>(null)
   const options = TRIP_STATUS_ACTIONS[trip.status] ?? []
-  const forward = options.find((status) => status !== 'cancelled')
+  const advancePath = pathToNextTripStage(trip.status)
+  const advanceTarget = advancePath.at(-1)
+  const advanceLabel = advanceTarget
+    ? tripStageId(advanceTarget) === tripStageId(trip.status)
+      ? advanceTarget
+      : tripStageId(advanceTarget)
+    : null
+  const needsDeliveryProof = advanceLabel === 'delivered'
   const canCancel = options.includes('cancelled')
+  const quantityText = proof.quantity.trim()
+  const quantity = quantityText === '' ? undefined : Number(quantityText)
+  const hasDeliveryDetails =
+    proof.otp.trim() !== '' ||
+    quantityText !== '' ||
+    proof.notes.trim() !== '' ||
+    photos.length > 0 ||
+    invoice != null ||
+    weightTicket != null
+
+  function resetProof() {
+    setProofError('')
+    setProof({ otp: '', quantity: plannedQuantityInput(trip), notes: '' })
+    setPhotos([])
+    setInvoice(null)
+    setWeightTicket(null)
+  }
 
   const save = useMutation({
-    mutationFn: (status: string) => updateTripStatus(trip.id, status),
+    mutationFn: async (action: 'advance' | 'cancelled') => {
+      if (action === 'cancelled') {
+        return updateTripStatus(trip.id, 'cancelled')
+      }
+      if (needsDeliveryProof && hasDeliveryDetails) {
+        for (const status of advancePath) {
+          if (status === 'delivered' || status === 'completed') {
+            break
+          }
+          await updateTripStatus(trip.id, status)
+        }
+        await submitTripPod(trip.id, {
+          otp: proof.otp.trim() || undefined,
+          receivedQuantity: quantity,
+          notes: proof.notes.trim(),
+          photos,
+          invoice,
+          weightTicket,
+        })
+        return trip
+      }
+      const steps = needsDeliveryProof && advancePath.at(-1) === 'delivered' ? [...advancePath, 'completed'] : advancePath
+      let latest = trip
+      for (const status of steps) {
+        latest = await updateTripStatus(trip.id, status)
+      }
+      return latest
+    },
     onSuccess: async () => {
       setPendingStatus(null)
+      resetProof()
       setError('')
       setFeedback(t('trips.statusSaved'))
       await queryClient.invalidateQueries({ queryKey: ['trip', String(trip.id)] })
@@ -239,28 +306,31 @@ function TripStatusActions({ trip }: { trip: Trip }) {
         await queryClient.invalidateQueries({ queryKey: ['job', String(trip.job.id)] })
       }
     },
-    onError: (err) => {
+    onError: async (err) => {
       setFeedback('')
       setError(getApiMessage(err, t('trips.statusFailed')))
+      await queryClient.invalidateQueries({ queryKey: ['trip', String(trip.id)] })
     },
   })
 
-  if (!forward && !canCancel) {
+  if (!advanceLabel && !canCancel) {
     return null
   }
 
   const confirming = pendingStatus != null
   const cancelling = pendingStatus === 'cancelled'
+  const pendingLabel = cancelling ? 'cancelled' : advanceLabel
 
   return (
-    <div className="mz-trip-status">
-      <p className="mz-field__hint">{t('trips.updateStatusHint')}</p>
+      <div className="mz-trip-status">
       {error ? <div className="mz-alert">{error}</div> : null}
       {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
-      <div className="mz-trip-status__actions">
-        {forward ? (
-          <button type="button" className="mz-btn mz-btn--primary" onClick={() => setPendingStatus(forward)}>
-            {t('trips.markStatus', { status: t(`status.${forward}`) })}
+      <div className="mz-trip-status__bar">
+        <p className="mz-field__hint">{t('trips.updateStatusHint')}</p>
+        <div className="mz-trip-status__actions">
+        {advanceLabel ? (
+          <button type="button" className="mz-btn mz-btn--primary" onClick={() => setPendingStatus('advance')}>
+            {t('trips.markStatus', { status: t(`status.${advanceLabel}`) })}
           </button>
         ) : null}
         {canCancel ? (
@@ -268,25 +338,155 @@ function TripStatusActions({ trip }: { trip: Trip }) {
             {t('trips.cancelTrip')}
           </button>
         ) : null}
+        </div>
       </div>
       <ConfirmDialog
         open={confirming}
+        wide={needsDeliveryProof && !cancelling}
         title={t('trips.confirmStatusTitle')}
         danger={cancelling}
         busy={save.isPending}
-        confirmLabel={pendingStatus ? t('trips.markStatus', { status: t(`status.${pendingStatus}`) }) : undefined}
+        confirmLabel={pendingLabel ? t('trips.markStatus', { status: t(`status.${pendingLabel}`) }) : undefined}
         onClose={() => {
           if (!save.isPending) {
             setPendingStatus(null)
+            resetProof()
           }
         }}
         onConfirm={() => {
-          if (pendingStatus) {
-            save.mutate(pendingStatus)
+          if (!pendingStatus) {
+            return
           }
+          if (pendingStatus === 'advance' && needsDeliveryProof) {
+            if (proof.otp.trim() !== '' && !/^\d{6}$/.test(proof.otp.trim())) {
+              setProofError(t('trips.otpHint'))
+              return
+            }
+            if (quantityText !== '' && (quantity == null || !Number.isFinite(quantity) || quantity < 0.1)) {
+              setProofError(t('trips.quantityInvalid'))
+              return
+            }
+          }
+          setProofError('')
+          save.mutate(pendingStatus)
         }}
       >
-        <p>{cancelling ? t('trips.confirmCancelBody') : t('trips.confirmStatusBody', { status: t(`status.${pendingStatus ?? ''}`) })}</p>
+        <p>{cancelling ? t('trips.confirmCancelBody') : t('trips.confirmStatusBody', { status: t(`status.${pendingLabel ?? ''}`) })}</p>
+        {needsDeliveryProof && !cancelling ? (
+          <div className="mz-delivery-proof">
+            <p className="mz-delivery-proof__intro">{t('trips.deliveryProofHint')}</p>
+            {proofError ? <div className="mz-alert">{proofError}</div> : null}
+            <div className={trip.otp_required ? 'mz-delivery-proof__row' : undefined}>
+              {trip.otp_required ? (
+                <FormField label={t('trips.otp')} htmlFor="delivery-otp" hint={t('trips.otpHint')}>
+                  <input
+                    id="delivery-otp"
+                    className="mz-input"
+                    dir="ltr"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={proof.otp}
+                    onChange={(event) => setProof((current) => ({ ...current, otp: event.target.value.replace(/\D/g, '').slice(0, 6) }))}
+                  />
+                </FormField>
+              ) : null}
+              <FormField label={t('trips.receivedQuantity')} htmlFor="delivery-qty">
+                <input
+                  id="delivery-qty"
+                  className="mz-input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={proof.quantity}
+                  onChange={(event) => setProof((current) => ({ ...current, quantity: event.target.value }))}
+                />
+              </FormField>
+            </div>
+            <FormField label={t('common.notes')} htmlFor="delivery-notes">
+              <textarea
+                id="delivery-notes"
+                className="mz-textarea"
+                rows={3}
+                maxLength={1000}
+                value={proof.notes}
+                onChange={(event) => setProof((current) => ({ ...current, notes: event.target.value }))}
+              />
+            </FormField>
+            <FormField label={t('trips.deliveryPhotos')} htmlFor="delivery-photos" hint={t('trips.deliveryPhotosHint')}>
+              <div className="mz-file-picker">
+                <span className="mz-file-picker__name">{photos.length > 0 ? photos.map((file) => file.name).join('، ') : t('trips.noFile')}</span>
+                <button type="button" className="mz-btn mz-btn--ghost" onClick={() => document.getElementById('delivery-photos')?.click()}>
+                  {t('trips.choosePhotos')}
+                </button>
+                <input
+                  id="delivery-photos"
+                  className="mz-file-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(event) => {
+                    const next = [...photos, ...Array.from(event.target.files ?? [])].slice(0, 6)
+                    setPhotos(next)
+                    event.target.value = ''
+                  }}
+                />
+              </div>
+              {photos.length > 0 ? (
+                <ul className="mz-pod-files">
+                  {photos.map((file, index) => (
+                    <li key={`${file.name}-${index}`}>
+                      <span>{file.name}</span>
+                      <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setPhotos((current) => current.filter((_, item) => item !== index))}>
+                        {t('trips.removeFile')}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+            </FormField>
+            <div className="mz-delivery-proof__row">
+              <FormField label={t('trips.invoice')} htmlFor="delivery-invoice">
+                <div className="mz-file-picker">
+                  <span className="mz-file-picker__name">{invoice?.name ?? t('trips.noFile')}</span>
+                  {invoice ? (
+                    <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setInvoice(null)}>
+                      {t('trips.removeFile')}
+                    </button>
+                  ) : null}
+                  <button type="button" className="mz-btn mz-btn--ghost" onClick={() => document.getElementById('delivery-invoice')?.click()}>
+                    {t('trips.chooseFile')}
+                  </button>
+                  <input
+                    id="delivery-invoice"
+                    className="mz-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => setInvoice(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </FormField>
+              <FormField label={t('trips.weightTicket')} htmlFor="delivery-weight">
+                <div className="mz-file-picker">
+                  <span className="mz-file-picker__name">{weightTicket?.name ?? t('trips.noFile')}</span>
+                  {weightTicket ? (
+                    <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setWeightTicket(null)}>
+                      {t('trips.removeFile')}
+                    </button>
+                  ) : null}
+                  <button type="button" className="mz-btn mz-btn--ghost" onClick={() => document.getElementById('delivery-weight')?.click()}>
+                    {t('trips.chooseFile')}
+                  </button>
+                  <input
+                    id="delivery-weight"
+                    className="mz-file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(event) => setWeightTicket(event.target.files?.[0] ?? null)}
+                  />
+                </div>
+              </FormField>
+            </div>
+          </div>
+        ) : null}
       </ConfirmDialog>
     </div>
   )
@@ -297,6 +497,17 @@ function numericValue(value?: string | number | null) {
     return null
   }
   return formatNumber(value)
+}
+
+function presentItems(items: Array<{ label: string; value?: ReactNode } | null>) {
+  return items.flatMap((item) => (item && item.value != null && item.value !== '' ? [item as { label: string; value: ReactNode }] : []))
+}
+
+function ltr(value?: string | null) {
+  if (!value) {
+    return null
+  }
+  return <span dir="ltr">{value}</span>
 }
 
 export function TripDetailPage() {
@@ -331,13 +542,62 @@ export function TripDetailPage() {
     </Link>
   ) : null
 
+  const currency = trip.job?.currency ?? undefined
+  const assignment = presentItems([
+    { label: t('common.job'), value: jobLink },
+    { label: t('trips.sequence'), value: numericValue(trip.sequence) },
+    { label: t('common.driver'), value: trip.driver?.name },
+    { label: t('common.truck'), value: ltr(trip.truck?.plate_number) },
+    canEditOperations ? null : { label: t('trips.trailerPlate'), value: ltr(trip.trailer_plate) },
+    canEditOperations ? null : { label: t('trips.deliveryNote'), value: ltr(trip.delivery_note_number) },
+    { label: t('drivers.civilId'), value: ltr(trip.driver?.driver_profile?.civil_id) },
+    canEditOperations ? null : { label: t('trips.operationsNotes'), value: trip.operations_notes },
+    trip.driver_pay_amount != null
+      ? { label: t('trips.driverPay'), value: formatMoney(trip.driver_pay_amount, currency) }
+      : null,
+    trip.driver_pay_amount != null
+      ? {
+          label: t('trips.payableStatus'),
+          value: trip.driver_payable?.status ? <StatusBadge status={trip.driver_payable.status} /> : t('trips.payablePendingCompletion'),
+        }
+      : null,
+    !LIVE_TRACKING_ENABLED
+      ? { label: t('trips.otp'), value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired') }
+      : null,
+  ])
+
+  const schedule = presentItems([
+    { label: t('trips.scheduledDeparture'), value: trip.scheduled_departure_at ? formatDateTime(trip.scheduled_departure_at) : null },
+    { label: t('trips.assignedAt'), value: trip.assigned_at ? formatDateTime(trip.assigned_at) : null },
+    { label: t('trips.arrivedPickupAt'), value: trip.arrived_pickup_at ? formatDateTime(trip.arrived_pickup_at) : null },
+    { label: t('trips.loadedAt'), value: trip.loaded_at ? formatDateTime(trip.loaded_at) : null },
+    { label: t('trips.inTransitAt'), value: trip.in_transit_at ? formatDateTime(trip.in_transit_at) : null },
+    { label: t('trips.arrivedAt'), value: trip.arrived_at ? formatDateTime(trip.arrived_at) : null },
+    { label: t('trips.deliveredAt'), value: trip.delivered_at ? formatDateTime(trip.delivered_at) : null },
+    { label: t('trips.completedAt'), value: trip.completed_at ? formatDateTime(trip.completed_at) : null },
+    !LIVE_TRACKING_ENABLED ? { label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null } : null,
+  ])
+  if (schedule.length === 0 && trip.created_at) {
+    assignment.push({ label: t('common.createdAt'), value: formatDateTime(trip.created_at) })
+  } else if (trip.created_at) {
+    schedule.push({ label: t('common.createdAt'), value: formatDateTime(trip.created_at) })
+  }
+
+  const podItems = presentItems([
+    { label: t('trips.receiverName'), value: pod?.receiver_name },
+    { label: t('common.notes'), value: pod?.notes },
+  ])
+
+  const plannedQuantity = numericValue(trip.planned_quantity)
+  const deliveredQuantity = numericValue(trip.delivered_quantity)
+
   return (
     <>
       <PageHeader
         title={trip.reference}
-        subtitle={t('trips.detailTitle')}
+        subtitle={routeLabel ?? t('trips.detailTitle')}
         crumbs={[{ label: t('trips.title'), to: '/trips' }, { label: trip.reference }]}
-        actions={<StatusBadge status={trip.status} />}
+        actions={<StatusBadge status={tripStageId(trip.status)} />}
       />
 
       <section className="mz-card">
@@ -348,124 +608,32 @@ export function TripDetailPage() {
         </div>
       </section>
 
-      <div className="mz-grid-2 mz-section">
-        <section className="mz-card">
-          <div className="mz-card__body">
-            <div className="mz-profile">
-              <IconWell name="trips" size="lg" />
-              <div className="mz-profile__body">
-                <h2 className="mz-profile__name">{trip.reference}</h2>
-                {routeLabel ? <p className="mz-profile__aka">{routeLabel}</p> : null}
-                <div className="mz-profile__contacts">
-                  <StatusBadge status={trip.status} />
-                  {trip.job ? (
-                    <Link className="mz-profile__chip" to={`/jobs/${trip.job.id}`}>
-                      <AppIcon name="jobs" />
-                      {trip.job.reference}
-                    </Link>
-                  ) : null}
-                  {trip.driver?.name ? (
-                    <span className="mz-profile__chip">
-                      <AppIcon name="drivers" />
-                      {trip.driver.name}
-                    </span>
-                  ) : null}
-                  {trip.truck?.plate_number ? (
-                    <span className="mz-profile__chip" dir="ltr">
-                      <AppIcon name="fleet" />
-                      {trip.truck.plate_number}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </div>
-            <SectionTitle icon="dispatch" title={t('trips.assignmentSection')} />
-            <InfoGrid
-              fields={[
-                { icon: 'jobs', label: t('common.job'), value: jobLink },
-                { icon: 'quantity', label: t('trips.sequence'), value: numericValue(trip.sequence) },
-                { icon: 'drivers', label: t('common.driver'), value: trip.driver?.name },
-                { icon: 'fleet', label: t('common.truck'), value: trip.truck?.plate_number, dir: 'ltr' },
-                { icon: 'fleet', label: t('trips.trailerPlate'), value: trip.trailer_plate, dir: 'ltr' },
-                { icon: 'invoices', label: t('trips.deliveryNote'), value: trip.delivery_note_number, dir: 'ltr' },
-                { icon: 'profile', label: t('drivers.civilId'), value: trip.driver?.driver_profile?.civil_id, dir: 'ltr' },
-                { icon: 'notes', label: t('trips.operationsNotes'), value: trip.operations_notes, wide: true },
-                ...(trip.driver_pay_amount != null
-                  ? [
-                      {
-                        icon: 'payments' as const,
-                        label: t('trips.driverPay'),
-                        value: formatMoney(trip.driver_pay_amount, trip.job?.currency ?? undefined),
-                      },
-                      {
-                        icon: 'settlements' as const,
-                        label: t('trips.payableStatus'),
-                        value: trip.driver_payable?.status ? <StatusBadge status={trip.driver_payable.status} /> : t('trips.payablePendingCompletion'),
-                      },
-                    ]
-                  : []),
-                ...(!LIVE_TRACKING_ENABLED
-                  ? [
-                      {
-                        icon: 'roles' as const,
-                        label: t('trips.otp'),
-                        value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired'),
-                      },
-                    ]
-                  : []),
-              ]}
-            />
-            {canAssign ? <TripAssignForm key={trip.id} trip={trip} /> : null}
-            {canEditOperations ? (
-              <TripOperationsForm
-                key={`${trip.id}-${trip.trailer_plate ?? ''}-${trip.delivery_note_number ?? ''}-${trip.operations_notes ?? ''}`}
-                trip={trip}
-              />
-            ) : null}
-          </div>
-        </section>
-
+      <div className="mz-grid-2 mz-trip-layout mz-section">
         <div className="mz-stack">
           <section className="mz-card">
             <div className="mz-card__body">
-              <SectionTitle icon="quantity" title={t('trips.quantitiesSection')} />
-              <InfoGrid
-                fields={[
-                  { icon: 'quantity', label: t('trips.plannedQuantity'), value: numericValue(trip.planned_quantity) },
-                  { icon: 'delivery', label: t('trips.deliveredQuantity'), value: numericValue(trip.delivered_quantity) },
-                ]}
-              />
+              <SectionTitle icon="dispatch" title={t('trips.assignmentSection')} />
+              {assignment.length > 0 ? <DetailList items={assignment} /> : null}
+              {canAssign ? <TripAssignForm key={trip.id} trip={trip} /> : null}
             </div>
           </section>
-          {LIVE_TRACKING_ENABLED ? (
+
+          {canEditOperations ? (
             <section className="mz-card">
               <div className="mz-card__body">
-                <SectionTitle icon="clock" title={t('trips.liveSection')} />
-                <InfoGrid
-                  fields={[
-                    {
-                      icon: 'tracking',
-                      label: t('common.location'),
-                      value: formatCoords(trip.current_lat, trip.current_lng),
-                      dir: 'ltr',
-                    },
-                    { icon: 'clock', label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
-                    { icon: 'roles', label: t('trips.otp'), value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired') },
-                  ]}
+                <TripOperationsForm
+                  key={`${trip.id}-${trip.trailer_plate ?? ''}-${trip.delivery_note_number ?? ''}-${trip.operations_notes ?? ''}`}
+                  trip={trip}
                 />
               </div>
             </section>
           ) : null}
+
           {pod ? (
             <section className="mz-card">
               <div className="mz-card__body">
                 <SectionTitle icon="verify" title={t('trips.pod')} />
-                <InfoGrid
-                  fields={[
-                    { icon: 'profile', label: t('trips.receiverName'), value: pod.receiver_name },
-                    { icon: 'notes', label: t('common.notes'), value: pod.notes, wide: true },
-                  ]}
-                />
+                {podItems.length > 0 ? <DetailList items={podItems} /> : null}
                 {pod.invoice_path || pod.weight_ticket_path ? (
                   <div className="mz-pod-docs">
                     {pod.invoice_path ? (
@@ -481,58 +649,76 @@ export function TripDetailPage() {
             </section>
           ) : null}
         </div>
-      </div>
 
-      <section className="mz-card mz-section">
-        <div className="mz-card__body">
-          <SectionTitle icon="calendar" title={t('trips.scheduleSection')} />
-          <InfoGrid
-            fields={[
-              ...(!LIVE_TRACKING_ENABLED
-                ? [{ icon: 'clock' as const, label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null }]
-                : []),
-              { icon: 'calendar', label: t('trips.scheduledDeparture'), value: trip.scheduled_departure_at ? formatDateTime(trip.scheduled_departure_at) : null },
-              { icon: 'dispatch', label: t('trips.assignedAt'), value: trip.assigned_at ? formatDateTime(trip.assigned_at) : null },
-              { icon: 'pickup', label: t('trips.arrivedPickupAt'), value: trip.arrived_pickup_at ? formatDateTime(trip.arrived_pickup_at) : null },
-              { icon: 'shipments', label: t('trips.loadedAt'), value: trip.loaded_at ? formatDateTime(trip.loaded_at) : null },
-              { icon: 'trips', label: t('trips.inTransitAt'), value: trip.in_transit_at ? formatDateTime(trip.in_transit_at) : null },
-              { icon: 'tracking', label: t('trips.arrivedAt'), value: trip.arrived_at ? formatDateTime(trip.arrived_at) : null },
-              { icon: 'delivery', label: t('trips.deliveredAt'), value: trip.delivered_at ? formatDateTime(trip.delivered_at) : null },
-              { icon: 'verify', label: t('trips.completedAt'), value: trip.completed_at ? formatDateTime(trip.completed_at) : null },
-              { icon: 'calendar', label: t('common.createdAt'), value: trip.created_at ? formatDateTime(trip.created_at) : null },
-            ]}
-          />
-        </div>
-      </section>
-
-      <section className="mz-card mz-section">
-        <div className="mz-card__body">
-          <SectionTitle icon="trips" title={t('shipments.routeSection')} />
-          <div className="mz-grid-2 mz-grid-2--equal">
-            <LocationMap
-              icon="pickup"
-              label={t('common.pickup')}
-              address={trip.pickup_address}
-              city={trip.pickup_city}
-              lat={trip.pickup_lat}
-              lng={trip.pickup_lng}
-            />
-            <LocationMap
-              icon="delivery"
-              label={t('common.delivery')}
-              address={trip.delivery_address}
-              city={trip.delivery_city}
-              lat={trip.delivery_lat}
-              lng={trip.delivery_lng}
-            />
-          </div>
-          {LIVE_TRACKING_ENABLED ? (
-            <div className="mz-section">
-              <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
+        <div className="mz-stack">
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <SectionTitle icon="quantity" title={t('trips.quantitiesSection')} />
+              <div className="mz-trip-qty">
+                <div>
+                  <span>{t('trips.plannedQuantity')}</span>
+                  <strong className={plannedQuantity ? undefined : 'is-empty'}>{plannedQuantity ?? displayValue(null)}</strong>
+                </div>
+                <div>
+                  <span>{t('trips.deliveredQuantity')}</span>
+                  <strong className={deliveredQuantity ? undefined : 'is-empty'}>{deliveredQuantity ?? displayValue(null)}</strong>
+                </div>
+              </div>
             </div>
+          </section>
+
+          {schedule.length > 0 ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <SectionTitle icon="calendar" title={t('trips.scheduleSection')} />
+                <DetailList items={schedule} />
+              </div>
+            </section>
           ) : null}
+
+          {LIVE_TRACKING_ENABLED ? (
+            <section className="mz-card">
+              <div className="mz-card__body">
+                <SectionTitle icon="clock" title={t('trips.liveSection')} />
+                <DetailList
+                  items={presentItems([
+                    { label: t('common.location'), value: ltr(formatCoords(trip.current_lat, trip.current_lng)) },
+                    { label: t('common.eta'), value: trip.eta_at ? formatDateTime(trip.eta_at) : null },
+                    { label: t('trips.otp'), value: trip.otp_required ? t('trips.otpRequired') : t('trips.otpNotRequired') },
+                  ])}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          <section className="mz-card">
+            <div className="mz-card__body">
+              <SectionTitle icon="trips" title={t('shipments.routeSection')} />
+              <div className="mz-stack">
+                <LocationMap
+                  icon="pickup"
+                  label={t('common.pickup')}
+                  address={trip.pickup_address}
+                  city={trip.pickup_city}
+                  lat={trip.pickup_lat}
+                  lng={trip.pickup_lng}
+                />
+                <LocationMap
+                  icon="delivery"
+                  label={t('common.delivery')}
+                  address={trip.delivery_address}
+                  city={trip.delivery_city}
+                  lat={trip.delivery_lat}
+                  lng={trip.delivery_lng}
+                />
+                {LIVE_TRACKING_ENABLED ? (
+                  <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
+                ) : null}
+              </div>
+            </div>
+          </section>
         </div>
-      </section>
+      </div>
     </>
   )
 }

@@ -11,6 +11,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { INVOICE_STATUSES, INVOICE_TYPES } from '@/core/constants/statuses.ts'
@@ -56,22 +57,23 @@ export function InvoicesPage() {
         return (
           <div className="mz-table-actions">
             {canConfirm && canRecordBankTransfer(row) ? (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setRecordInvoice(row)}>
-                {t('invoices.recordTransfer')}
-              </button>
+              <TableIconButton
+                icon="confirm"
+                tone="success"
+                label={t('invoices.recordTransfer')}
+                onClick={() => setRecordInvoice(row)}
+              />
             ) : null}
             {payment?.has_receipt ? (
-              <button
-                type="button"
-                className="mz-btn mz-btn--ghost"
+              <TableIconButton
+                icon="receipt"
+                label={t('payments.receipt')}
                 onClick={() => {
                   void downloadPaymentReceipt(payment.id, `${payment.reference}-receipt`).catch((err) => {
                     setError(getApiMessage(err, t('payments.receiptFailed')))
                   })
                 }}
-              >
-                {t('payments.receipt')}
-              </button>
+              />
             ) : null}
           </div>
         )
@@ -135,7 +137,7 @@ export function InvoicesPage() {
         />
         <StatusFilter
           value={list.type}
-          options={[...INVOICE_TYPES]}
+          options={INVOICE_TYPES.filter((type) => type !== 'commission')}
           onChange={(value) => list.setFilter('type', value)}
           allLabel={t('common.allTypes')}
           label={(type) => t(`status.${type}`)}

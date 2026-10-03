@@ -10,6 +10,7 @@ import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
@@ -157,21 +158,16 @@ export function TruckTypesPage() {
       cell: (row) =>
         row.can_manage ? (
           <div className="mz-table-actions">
-            <button type="button" className="mz-btn mz-btn--ghost" onClick={() => openEdit(row)}>
-              {t('truckTypes.edit')}
-            </button>
-            <button
-              type="button"
-              className="mz-btn mz-btn--ghost"
-              onClick={() => toggleMutation.mutate(row)}
+            <TableIconButton icon="edit" label={t('truckTypes.edit')} onClick={() => openEdit(row)} />
+            <TableIconButton
+              icon={row.is_active ? 'disable' : 'enable'}
+              tone={row.is_active ? 'warning' : 'success'}
+              label={row.is_active ? t('truckTypes.disable') : t('truckTypes.enable')}
               disabled={toggleMutation.isPending}
-            >
-              {row.is_active ? t('truckTypes.disable') : t('truckTypes.enable')}
-            </button>
+              onClick={() => toggleMutation.mutate(row)}
+            />
             {!row.is_system ? (
-              <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setDeleteTarget(row)}>
-                {t('truckTypes.delete')}
-              </button>
+              <TableIconButton icon="delete" tone="danger" label={t('truckTypes.delete')} onClick={() => setDeleteTarget(row)} />
             ) : null}
           </div>
         ) : (

@@ -1,9 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { createShipment, fetchCustomers, fetchOrganization } from '@/core/api/services.ts'
-import type { Organization, PlaceLocation } from '@/core/api/types.ts'
+import { createShipment, fetchCustomers, fetchOrganization, fetchShipment, updateShipment } from '@/core/api/services.ts'
+import type { Organization, PlaceLocation, Shipment } from '@/core/api/types.ts'
 import { LocationPicker } from '@/features/shipments/LocationPicker.tsx'
 import {
   addDays,
@@ -16,6 +16,8 @@ import {
 import { getApiMessage } from '@/core/api/client.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
+import { LoadingState } from '@/shared/components/LoadingState.tsx'
+import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { isCustomerOrganization, organizationName } from '@/shared/utils/format.ts'
 
 const quantityUnits = ['tons', 'pallets', 'units'] as const
@@ -24,6 +26,24 @@ function todayInput(): string {
   const now = new Date()
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000)
   return local.toISOString().slice(0, 10)
+}
+
+function locationFromShipment(shipment: Shipment, side: 'pickup' | 'delivery'): PlaceLocation | null {
+  const city = side === 'pickup' ? shipment.pickup_city : shipment.delivery_city
+  const lat = side === 'pickup' ? shipment.pickup_lat : shipment.delivery_lat
+  const lng = side === 'pickup' ? shipment.pickup_lng : shipment.delivery_lng
+  if (!city || lat == null || lng == null) {
+    return null
+  }
+  const address = side === 'pickup' ? shipment.pickup_address : shipment.delivery_address
+  return {
+    address: address ?? '',
+    city,
+    governorate: '',
+    wilayat: '',
+    lat: Number(lat),
+    lng: Number(lng),
+  }
 }
 
 function customerOptionLabel(organization: Organization): string {
@@ -176,11 +196,13 @@ function CustomerPicker({
 }
 
 export function ShipmentFormPage() {
+  const { id: editId } = useParams()
+  const editing = Boolean(editId)
   const { t } = useTranslation()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [params] = useSearchParams()
-  const presetId = params.get('customer') ?? ''
+  const presetId = editing ? '' : (params.get('customer') ?? '')
   const [customerId, setCustomerId] = useState(presetId)
   const [error, setError] = useState('')
   const [dueDateError, setDueDateError] = useState('')
@@ -190,6 +212,12 @@ export function ShipmentFormPage() {
   const [dueMode, setDueMode] = useState<DueMode>('immediate')
   const [dueDate, setDueDate] = useState('')
   const prefilledCustomer = useRef('')
+  const hydrated = useRef(false)
+  const existing = useQuery({
+    queryKey: ['shipment', editId],
+    queryFn: () => fetchShipment(editId ?? ''),
+    enabled: editing,
+  })
   const [form, setForm] = useState({
     cargo_type: '',
     cargo_description: '',
@@ -218,6 +246,40 @@ export function ShipmentFormPage() {
   })
 
   useEffect(() => {
+    if (!editing || !existing.data || hydrated.current || existing.data.status !== 'draft') {
+      return
+    }
+    const row = existing.data
+    hydrated.current = true
+    setCustomerId(row.customer?.id ? String(row.customer.id) : '')
+    const unit = quantityUnits.includes(row.quantity_unit as (typeof quantityUnits)[number]) ? row.quantity_unit ?? 'tons' : 'tons'
+    const requiredDate = row.required_date?.slice(0, 10) || todayInput()
+    setForm({
+      cargo_type: row.cargo_type ?? '',
+      cargo_description: row.cargo_description ?? '',
+      weight_tons: row.weight_tons == null ? '' : String(row.weight_tons),
+      volume_cbm: row.volume_cbm == null ? '' : String(row.volume_cbm),
+      quantity: row.quantity == null ? '' : String(row.quantity),
+      quantity_unit: unit,
+      required_date: requiredDate,
+      notes: row.notes ?? '',
+      publish: false,
+    })
+    setPickup(locationFromShipment(row, 'pickup'))
+    setDelivery(locationFromShipment(row, 'delivery'))
+    const dueDays = Number(row.payment_terms?.due_days) || 0
+    setBillingUnit(row.payment_terms?.billing_unit === 'trip' ? 'trip' : 'job')
+    if (dueDays > 0) {
+      setDueMode('date')
+      setDueDate(addDays(requiredDate, dueDays))
+      return
+    }
+    setDueMode('immediate')
+    setDueDate('')
+  }, [editing, existing.data])
+
+  useEffect(() => {
+    if (editing) return
     if (!customerId || prefilledCustomer.current === customerId) return
     if (!selectedCustomer.isSuccess || String(selectedCustomer.data.id) !== customerId) return
     prefilledCustomer.current = customerId
@@ -231,15 +293,14 @@ export function ShipmentFormPage() {
     }
     setDueMode('immediate')
     setDueDate('')
-  }, [customerId, form.required_date, selectedCustomer.data, selectedCustomer.isSuccess])
+  }, [editing, customerId, form.required_date, selectedCustomer.data, selectedCustomer.isSuccess])
 
   const save = useMutation({
     mutationFn: (input: { pickup: PlaceLocation; delivery: PlaceLocation; dueDays: number }) => {
       const weight = Number(form.weight_tons)
       const volume = form.volume_cbm.trim() === '' ? undefined : Number(form.volume_cbm)
       const quantity = form.quantity_unit === 'tons' || form.quantity.trim() === '' ? undefined : Number(form.quantity)
-      return createShipment({
-        customer_organization_id: Number(customerId),
+      const payload = {
         cargo_type: form.cargo_type.trim(),
         cargo_description: form.cargo_description.trim() || undefined,
         weight_tons: weight,
@@ -256,17 +317,25 @@ export function ShipmentFormPage() {
         delivery_lng: input.delivery.lng,
         required_date: form.required_date,
         notes: form.notes.trim() || undefined,
-        publish: form.publish,
-        billing_trigger: 'on_delivery',
+        billing_trigger: 'on_delivery' as const,
         billing_unit: billingUnit,
         due_days: input.dueDays,
+      }
+      if (editing && editId) {
+        return updateShipment(editId, payload)
+      }
+      return createShipment({
+        ...payload,
+        customer_organization_id: Number(customerId),
+        publish: form.publish,
       })
     },
     onSuccess: async (shipment) => {
       await queryClient.invalidateQueries({ queryKey: ['shipments'] })
+      await queryClient.invalidateQueries({ queryKey: ['shipment', String(shipment.id)] })
       navigate(`/shipments/${shipment.id}`, { replace: true })
     },
-    onError: (err) => setError(getApiMessage(err, t('shipments.createFailed'))),
+    onError: (err) => setError(getApiMessage(err, editing ? t('shipments.updateFailed') : t('shipments.createFailed'))),
   })
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -300,12 +369,34 @@ export function ShipmentFormPage() {
     save.mutate({ pickup, delivery, dueDays })
   }
 
+  if (editing && existing.isLoading) {
+    return <LoadingState />
+  }
+
+  if (editing && (existing.isError || !existing.data)) {
+    return <ErrorState onRetry={() => void existing.refetch()} />
+  }
+
+  if (editing && existing.data && existing.data.status !== 'draft') {
+    return <Navigate to={`/shipments/${existing.data.id}`} replace />
+  }
+
+  const reference = existing.data?.reference
+
   return (
     <>
       <PageHeader
-        title={t('shipments.create')}
-        subtitle={t('shipments.createHint')}
-        crumbs={[{ label: t('shipments.title'), to: '/shipments' }, { label: t('shipments.create') }]}
+        title={editing ? t('shipments.edit') : t('shipments.create')}
+        subtitle={editing ? t('shipments.editHint') : t('shipments.createHint')}
+        crumbs={
+          editing
+            ? [
+                { label: t('shipments.title'), to: '/shipments' },
+                { label: reference ?? t('shipments.detailTitle'), to: `/shipments/${editId}` },
+                { label: t('common.edit') },
+              ]
+            : [{ label: t('shipments.title'), to: '/shipments' }, { label: t('shipments.create') }]
+        }
       />
       {error ? <div className="mz-alert mz-section-alert">{error}</div> : null}
       {presetUnavailable ? <div className="mz-alert mz-section-alert">{t('shipments.customerUnavailable')}</div> : null}
@@ -313,7 +404,16 @@ export function ShipmentFormPage() {
         <div className="mz-card__body">
           <form className="mz-form" onSubmit={onSubmit}>
             <FormField label={t('common.customer')} htmlFor="shipment-customer" required>
-              <CustomerPicker value={customerId} onChange={setCustomerId} presetId={presetId} />
+              {editing ? (
+                <input
+                  id="shipment-customer"
+                  className="mz-input"
+                  value={organizationName(existing.data?.customer)}
+                  readOnly
+                />
+              ) : (
+                <CustomerPicker value={customerId} onChange={setCustomerId} presetId={presetId} />
+              )}
             </FormField>
             <FormField label={t('shipments.cargoType')} htmlFor="shipment-cargo" required>
               <input
@@ -435,23 +535,25 @@ export function ShipmentFormPage() {
                 setDueDateError('')
               }}
             />
-            <label className="mz-check">
-              <input
-                type="checkbox"
-                checked={form.publish}
-                onChange={(event) => setForm((current) => ({ ...current, publish: event.target.checked }))}
-              />
-              {t('shipments.publishNow')}
-            </label>
+            {editing ? null : (
+              <label className="mz-check">
+                <input
+                  type="checkbox"
+                  checked={form.publish}
+                  onChange={(event) => setForm((current) => ({ ...current, publish: event.target.checked }))}
+                />
+                {t('shipments.publishNow')}
+              </label>
+            )}
             <div className="mz-form-actions">
               <button
                 type="submit"
                 className="mz-btn mz-btn--primary"
                 disabled={save.isPending || !customerId || !pickup || !delivery}
               >
-                {save.isPending ? t('common.saving') : t('shipments.create')}
+                {save.isPending ? t('common.saving') : editing ? t('common.save') : t('shipments.create')}
               </button>
-              <Link className="mz-btn mz-btn--ghost" to="/shipments">
+              <Link className="mz-btn mz-btn--ghost" to={editing ? `/shipments/${editId}` : '/shipments'}>
                 {t('common.cancel')}
               </Link>
             </div>

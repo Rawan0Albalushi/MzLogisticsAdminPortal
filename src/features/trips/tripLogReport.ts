@@ -67,46 +67,16 @@ export function tripLogColumns(t: TFunction): string[] {
   return columns(t)
 }
 
-export function tripLogRow(t: TFunction, trip: Trip): string[] {
-  return tripRow(t, trip)
+export function tripLogRow(t: TFunction, trip: Trip, sequence: number): string[] {
+  return tripRow(t, trip, sequence)
 }
 
-function filled(value: string): string | null {
-  const trimmed = value.trim()
-  if (!trimmed || trimmed === '—') {
-    return null
-  }
-  return trimmed
-}
-
-function joinParts(parts: Array<string | null | undefined>): string {
-  const values = parts.map((part) => (part ? filled(part) : null)).filter((part): part is string => Boolean(part))
-  return values.length > 0 ? values.join(' · ') : displayValue(null)
-}
-
-function compactRow(t: TFunction, trip: Trip): string[] {
+function tripRow(t: TFunction, trip: Trip, sequence: number): string[] {
+  const invoice = trip.customer_invoice
   return [
-    displayValue(trip.sequence ?? trip.reference),
-    formatDate(trip.loaded_at || trip.scheduled_departure_at || trip.assigned_at),
-    joinParts([
-      displayValue(trip.truck?.type_label || trip.truck?.type),
-      displayValue(trip.truck?.plate_number),
-      trip.trailer_plate ? displayValue(trip.trailer_plate) : null,
-    ]),
-    joinParts([displayValue(trip.driver?.name), displayValue(trip.driver?.phone)]),
-    organizationName(trip.job?.provider),
-    tripRoute(trip),
-    tripWeight(trip),
-    reportStatus(t, trip.status),
-  ]
-}
-
-function tripRow(t: TFunction, trip: Trip): string[] {
-  const payable = trip.driver_payable
-  return [
+    String(sequence),
     projectLabel(t, trip),
-    displayValue(trip.job?.reference),
-    formatDate(trip.loaded_at || trip.scheduled_departure_at || trip.assigned_at),
+    formatDate(trip.planned_service_date),
     displayValue(trip.truck?.type_label || trip.truck?.type),
     displayValue(trip.truck?.plate_number),
     displayValue(trip.trailer_plate),
@@ -121,18 +91,18 @@ function tripRow(t: TFunction, trip: Trip): string[] {
     tripRoute(trip),
     reportStatus(t, trip.status),
     displayValue(trip.delivery_note_number),
-    displayValue(trip.sequence ?? trip.reference),
-    payable?.status ? reportStatus(t, payable.status) : displayValue(null),
-    formatDate(payable?.paid_at),
-    displayValue(null),
+    displayValue(trip.reference),
+    invoice?.status ? reportStatus(t, invoice.status) : displayValue(null),
+    formatDate(invoice?.paid_at),
+    formatDate(invoice?.due_at),
     displayValue(trip.operations_notes),
   ]
 }
 
 function columns(t: TFunction): string[] {
   return [
+    t('trips.logSerial'),
     t('trips.logProject'),
-    t('trips.logJob'),
     t('trips.logDate'),
     t('trips.logVehicleType'),
     t('trips.logVehicleNo'),
@@ -157,25 +127,14 @@ function columns(t: TFunction): string[] {
 }
 
 export function createTripLogReport(t: TFunction, trips: Trip[], filters: ReportFilter[]): ReportDocument {
-  const compactColumns = [
-    t('trips.logTripNo'),
-    t('trips.logDate'),
-    t('common.truck'),
-    t('trips.logDriver'),
-    t('trips.logTransporter'),
-    t('trips.logRoute'),
-    t('trips.logWeight'),
-    t('common.status'),
-  ]
-  const compactWidths = ['13%', '11%', '15%', '16%', '12%', '15%', '8%', '10%']
+  const headers = columns(t)
   const grouped = tripLogGroups(t, trips)
   const sections = grouped.length === 0
     ? [
         {
           title: t('trips.title'),
           table: {
-            columns: compactColumns,
-            widths: compactWidths,
+            columns: headers,
             numbered: false,
             rows: [],
           },
@@ -192,10 +151,9 @@ export function createTripLogReport(t: TFunction, trips: Trip[], filters: Report
           { label: t('trips.logTripCount'), value: String(items.length) },
         ],
         table: {
-          columns: compactColumns,
-          widths: compactWidths,
+          columns: headers,
           numbered: false,
-          rows: items.map((trip) => compactRow(t, trip)),
+          rows: items.map((trip, index) => tripRow(t, trip, index + 1)),
         },
       }
     })

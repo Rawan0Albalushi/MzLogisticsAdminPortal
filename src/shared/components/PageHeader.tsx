@@ -12,7 +12,7 @@ interface Crumb {
 
 interface PageHeaderProps {
   title: string
-  subtitle?: string
+  subtitle?: ReactNode
   crumbs?: Crumb[]
   actions?: ReactNode
   icon?: IconName

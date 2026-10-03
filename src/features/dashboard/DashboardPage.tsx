@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchDashboard, fetchJobs, fetchProviders, fetchShipments, fetchTrips } from '@/core/api/services.ts'
@@ -9,16 +10,13 @@ import type { DashboardStats } from '@/core/api/types.ts'
 import { KpiCard } from '@/shared/components/KpiCard.tsx'
 import { LoadingState } from '@/shared/components/LoadingState.tsx'
 import { ErrorState } from '@/shared/components/ErrorState.tsx'
-import { useCatalog } from '@/shared/hooks/useCatalog.ts'
-import { formatCommissionRate, formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
+import { formatDateTime, formatMoney, formatNumber, greetingKey, organizationName } from '@/shared/utils/format.ts'
 import { WorkQueue } from '@/features/dashboard/WorkQueue.tsx'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
 import type { IconName } from '@/shared/icons/NavIcons.tsx'
-import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
-import { createReportDocument } from '@/shared/reports/buildReport.ts'
 
 function count(value: number | undefined): number {
   return value ?? 0
@@ -26,8 +24,9 @@ function count(value: number | undefined): number {
 
 export function DashboardPage() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
   const { user, hasPermission } = useAuth()
-  const catalog = useCatalog()
+  const [refreshing, setRefreshing] = useState(false)
   const query = useQuery({
     queryKey: ['dashboard'],
     queryFn: fetchDashboard,
@@ -58,6 +57,16 @@ export function DashboardPage() {
     queryFn: () => fetchProviders({ status: 'pending', page: 1, per_page: 5 }),
     enabled: canViewProviders && count(query.data?.providers_pending) > 0,
   })
+
+  async function refreshDashboard() {
+    if (refreshing) return
+    setRefreshing(true)
+    try {
+      await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    } finally {
+      setRefreshing(false)
+    }
+  }
 
   if (query.isLoading) {
     return <LoadingState />
@@ -129,81 +138,22 @@ export function DashboardPage() {
             <i />
             {t('dashboard.updatedAt', { time: formatDateTime(new Date(query.dataUpdatedAt).toISOString()) })}
           </span>
-          <DownloadReportButton
-            build={() =>
-              createReportDocument({
-                title: t('reports.snapshot'),
-                subtitle: t('dashboard.subtitle'),
-                sections: [
-                  {
-                    title: t('dashboard.attention'),
-                    metrics: attention.map((item) => ({
-                      label: item.label,
-                      value: formatNumber(item.count),
-                    })),
-                  },
-                  {
-                    title: t('reports.operations'),
-                    metrics: [
-                      ...(canViewShipments
-                        ? [
-                            { label: t('dashboard.shipmentsOpen'), value: formatNumber(stats.shipments_open) },
-                            { label: t('dashboard.shipmentsTotal'), value: formatNumber(stats.shipments_total) },
-                          ]
-                        : []),
-                      ...(canViewJobs
-                        ? [
-                            { label: t('dashboard.jobsActive'), value: formatNumber(stats.jobs_active) },
-                            { label: t('dashboard.jobsCompleted'), value: formatNumber(stats.jobs_completed) },
-                            { label: t('dashboard.jobsPendingDispatch'), value: formatNumber(stats.jobs_pending_dispatch) },
-                          ]
-                        : []),
-                      ...(canViewTrips
-                        ? [
-                            { label: t('dashboard.tripsInTransit'), value: formatNumber(stats.trips_in_transit) },
-                            { label: t('dashboard.tripsUnassigned'), value: formatNumber(stats.trips_unassigned) },
-                          ]
-                        : []),
-                    ],
-                  },
-                  {
-                    title: t('reports.finance'),
-                    metrics: [
-                      ...(hasPermission(PERMISSIONS.PAYMENTS_VIEW)
-                        ? [
-                            { label: t('dashboard.paymentsCompleted'), value: formatMoney(stats.payments_completed_amount) },
-                            { label: t('dashboard.commission'), value: formatMoney(stats.commission_amount) },
-                            { label: t('dashboard.paymentsPending'), value: formatNumber(stats.payments_pending) },
-                          ]
-                        : []),
-                      ...(hasPermission(PERMISSIONS.WALLETS_VIEW)
-                        ? [{ label: t('dashboard.providerReceivable'), value: formatMoney(stats.provider_receivable) }]
-                        : []),
-                      ...(hasPermission(PERMISSIONS.SETTLEMENTS_VIEW)
-                        ? [{ label: t('dashboard.settlementsPending'), value: formatNumber(stats.settlements_pending) }]
-                        : []),
-                      ...(hasPermission(PERMISSIONS.INVOICES_VIEW)
-                        ? [{ label: t('dashboard.invoicesUnpaid'), value: formatNumber(count(stats.invoices_unpaid)) }]
-                        : []),
-                    ],
-                  },
-                ],
-              })
-            }
-          />
           <button
             type="button"
             className="mz-btn mz-btn--ghost"
             onClick={() => {
-              void query.refetch()
-              void shipments.refetch()
-              void jobs.refetch()
-              void trips.refetch()
-              void providers.refetch()
+              void refreshDashboard()
             }}
+            disabled={refreshing}
+            aria-busy={refreshing}
           >
-            <AppIcon name="refresh" width={15} height={15} />
-            {t('common.refresh')}
+            <AppIcon
+              name="refresh"
+              width={15}
+              height={15}
+              className={refreshing ? 'mz-btn__icon--spin' : undefined}
+            />
+            {refreshing ? t('common.loading') : t('common.refresh')}
           </button>
         </div>
       </section>
@@ -280,11 +230,6 @@ export function DashboardPage() {
         <section className="mz-panel">
           <div className="mz-panel__head">
             <h2>{t('dashboard.finance')}</h2>
-            {catalog.data?.commission_rate != null ? (
-              <span style={{ color: 'var(--mz-muted)', fontSize: 15 }}>
-                {t('dashboard.defaultCommissionRate', { rate: formatCommissionRate(catalog.data.commission_rate) })}
-              </span>
-            ) : null}
           </div>
           <div className="mz-kpi-grid">
             {hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
@@ -295,15 +240,6 @@ export function DashboardPage() {
                 hint={t('dashboard.paymentsCompletedHint')}
                 to="/payments"
                 tone="success"
-              />
-            ) : null}
-            {hasPermission(PERMISSIONS.PAYMENTS_VIEW) ? (
-              <KpiCard
-                icon={kpiIcons.commission}
-                label={t('dashboard.commission')}
-                value={formatMoney(stats.commission_amount)}
-                hint={t('dashboard.commissionHint')}
-                to="/payments"
               />
             ) : null}
             {hasPermission(PERMISSIONS.WALLETS_VIEW) ? (

@@ -6,8 +6,9 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { formatCommissionRate, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { formatMoney, organizationName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createListReport, listReportFilters } from '@/shared/reports/buildReport.ts'
 import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
@@ -22,17 +23,17 @@ export function WalletsPage() {
 
   const columns: Column<Wallet>[] = [
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.organization) },
-    {
-      id: 'commission',
-      header: t('providers.commissionRate'),
-      cell: (row) => formatCommissionRate(row.organization?.effective_commission_rate ?? row.organization?.commission_rate),
-    },
     { id: 'pending', header: t('wallets.pending'), cell: (row) => formatMoney(row.pending_balance, row.currency ?? undefined) },
     { id: 'available', header: t('wallets.available'), cell: (row) => formatMoney(row.available_balance, row.currency ?? undefined) },
     { id: 'reserved', header: t('wallets.reserved'), cell: (row) => formatMoney(row.reserved_balance, row.currency ?? undefined) },
     { id: 'outstanding', header: t('wallets.outstanding'), cell: (row) => formatMoney(row.outstanding_balance, row.currency ?? undefined) },
     { id: 'earned', header: t('wallets.lifetimeEarned'), cell: (row) => formatMoney(row.lifetime_earned, row.currency ?? undefined) },
     { id: 'withdrawn', header: t('wallets.lifetimeWithdrawn'), cell: (row) => formatMoney(row.lifetime_withdrawn, row.currency ?? undefined) },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/wallets/${row.id}`} />,
+    },
   ]
 
   return (
@@ -52,7 +53,6 @@ export function WalletsPage() {
                 filters: listReportFilters(t, list),
                 columns: [
                   t('common.provider'),
-                  t('providers.commissionRate'),
                   t('wallets.pending'),
                   t('wallets.available'),
                   t('wallets.reserved'),
@@ -62,7 +62,6 @@ export function WalletsPage() {
                 ],
                 rows: items.map((row) => [
                   organizationName(row.organization),
-                  formatCommissionRate(row.organization?.effective_commission_rate ?? row.organization?.commission_rate),
                   formatMoney(row.pending_balance, row.currency ?? undefined),
                   formatMoney(row.available_balance, row.currency ?? undefined),
                   formatMoney(row.reserved_balance, row.currency ?? undefined),

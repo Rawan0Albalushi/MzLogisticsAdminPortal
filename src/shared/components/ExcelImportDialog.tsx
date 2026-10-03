@@ -9,6 +9,7 @@ import {
 } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
+import { formatActivationCode } from '@/shared/utils/format.ts'
 
 interface ExcelImportDialogProps {
   open: boolean
@@ -130,7 +131,7 @@ export function ExcelImportDialog({
 
   const drivers = result?.drivers ?? []
   const items = result?.items ?? []
-  const unsent = drivers.filter((driver) => !driver.whatsapp_sent && driver.invite_url)
+  const unsent = drivers.filter((driver) => !driver.whatsapp_sent && driver.activation_code)
 
   return (
     <ConfirmDialog
@@ -178,7 +179,7 @@ export function ExcelImportDialog({
                 type="button"
                 className="mz-btn mz-btn--ghost"
                 onClick={() =>
-                  void copyText(unsent.map((driver) => `${driver.name}\t${driver.phone ?? ''}\t${driver.invite_url}`).join('\n'))
+                  void copyText(unsent.map((driver) => `${driver.name}\t${driver.phone ?? ''}\t${formatActivationCode(driver.activation_code)}`).join('\n'))
                 }
               >
                 {t('import.copyUnsent')}
@@ -200,12 +201,12 @@ export function ExcelImportDialog({
                   <li key={`${driver.row}-${driver.name}`}>
                     <span>
                       <strong>{driver.name}</strong>
-                      <small>{driver.whatsapp_sent ? t('import.whatsappSent') : driver.phone || driver.invite_url}</small>
+                      <small>{driver.whatsapp_sent ? t('import.whatsappSent') : formatActivationCode(driver.activation_code)}</small>
                     </span>
                     <span className="mz-import__row-actions">
                       <span>{t('import.row', { row: driver.row })}</span>
-                      {driver.invite_url ? (
-                        <button type="button" className="mz-btn mz-btn--ghost" onClick={() => void copyText(driver.invite_url)}>
+                      {driver.activation_code ? (
+                        <button type="button" className="mz-btn mz-btn--ghost" onClick={() => void copyText(formatActivationCode(driver.activation_code))}>
                           {t('import.copyInvite')}
                         </button>
                       ) : null}

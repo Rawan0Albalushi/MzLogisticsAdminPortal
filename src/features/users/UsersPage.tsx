@@ -7,6 +7,7 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { ACTIVE_STATUSES, USER_TYPES } from '@/core/constants/statuses.ts'
@@ -57,6 +58,11 @@ export function UsersPage() {
       cell: (row) => <StatusBadge status={row.is_active ? 'active' : 'inactive'} />,
     },
     { id: 'login', header: t('drivers.lastLogin'), cell: (row) => formatDateTime(row.last_login_at) },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => <TableIconButton icon="edit" label={t('common.edit')} to={`/users/${row.id}`} />,
+    },
   ]
 
   return (

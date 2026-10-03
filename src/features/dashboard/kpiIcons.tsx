@@ -6,7 +6,6 @@ export const kpiIcons = {
   job: <AppIcon name="jobs" />,
   trip: <AppIcon name="trips" />,
   payment: <AppIcon name="payments" />,
-  commission: <AppIcon name="commission" />,
   settlement: <AppIcon name="settlements" />,
   invoice: <AppIcon name="invoices" />,
 }

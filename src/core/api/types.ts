@@ -48,6 +48,17 @@ export interface Organization {
   provider_jobs_count?: number
 }
 
+export interface UpdateOrganizationInput {
+  name: string
+  name_ar?: string | null
+  phone?: string | null
+  email?: string | null
+  city?: string | null
+  address?: string | null
+  commercial_register?: string | null
+  tax_number?: string | null
+}
+
 export interface DriverProfile {
   id: number
   user_id: number
@@ -304,6 +315,7 @@ export interface Trip {
   delivery_note_number?: string | null
   operations_notes?: string | null
   driver_payable?: { id: number; status: string; amount?: string | number | null; paid_at?: string | null } | null
+  customer_invoice?: { status?: string | null; due_at?: string | null; paid_at?: string | null } | null
   job?: TransportJob | null
   truck?: Truck | null
   driver?: AuthUser | null
@@ -462,7 +474,7 @@ export interface PaymentMethodInput {
   code?: string
   name: string
   name_ar: string
-  processor: 'thawani' | 'cash'
+  processor: 'thawani' | 'cash' | 'bank_transfer'
   is_active?: boolean
   sort_order?: number
 }
@@ -513,9 +525,25 @@ export interface CreateCustomerInput {
   password: string
   password_confirmation: string
   locale?: string
-  account_type: 'individual' | 'company'
-  company_name?: string
+  account_type: 'company'
+  company_name: string
   company_name_ar?: string
+  city?: string
+  country?: string
+  address?: string
+}
+
+export interface CreateProviderInput {
+  name: string
+  email: string
+  phone?: string
+  password: string
+  password_confirmation: string
+  locale?: string
+  company_name: string
+  company_name_ar?: string
+  commercial_register?: string
+  tax_number?: string
   city?: string
   country?: string
   address?: string
@@ -561,6 +589,8 @@ export interface CreateShipmentInput {
   billing_unit?: string
   due_days?: number
 }
+
+export type UpdateShipmentInput = Omit<CreateShipmentInput, 'customer_organization_id' | 'publish'>
 
 export interface CreateStaffUserInput {
   name: string

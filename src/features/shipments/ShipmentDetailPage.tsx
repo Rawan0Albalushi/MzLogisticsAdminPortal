@@ -15,6 +15,7 @@ import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
@@ -142,11 +143,7 @@ export function ShipmentDetailPage() {
     {
       id: 'actions',
       header: t('common.actions'),
-      cell: (row) => (
-        <Link className="mz-link" to={`/quotations/${row.id}`}>
-          {t('common.view')}
-        </Link>
-      ),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/quotations/${row.id}`} />,
     },
   ]
 
@@ -158,6 +155,11 @@ export function ShipmentDetailPage() {
         crumbs={[{ label: t('shipments.title'), to: '/shipments' }, { label: shipment.reference }]}
         actions={
           <>
+            {hasPermission(PERMISSIONS.SHIPMENTS_MANAGE) && shipment.status === 'draft' ? (
+              <Link className="mz-btn mz-btn--ghost" to={`/shipments/${shipment.id}/edit`}>
+                {t('common.edit')}
+              </Link>
+            ) : null}
             <StatusBadge status={shipment.status} />
             {canCancel ? (
               <button type="button" className="mz-btn mz-btn--danger" onClick={() => setConfirmCancel(true)}>

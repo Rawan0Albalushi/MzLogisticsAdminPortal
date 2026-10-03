@@ -10,6 +10,7 @@ import { EmptyState } from '@/shared/components/EmptyState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { LocationMap } from '@/shared/components/LocationMap.tsx'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
@@ -94,11 +95,7 @@ export function JobDetailPage() {
     {
       id: 'actions',
       header: t('common.actions'),
-      cell: (row) => (
-        <Link className="mz-link" to={`/trips/${row.id}`}>
-          {t('common.view')}
-        </Link>
-      ),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/trips/${row.id}`} />,
     },
   ]
 

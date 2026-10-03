@@ -279,16 +279,17 @@ export function CustomerOfferPanel({
             }}
           >
             <p className="mz-offer__hint">{t('shipments.platformOfferFormHint')}</p>
-            <FormField label={t('quotations.pricePerTrip')} htmlFor="owned-price" required hint={t('quotations.pricePerTripHint')}>
-              <input
-                id="owned-price"
-                className="mz-input"
-                inputMode="decimal"
-                value={ownedForm.price_per_trip}
-                onChange={(event) => setOwnedForm((current) => ({ ...current, price_per_trip: event.target.value }))}
-                required
-              />
-            </FormField>
+            <QuoteExecutionFields
+              shipment={shipment}
+              trucks={platformFleet.data ?? []}
+              fleetReady={platformFleet.isFetched || platformFleet.isError}
+              truckTypes={activeTruckTypes}
+              idPrefix="owned"
+              resetKey={String(shipment.id)}
+              value={ownedForm}
+              onChange={(next) => setOwnedForm((current) => ({ ...current, ...next }))}
+              onValidChange={setPlanValid}
+            />
             <FormField
               label={t('quotations.transportStartDate')}
               htmlFor="owned-start"
@@ -305,17 +306,16 @@ export function CustomerOfferPanel({
                 onChange={(event) => setOwnedForm((current) => ({ ...current, transport_start_date: event.target.value }))}
               />
             </FormField>
-            <QuoteExecutionFields
-              shipment={shipment}
-              trucks={platformFleet.data ?? []}
-              fleetReady={platformFleet.isFetched || platformFleet.isError}
-              truckTypes={activeTruckTypes}
-              idPrefix="owned"
-              resetKey={String(shipment.id)}
-              value={ownedForm}
-              onChange={(next) => setOwnedForm((current) => ({ ...current, ...next }))}
-              onValidChange={setPlanValid}
-            />
+            <FormField label={t('quotations.pricePerTrip')} htmlFor="owned-price" required hint={t('quotations.pricePerTripHint')}>
+              <input
+                id="owned-price"
+                className="mz-input"
+                inputMode="decimal"
+                value={ownedForm.price_per_trip}
+                onChange={(event) => setOwnedForm((current) => ({ ...current, price_per_trip: event.target.value }))}
+                required
+              />
+            </FormField>
             <FormField label={t('quotations.additionalCosts')} htmlFor="owned-extra">
               <input
                 id="owned-extra"

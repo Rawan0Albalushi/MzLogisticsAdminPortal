@@ -13,10 +13,10 @@ import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { DateRangeFilter, FilterBar } from '@/shared/components/FilterBar.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
-import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { RouteLabel } from '@/shared/components/RouteLabel.tsx'
-import { displayValue, formatCommissionRate, formatDate, formatMoney, formatNumber, formatPercent, formatRoute, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDate, formatMoney, formatNumber, formatPercent, formatRoute, organizationName } from '@/shared/utils/format.ts'
 import { kpiIcons } from '@/features/dashboard/kpiIcons.tsx'
 import { MixBar } from '@/features/reports/MixBar.tsx'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
@@ -37,7 +37,6 @@ function share(part: number, whole: number): number | null {
 export function ReportsPage() {
   const { t } = useTranslation()
   const { hasPermission } = useAuth()
-  const catalog = useCatalog()
   const list = useListQuery()
   const canViewShipments = hasPermission(PERMISSIONS.SHIPMENTS_VIEW)
   const canViewJobs = hasPermission(PERMISSIONS.JOBS_VIEW)
@@ -80,7 +79,6 @@ export function ReportsPage() {
   const shipmentsClosed = Math.max(0, count(stats.shipments_total) - count(stats.shipments_open))
   const openShare = share(count(stats.shipments_open), count(stats.shipments_total))
   const completionShare = share(count(stats.jobs_completed), count(stats.jobs_active) + count(stats.jobs_completed))
-  const commissionShare = share(count(stats.commission_amount), count(stats.payments_completed_amount))
   const availableShare = share(count(stats.wallet_available), count(stats.provider_receivable))
 
   const shipmentColumns: Column<Shipment>[] = [
@@ -102,6 +100,11 @@ export function ReportsPage() {
     },
     { id: 'date', header: t('shipments.requiredDate'), cell: (row) => formatDate(row.required_date) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/shipments/${row.id}`} />,
+    },
   ]
 
   const jobColumns: Column<TransportJob>[] = [
@@ -118,15 +121,30 @@ export function ReportsPage() {
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },
     { id: 'price', header: t('quotations.price'), cell: (row) => formatMoney(row.total_price, row.currency ?? undefined) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => <TableIconButton icon="view" label={t('common.view')} to={`/jobs/${row.id}`} />,
+    },
   ]
 
   const paymentColumns: Column<Payment>[] = [
     { id: 'ref', header: t('common.reference'), cell: (row) => row.reference },
     { id: 'amount', header: t('common.amount'), cell: (row) => formatMoney(row.amount, row.currency ?? undefined) },
-    { id: 'commission', header: t('common.commission'), cell: (row) => formatMoney(row.commission_amount, row.currency ?? undefined) },
     { id: 'method', header: t('payments.method'), cell: (row) => displayValue(row.method) },
     { id: 'paid', header: t('payments.paidAt'), cell: (row) => formatDate(row.paid_at) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
+    {
+      id: 'actions',
+      header: t('common.actions'),
+      cell: (row) => (
+        <TableIconButton
+          icon="view"
+          label={t('common.view')}
+          to={`/payments?search=${encodeURIComponent(row.reference)}`}
+        />
+      ),
+    },
   ]
 
   return (
@@ -195,8 +213,6 @@ export function ReportsPage() {
                         ...(canViewPayments
                           ? [
                               { label: t('dashboard.paymentsCompleted'), value: formatMoney(stats.payments_completed_amount) },
-                              { label: t('dashboard.commission'), value: formatMoney(stats.commission_amount) },
-                              { label: t('reports.commissionShare'), value: formatPercent(commissionShare) },
                               { label: t('dashboard.paymentsPending'), value: formatNumber(stats.payments_pending) },
                             ]
                           : []),
@@ -286,7 +302,6 @@ export function ReportsPage() {
                               columns: [
                                 t('common.reference'),
                                 t('common.amount'),
-                                t('common.commission'),
                                 t('payments.method'),
                                 t('payments.paidAt'),
                                 t('common.status'),
@@ -294,7 +309,6 @@ export function ReportsPage() {
                               rows: paymentRows.map((row) => [
                                 row.reference,
                                 formatMoney(row.amount, row.currency ?? undefined),
-                                formatMoney(row.commission_amount, row.currency ?? undefined),
                                 displayValue(row.method),
                                 formatDate(row.paid_at),
                                 reportStatus(t, row.status),
@@ -448,11 +462,6 @@ export function ReportsPage() {
         <section className="mz-panel">
           <div className="mz-panel__head">
             <h2>{t('reports.finance')}</h2>
-            {catalog.data?.commission_rate != null ? (
-              <span style={{ color: 'var(--mz-muted)', fontSize: 15 }}>
-                {t('dashboard.defaultCommissionRate', { rate: formatCommissionRate(catalog.data.commission_rate) })}
-              </span>
-            ) : null}
           </div>
           <div className="mz-kpi-grid">
             {canViewPayments ? (
@@ -463,15 +472,6 @@ export function ReportsPage() {
                 hint={t('dashboard.paymentsCompletedHint')}
                 to="/payments"
                 tone="success"
-              />
-            ) : null}
-            {canViewPayments ? (
-              <KpiCard
-                icon={kpiIcons.commission}
-                label={t('dashboard.commission')}
-                value={formatMoney(stats.commission_amount)}
-                hint={commissionShare == null ? t('dashboard.commissionHint') : t('reports.commissionShareHint')}
-                to="/payments"
               />
             ) : null}
             {canViewPayments ? (
@@ -548,14 +548,6 @@ export function ReportsPage() {
               hint={t('reports.completionShareHint')}
               to="/jobs?status=completed"
               tone="success"
-            />
-          ) : null}
-          {canViewPayments ? (
-            <KpiCard
-              label={t('reports.commissionShare')}
-              value={formatPercent(commissionShare)}
-              hint={t('reports.commissionShareHint')}
-              to="/payments"
             />
           ) : null}
           {canViewWallets ? (
@@ -672,6 +664,7 @@ export function ReportsPage() {
                 isLoading={payments.isLoading}
                 isError={payments.isError}
                 onRetry={() => void payments.refetch()}
+                rowTo={(row) => `/payments?search=${encodeURIComponent(row.reference)}`}
               />
             </div>
           ) : null}

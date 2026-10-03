@@ -16,7 +16,7 @@ import { WALLET_TRANSACTION_TYPES } from '@/core/constants/statuses.ts'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { displayValue, formatCommissionRate, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDateTime, formatMoney, organizationName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
 import { createReportDocument, listReportFilters, reportStatus } from '@/shared/reports/buildReport.ts'
 import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
@@ -212,13 +212,6 @@ export function WalletDetailPage() {
               <InfoGrid
                 fields={[
                   { icon: 'providers', label: t('common.provider'), value: providerLink },
-                  {
-                    icon: 'commission',
-                    label: t('providers.commissionRate'),
-                    value: formatCommissionRate(
-                      wallet.organization?.effective_commission_rate ?? wallet.organization?.commission_rate,
-                    ),
-                  },
                   { icon: 'payments', label: t('common.currency'), value: wallet.currency },
                 ]}
               />

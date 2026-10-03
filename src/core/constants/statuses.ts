@@ -11,6 +11,19 @@ export const TRIP_TIMELINE = [
 
 export type TripTimelineStatus = (typeof TRIP_TIMELINE)[number]
 
+/** Visible trip path. Intermediate statuses stay in the API, but share one step here. */
+export const TRIP_STAGES = [
+  { id: 'unassigned', statuses: ['unassigned'] },
+  { id: 'assigned', statuses: ['assigned', 'arrived_at_pickup'] },
+  { id: 'loaded', statuses: ['loaded'] },
+  { id: 'in_transit', statuses: ['in_transit', 'arrived'] },
+  { id: 'delivered', statuses: ['delivered', 'completed'] },
+] as const
+
+export function tripStageId(status: string): string {
+  return TRIP_STAGES.find((stage) => (stage.statuses as readonly string[]).includes(status))?.id ?? status
+}
+
 /** Next statuses an operator may set. Assignment stays on the assign form, so "assigned" is omitted. */
 export const TRIP_STATUS_ACTIONS: Record<string, readonly string[]> = {
   unassigned: ['cancelled'],
@@ -24,9 +37,28 @@ export const TRIP_STATUS_ACTIONS: Record<string, readonly string[]> = {
   cancelled: [],
 }
 
-export const ORGANIZATION_VERIFY_STATUSES = ['active', 'suspended', 'rejected'] as const
+/** Statuses to apply so the trip moves to the next visible stage. */
+export function pathToNextTripStage(status: string): string[] {
+  const start = tripStageId(status)
+  const path: string[] = []
+  let cursor = status
 
-export const CUSTOMER_ACCOUNT_TYPES = ['individual', 'company'] as const
+  while (true) {
+    const next = (TRIP_STATUS_ACTIONS[cursor] ?? []).find((item) => item !== 'cancelled')
+    if (!next) {
+      break
+    }
+    path.push(next)
+    if (tripStageId(next) !== start) {
+      break
+    }
+    cursor = next
+  }
+
+  return path
+}
+
+export const ORGANIZATION_VERIFY_STATUSES = ['active', 'suspended', 'rejected'] as const
 
 export const ORGANIZATION_LIST_STATUSES = ['pending', 'active', 'suspended', 'rejected'] as const
 

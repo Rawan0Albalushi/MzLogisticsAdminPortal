@@ -1,8 +1,8 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { fetchOrganization, updateOrganizationCommission, verifyOrganization } from '@/core/api/services.ts'
+import { fetchOrganization, verifyOrganization } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -13,11 +13,10 @@ import { ErrorState } from '@/shared/components/ErrorState.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
-import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { SectionTitle } from '@/shared/components/SectionTitle.tsx'
 import { IconWell } from '@/shared/components/IconWell.tsx'
 import { AppIcon } from '@/shared/icons/NavIcons.tsx'
-import { commissionRateToPercentInput, displayValue, formatCommissionRate, formatDate, organizationName } from '@/shared/utils/format.ts'
+import { displayValue, formatDate, organizationName } from '@/shared/utils/format.ts'
 
 function ContactValue({ value, href }: { value?: string | null; href: string }) {
   if (!value) {
@@ -35,25 +34,12 @@ export function ProviderDetailPage() {
   const { id = '' } = useParams()
   const { t, i18n } = useTranslation()
   const { hasPermission } = useAuth()
-  const catalog = useCatalog()
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['organization', id], queryFn: () => fetchOrganization(id), enabled: Boolean(id) })
   const [status, setStatus] = useState('active')
   const [notes, setNotes] = useState('')
-  const [ratePercent, setRatePercent] = useState('')
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
-  const [commissionFeedback, setCommissionFeedback] = useState('')
-  const [commissionError, setCommissionError] = useState('')
-  const canManageCommission =
-    hasPermission(PERMISSIONS.PROVIDERS_MANAGE) || hasPermission(PERMISSIONS.SETTLEMENTS_MANAGE)
-
-  useEffect(() => {
-    if (!query.data) {
-      return
-    }
-    setRatePercent(commissionRateToPercentInput(query.data.commission_rate))
-  }, [query.data])
 
   const mutation = useMutation({
     mutationFn: () => verifyOrganization(id, { status, verification_notes: notes }),
@@ -69,24 +55,6 @@ export function ProviderDetailPage() {
     },
   })
 
-  const commissionMutation = useMutation({
-    mutationFn: () =>
-      updateOrganizationCommission(id, {
-        commission_rate: ratePercent.trim() === '' ? null : Number(ratePercent) / 100,
-      }),
-    onSuccess: async () => {
-      setCommissionFeedback(t('providers.commissionSuccess'))
-      setCommissionError('')
-      await queryClient.invalidateQueries({ queryKey: ['organization', id] })
-      await queryClient.invalidateQueries({ queryKey: ['providers'] })
-      await queryClient.invalidateQueries({ queryKey: ['wallets'] })
-    },
-    onError: (err) => {
-      setCommissionFeedback('')
-      setCommissionError(getApiMessage(err, t('providers.commissionFailed')))
-    },
-  })
-
   if (query.isLoading) {
     return <LoadingState />
   }
@@ -96,9 +64,6 @@ export function ProviderDetailPage() {
   }
 
   const org = query.data
-  const defaultRate = catalog.data?.commission_rate ?? 0.1
-  const effectiveRate = org.effective_commission_rate ?? org.commission_rate ?? defaultRate
-  const usesDefault = org.uses_default_commission ?? org.commission_rate == null
   const primaryName = organizationName(org)
   const secondaryName = i18n.language.startsWith('ar')
     ? org.name && org.name !== primaryName
@@ -113,18 +78,22 @@ export function ProviderDetailPage() {
     mutation.mutate()
   }
 
-  function onSaveCommission(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    commissionMutation.mutate()
-  }
-
   return (
     <>
       <PageHeader
         title={primaryName}
         subtitle={t('providers.detailTitle')}
         crumbs={[{ label: t('providers.title'), to: '/providers' }, { label: primaryName }]}
-        actions={<StatusBadge status={org.status} />}
+        actions={
+          <>
+            {hasPermission(PERMISSIONS.PROVIDERS_MANAGE) ? (
+              <Link className="mz-btn mz-btn--ghost" to={`/providers/${org.id}/edit`}>
+                {t('common.edit')}
+              </Link>
+            ) : null}
+            <StatusBadge status={org.status} />
+          </>
+        }
       />
       <div className="mz-grid-2">
         <section className="mz-card">
@@ -191,53 +160,6 @@ export function ProviderDetailPage() {
                   { icon: 'notes', label: t('common.notes'), value: org.verification_notes, wide: true },
                 ]}
               />
-            </div>
-          </section>
-          <section className="mz-card">
-            <div className="mz-card__body">
-              <SectionTitle icon="commission" title={t('providers.commissionTitle')} />
-              <InfoGrid
-                fields={[
-                  { icon: 'commission', label: t('providers.commissionRate'), value: formatCommissionRate(effectiveRate) },
-                  {
-                    icon: 'settings',
-                    label: t('providers.commissionSource'),
-                    value: usesDefault ? t('providers.commissionDefault') : t('providers.commissionCustom'),
-                  },
-                ]}
-              />
-              {canManageCommission ? (
-                <>
-                  <p className="mz-notes mz-section" style={{ color: 'var(--mz-muted)', marginBottom: 12 }}>
-                    {t('providers.commissionHint')}
-                  </p>
-                  <form className="mz-form" onSubmit={onSaveCommission}>
-                    {commissionFeedback ? <div className="mz-alert mz-alert--ok">{commissionFeedback}</div> : null}
-                    {commissionError ? <div className="mz-alert">{commissionError}</div> : null}
-                    <FormField
-                      label={t('providers.commissionRate')}
-                      htmlFor="provider-commission-rate"
-                      hint={t('providers.commissionFieldHint', { rate: formatCommissionRate(defaultRate) })}
-                    >
-                      <input
-                        id="provider-commission-rate"
-                        className="mz-input"
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="0.1"
-                        inputMode="decimal"
-                        placeholder={formatCommissionRate(defaultRate)}
-                        value={ratePercent}
-                        onChange={(event) => setRatePercent(event.target.value)}
-                      />
-                    </FormField>
-                    <button type="submit" className="mz-btn mz-btn--primary" disabled={commissionMutation.isPending}>
-                      {commissionMutation.isPending ? t('common.saving') : t('providers.saveCommission')}
-                    </button>
-                  </form>
-                </>
-              ) : null}
             </div>
           </section>
           {hasPermission(PERMISSIONS.PROVIDERS_VERIFY) ? (

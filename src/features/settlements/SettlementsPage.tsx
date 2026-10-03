@@ -10,11 +10,11 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
 import { StatusBadge } from '@/shared/components/StatusBadge.tsx'
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
 import { InfoGrid } from '@/shared/components/InfoGrid.tsx'
 import { FormField } from '@/shared/components/FormField.tsx'
-import { useCatalog } from '@/shared/hooks/useCatalog.ts'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 import { displayValue, formatDate, formatMoney, organizationName } from '@/shared/utils/format.ts'
 import { DownloadReportButton } from '@/shared/reports/DownloadReportButton.tsx'
@@ -52,7 +52,6 @@ export function SettlementsPage() {
   const canManage = hasPermission(PERMISSIONS.SETTLEMENTS_MANAGE)
   const list = useListQuery()
   const queryClient = useQueryClient()
-  const catalog = useCatalog()
   const [createOpen, setCreateOpen] = useState(false)
   const [form, setForm] = useState(() => emptyForm())
   const query = useQuery({
@@ -143,9 +142,7 @@ export function SettlementsPage() {
       header: t('common.actions'),
       cell: (row) =>
         canManage && row.status !== 'completed' ? (
-          <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setCompleteId(row.id)}>
-            {t('settlements.complete')}
-          </button>
+          <TableIconButton icon="confirm" tone="success" label={t('settlements.complete')} onClick={() => setCompleteId(row.id)} />
         ) : (
           displayValue(null)
         ),
@@ -160,14 +157,10 @@ export function SettlementsPage() {
   const providers = [...(providersQuery.data?.items ?? [])].sort((left, right) =>
     organizationName(left).localeCompare(organizationName(right), undefined, { sensitivity: 'base' }),
   )
-  const selectedProvider = providers.find((item) => String(item.id) === form.provider_organization_id)
   const wallet = walletQuery.data?.items[0]
   const available = Number(wallet?.available_balance ?? 0)
   const pending = Number(wallet?.pending_balance ?? 0)
   const reserved = Number(wallet?.reserved_balance ?? 0)
-  const commissionRate = Number(
-    selectedProvider?.effective_commission_rate ?? selectedProvider?.commission_rate ?? catalog.data?.commission_rate ?? 0.1,
-  )
   const canSubmit =
     Boolean(form.provider_organization_id) &&
     walletQuery.isSuccess &&
@@ -300,17 +293,12 @@ export function SettlementsPage() {
           {form.provider_organization_id ? (
             <InfoGrid
               fields={[
-                {
-                  label: t('settlements.commissionRate'),
-                  value: t('settlements.commissionRateValue', { rate: (commissionRate * 100).toFixed(1) }),
-                },
                 { label: t('wallets.available'), value: formatMoney(available, wallet?.currency ?? undefined) },
                 { label: t('wallets.pending'), value: formatMoney(pending, wallet?.currency ?? undefined) },
                 { label: t('wallets.reserved'), value: formatMoney(reserved, wallet?.currency ?? undefined) },
               ]}
             />
           ) : null}
-          <p className="mz-field__hint">{t('settlements.commissionPresetHint')}</p>
           <FormField
             label={t('settlements.payoutAmount')}
             htmlFor="amount"

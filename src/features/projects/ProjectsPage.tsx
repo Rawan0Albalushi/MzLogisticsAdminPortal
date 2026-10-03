@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { createProject, fetchProjects } from '@/core/api/services.ts'
+import { createProject, fetchProjects, updateProject } from '@/core/api/services.ts'
 import { getApiMessage } from '@/core/api/client.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -11,8 +11,8 @@ import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { FilterBar } from '@/shared/components/FilterBar.tsx'
 import { SearchInput } from '@/shared/components/SearchInput.tsx'
 import { DataTable, type Column } from '@/shared/components/DataTable.tsx'
-import { ConfirmDialog } from '@/shared/components/ConfirmDialog.tsx'
-import { FormField } from '@/shared/components/FormField.tsx'
+import { TableIconButton } from '@/shared/components/TableIconButton.tsx'
+import { ProjectFormDialog } from '@/features/projects/ProjectFormDialog.tsx'
 import { useListQuery } from '@/shared/hooks/useListQuery.ts'
 
 const emptyForm = { project_id: '', name_en: '', name_ar: '' }
@@ -28,23 +28,30 @@ export function ProjectsPage() {
     queryFn: () => fetchProjects({ search: list.search, page: list.page }),
   })
   const [formOpen, setFormOpen] = useState(false)
+  const [editing, setEditing] = useState<Project | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [feedback, setFeedback] = useState('')
   const [error, setError] = useState('')
 
   const saveMutation = useMutation({
-    mutationFn: () =>
-      createProject({
+    mutationFn: () => {
+      const payload = {
         project_id: form.project_id.trim(),
         name_en: form.name_en.trim(),
         name_ar: form.name_ar.trim(),
-      }),
+      }
+      return editing ? updateProject(editing.id, payload) : createProject(payload)
+    },
     onSuccess: async () => {
       setFormOpen(false)
+      setEditing(null)
       setForm(emptyForm)
       setError('')
       setFeedback(t('projects.saved'))
       await queryClient.invalidateQueries({ queryKey: ['projects'] })
+      if (editing) {
+        await queryClient.invalidateQueries({ queryKey: ['project', String(editing.id)] })
+      }
     },
     onError: (reason) => setError(getApiMessage(reason, t('common.error'))),
   })
@@ -66,9 +73,21 @@ export function ProjectsPage() {
       id: 'actions',
       header: t('common.actions'),
       cell: (row) => (
-        <Link className="mz-link" to={`/projects/${row.id}`}>
-          {t('common.view')}
-        </Link>
+        <div className="mz-table-actions">
+          <TableIconButton icon="view" label={t('common.view')} to={`/projects/${row.id}`} />
+          {canManage ? (
+            <TableIconButton
+              icon="edit"
+              label={t('common.edit')}
+              onClick={() => {
+                setEditing(row)
+                setForm({ project_id: row.project_id, name_en: row.name_en, name_ar: row.name_ar })
+                setError('')
+                setFormOpen(true)
+              }}
+            />
+          ) : null}
+        </div>
       ),
     },
   ]
@@ -90,6 +109,7 @@ export function ProjectsPage() {
               type="button"
               className="mz-btn mz-btn--primary"
               onClick={() => {
+                setEditing(null)
                 setForm(emptyForm)
                 setError('')
                 setFormOpen(true)
@@ -123,52 +143,20 @@ export function ProjectsPage() {
         onPageChange={list.setPage}
         rowTo={(row) => `/projects/${row.id}`}
       />
-      <ConfirmDialog
+      <ProjectFormDialog
         open={formOpen}
-        title={t('projects.create')}
-        confirmLabel={saveMutation.isPending ? t('common.saving') : t('common.save')}
+        title={editing ? t('projects.edit') : t('projects.create')}
+        formId="project-form"
+        form={form}
+        error={error}
         busy={saveMutation.isPending}
-        onConfirm={() => {
-          const formEl = document.getElementById('project-form') as HTMLFormElement | null
-          formEl?.requestSubmit()
+        onChange={setForm}
+        onClose={() => {
+          setFormOpen(false)
+          setEditing(null)
         }}
-        onClose={() => setFormOpen(false)}
-      >
-        <form id="project-form" className="mz-form" onSubmit={onSubmit}>
-          {error ? <div className="mz-alert">{error}</div> : null}
-          <FormField label={t('projects.projectId')} htmlFor="project-id" required>
-            <input
-              id="project-id"
-              className="mz-input"
-              value={form.project_id}
-              onChange={(event) => setForm((current) => ({ ...current, project_id: event.target.value }))}
-              required
-              maxLength={64}
-            />
-          </FormField>
-          <FormField label={t('projects.nameEn')} htmlFor="project-name-en" required>
-            <input
-              id="project-name-en"
-              className="mz-input"
-              value={form.name_en}
-              onChange={(event) => setForm((current) => ({ ...current, name_en: event.target.value }))}
-              required
-              maxLength={120}
-            />
-          </FormField>
-          <FormField label={t('projects.nameAr')} htmlFor="project-name-ar" required>
-            <input
-              id="project-name-ar"
-              className="mz-input"
-              dir="rtl"
-              value={form.name_ar}
-              onChange={(event) => setForm((current) => ({ ...current, name_ar: event.target.value }))}
-              required
-              maxLength={120}
-            />
-          </FormField>
-        </form>
-      </ConfirmDialog>
+        onSubmit={onSubmit}
+      />
     </>
   )
 }
