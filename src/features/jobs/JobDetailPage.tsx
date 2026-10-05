@@ -194,7 +194,9 @@ export function JobDetailPage() {
                         { icon: 'settlements' as const, label: t('jobs.netAmount'), value: formatMoney(job.net_amount, currency) },
                       ]
                     : []),
-                { icon: 'customers', label: t('common.customer'), value: customerLink },
+                ...(customerLink
+                  ? [{ icon: 'customers' as const, label: t('common.customer'), value: customerLink }]
+                  : []),
                 { icon: 'providers', label: t('common.provider'), value: providerLink },
                 { icon: 'shipments', label: t('common.shipment'), value: shipmentLink },
                 { icon: 'quotations', label: t('common.quotation'), value: quotationLink },

@@ -6,6 +6,8 @@ export interface InfoField {
   label: string
   value?: ReactNode
   wide?: boolean
+  /** Keep the value on one line and let this card take the width it needs. */
+  singleLine?: boolean
   dir?: 'ltr' | 'rtl'
   icon?: IconName
 }
@@ -14,9 +16,9 @@ function isEmpty(value: ReactNode): boolean {
   return value == null || value === ''
 }
 
-export function InfoGrid({ fields }: { fields: InfoField[] }) {
-  return (
-    <dl className="mz-info-grid">
+export function InfoGrid({ fields, variant = 'default' }: { fields: InfoField[]; variant?: 'default' | 'contact' }) {
+  const grid = (
+    <dl className={variant === 'contact' ? 'mz-info-grid mz-info-grid--contact' : 'mz-info-grid'}>
       {fields.map((field) => {
         const empty = isEmpty(field.value)
         return (
@@ -26,6 +28,7 @@ export function InfoGrid({ fields }: { fields: InfoField[] }) {
               'mz-info-field',
               empty ? 'mz-info-field--empty' : '',
               field.wide ? 'mz-info-field--wide' : '',
+              field.singleLine ? 'mz-info-field--line' : '',
             ]
               .filter(Boolean)
               .join(' ')}
@@ -42,4 +45,10 @@ export function InfoGrid({ fields }: { fields: InfoField[] }) {
       })}
     </dl>
   )
+
+  if (variant === 'contact') {
+    return <div className="mz-info-grid-frame">{grid}</div>
+  }
+
+  return grid
 }

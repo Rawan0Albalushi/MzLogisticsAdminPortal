@@ -303,8 +303,12 @@ export function DashboardPage() {
                 title: item.reference,
                 meta: (
                   <>
-                    {organizationName(item.customer)}
-                    {' · '}
+                    {item.customer ? (
+                      <>
+                        {organizationName(item.customer)}
+                        {' · '}
+                      </>
+                    ) : null}
                     <RouteLabel from={item.pickup_city ?? '—'} to={item.delivery_city ?? '—'} />
                   </>
                 ),
@@ -324,7 +328,9 @@ export function DashboardPage() {
               items={activeJobs.map((item) => ({
                 id: item.id,
                 title: item.reference,
-                meta: `${organizationName(item.customer)} · ${organizationName(item.provider)}`,
+                meta: [item.customer ? organizationName(item.customer) : null, organizationName(item.provider)]
+                  .filter(Boolean)
+                  .join(' · '),
                 status: item.status,
                 to: `/jobs/${item.id}`,
               }))}

@@ -215,7 +215,9 @@ export function ShipmentDetailPage() {
               <SectionTitle icon="calendar" title={t('shipments.scheduleSection')} />
               <InfoGrid
                 fields={[
-                  { icon: 'customers', label: t('common.customer'), value: customerLink },
+                  ...(customerLink
+                    ? [{ icon: 'customers' as const, label: t('common.customer'), value: customerLink }]
+                    : []),
                   { icon: 'roles', label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
                   {
                     icon: 'quotations',

@@ -112,12 +112,14 @@ export function CustomerDetailPage() {
             </div>
             <SectionTitle icon="phone" title={t('customers.contactSection')} />
             <InfoGrid
+              variant="contact"
               fields={[
                 {
                   icon: 'email',
                   label: t('common.email'),
                   value: org.email ? <ContactValue value={org.email} href={`mailto:${org.email}`} /> : null,
                   dir: 'ltr',
+                  singleLine: true,
                 },
                 {
                   icon: 'phone',

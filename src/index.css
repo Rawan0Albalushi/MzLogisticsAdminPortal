@@ -1728,6 +1728,30 @@ a.mz-profile__chip:hover {
   gap: 10px;
 }
 
+.mz-info-grid-frame {
+  container-type: inline-size;
+  container-name: infogrid;
+}
+
+.mz-info-grid--contact {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mz-info-field--line .mz-info-field__value {
+  overflow-wrap: break-word;
+  word-break: normal;
+}
+
+@container infogrid (min-width: 520px) {
+  .mz-info-grid.mz-info-grid--contact {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  }
+
+  .mz-info-grid--contact > .mz-info-field--line .mz-info-field__value {
+    white-space: nowrap;
+  }
+}
+
 .mz-info-field {
   display: grid;
   gap: 6px;
@@ -4108,6 +4132,14 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   font-size: 13px;
 }
 
+.mz-offer-live__top .mz-offer-live__status {
+  max-width: 62ch;
+  color: var(--mz-success);
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+}
+
 .mz-offer-card__marks {
   display: flex;
   flex-wrap: wrap;
@@ -4222,7 +4254,7 @@ html[dir='rtl'] .mz-queue-list__row:hover {
 
 .mz-offer-preview {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   overflow: hidden;
   border: 1px solid var(--mz-border);
   border-radius: 10px;
@@ -4272,6 +4304,11 @@ html[dir='rtl'] .mz-queue-list__row:hover {
   border: 1px solid var(--mz-border);
   border-radius: 10px;
   background: var(--mz-surface);
+}
+
+.mz-offer-live.is-pending {
+  border-color: color-mix(in srgb, var(--mz-success) 42%, var(--mz-border));
+  background: var(--mz-success-soft);
 }
 
 .mz-delivery-proof {

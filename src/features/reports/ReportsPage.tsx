@@ -36,7 +36,8 @@ function share(part: number, whole: number): number | null {
 
 export function ReportsPage() {
   const { t } = useTranslation()
-  const { hasPermission } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const showCustomer = user?.user_type !== 'provider'
   const list = useListQuery()
   const canViewShipments = hasPermission(PERMISSIONS.SHIPMENTS_VIEW)
   const canViewJobs = hasPermission(PERMISSIONS.JOBS_VIEW)
@@ -91,7 +92,9 @@ export function ReportsPage() {
         </Link>
       ),
     },
-    { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
+    ...(showCustomer
+      ? [{ id: 'customer', header: t('common.customer'), cell: (row: Shipment) => organizationName(row.customer) }]
+      : []),
     { id: 'cargo', header: t('shipments.cargoType'), cell: (row) => displayValue(row.cargo_type) },
     {
       id: 'route',
@@ -117,7 +120,9 @@ export function ReportsPage() {
         </Link>
       ),
     },
-    { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
+    ...(showCustomer
+      ? [{ id: 'customer', header: t('common.customer'), cell: (row: TransportJob) => organizationName(row.customer) }]
+      : []),
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },
     { id: 'price', header: t('quotations.price'), cell: (row) => formatMoney(row.total_price, row.currency ?? undefined) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
@@ -253,7 +258,7 @@ export function ReportsPage() {
                             table: {
                               columns: [
                                 t('common.reference'),
-                                t('common.customer'),
+                                ...(showCustomer ? [t('common.customer')] : []),
                                 t('shipments.cargoType'),
                                 t('shipments.routeSection'),
                                 t('shipments.requiredDate'),
@@ -261,7 +266,7 @@ export function ReportsPage() {
                               ],
                               rows: shipmentRows.map((row) => [
                                 row.reference,
-                                organizationName(row.customer),
+                                ...(showCustomer ? [organizationName(row.customer)] : []),
                                 displayValue(row.cargo_type),
                                 formatRoute(displayValue(row.pickup_city), displayValue(row.delivery_city)),
                                 formatDate(row.required_date),
@@ -278,14 +283,14 @@ export function ReportsPage() {
                             table: {
                               columns: [
                                 t('common.reference'),
-                                t('common.customer'),
+                                ...(showCustomer ? [t('common.customer')] : []),
                                 t('common.provider'),
                                 t('quotations.price'),
                                 t('common.status'),
                               ],
                               rows: jobRows.map((row) => [
                                 row.reference,
-                                organizationName(row.customer),
+                                ...(showCustomer ? [organizationName(row.customer)] : []),
                                 organizationName(row.provider),
                                 formatMoney(row.total_price, row.currency ?? undefined),
                                 reportStatus(t, row.status),

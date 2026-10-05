@@ -21,7 +21,8 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function ShipmentsPage() {
   const { t } = useTranslation()
-  const { hasPermission } = useAuth()
+  const { user, hasPermission } = useAuth()
+  const showCustomer = user?.user_type !== 'provider'
   const canCreate = hasPermission(PERMISSIONS.SHIPMENTS_MANAGE)
   const list = useListQuery()
   const catalog = useCatalog()
@@ -49,7 +50,9 @@ export function ShipmentsPage() {
         </Link>
       ),
     },
-    { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
+    ...(showCustomer
+      ? [{ id: 'customer', header: t('common.customer'), cell: (row: Shipment) => organizationName(row.customer) }]
+      : []),
     { id: 'cargo', header: t('shipments.cargoType'), cell: (row) => displayValue(row.cargo_type) },
     { id: 'route', header: t('common.pickup'), cell: (row) => <RouteLabel from={displayValue(row.pickup_city)} to={displayValue(row.delivery_city)} /> },
     { id: 'date', header: t('shipments.requiredDate'), cell: (row) => formatDate(row.required_date) },
@@ -99,7 +102,7 @@ export function ShipmentsPage() {
                 filters: listReportFilters(t, list),
                 columns: [
                   t('common.reference'),
-                  t('common.customer'),
+                  ...(showCustomer ? [t('common.customer')] : []),
                   t('shipments.cargoType'),
                   t('common.pickup'),
                   t('common.delivery'),
@@ -108,7 +111,7 @@ export function ShipmentsPage() {
                 ],
                 rows: items.map((row) => [
                   row.reference,
-                  organizationName(row.customer),
+                  ...(showCustomer ? [organizationName(row.customer)] : []),
                   displayValue(row.cargo_type),
                   displayValue(row.pickup_city),
                   displayValue(row.delivery_city),

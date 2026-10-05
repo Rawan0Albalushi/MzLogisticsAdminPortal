@@ -93,7 +93,14 @@ export function CustomerOfferPanel({
     conditions: '',
   })
   const [planValid, setPlanValid] = useState(true)
+  const [replacing, setReplacing] = useState(false)
   const [seenShipmentId, setSeenShipmentId] = useState(shipment.id)
+  const liveOfferId = shipment.platform_offer?.id ?? null
+  const [seenOfferId, setSeenOfferId] = useState(liveOfferId)
+  if (seenOfferId !== liveOfferId) {
+    setSeenOfferId(liveOfferId)
+    setReplacing(false)
+  }
   if (seenShipmentId !== shipment.id) {
     setSeenShipmentId(shipment.id)
     setOwnedForm({
@@ -149,6 +156,8 @@ export function CustomerOfferPanel({
   const priceTooLow = margin != null && margin < 0
   const canPublish = canManage && shipment.status === 'published' && selectable.length > 0
   const canCompose = canManage && shipment.status === 'published'
+  const offerIsLive = shipment.platform_offer != null
+  const showComposer = !offerIsLive || replacing
   const ownedPrice = Number(ownedForm.price_per_trip)
   const ownedTrips = billableTripCount(Number(ownedForm.truck_count), Number(ownedForm.trip_count))
   const ownedTotal = ownedTrips != null && Number.isFinite(ownedPrice) && ownedPrice > 0 ? quotationTotal(ownedPrice, ownedTrips) : null
@@ -182,7 +191,7 @@ export function CustomerOfferPanel({
     <section className="mz-card mz-section">
       <div className="mz-card__body mz-offer">
         <SectionTitle icon="quotations" title={t('shipments.platformOffer')} />
-        <p className="mz-offer__hint">{t('shipments.platformOfferHint')}</p>
+        {!offerIsLive || replacing ? <p className="mz-offer__hint">{t('shipments.platformOfferHint')}</p> : null}
         {message ? <div className="mz-alert mz-alert--ok">{message}</div> : null}
         {error ? <div className="mz-alert">{error}</div> : null}
 
@@ -204,7 +213,31 @@ export function CustomerOfferPanel({
           />
         ) : null}
 
-        {canCompose ? (
+        {offerIsLive && !replacing && (canCompose || canSubmitOnBehalf) ? (
+          <div className="mz-form-actions">
+            <button
+              type="button"
+              className="mz-btn mz-btn--ghost"
+              onClick={() => {
+                const owned = shipment.platform_offer?.owned_by_platform === true
+                setSource(owned ? 'platform' : canCompose ? 'provider' : 'onBehalf')
+                setReplacing(true)
+              }}
+            >
+              {t('shipments.replaceOffer')}
+            </button>
+          </div>
+        ) : null}
+
+        {replacing ? (
+          <div className="mz-form-actions">
+            <button type="button" className="mz-btn mz-btn--ghost" onClick={() => setReplacing(false)}>
+              {t('shipments.keepCurrentOffer')}
+            </button>
+          </div>
+        ) : null}
+
+        {showComposer && canCompose ? (
           <div className="mz-offer__group">
             <h3 id="offer-source">{t('shipments.offerSource')}</h3>
             <div className="mz-segment" role="radiogroup" aria-labelledby="offer-source">
@@ -239,7 +272,7 @@ export function CustomerOfferPanel({
               ) : null}
             </div>
           </div>
-        ) : canSubmitOnBehalf ? (
+        ) : showComposer && canSubmitOnBehalf ? (
           <div className="mz-segment" role="radiogroup" aria-label={t('shipments.onBehalfTitle')}>
             <label className={source === 'onBehalf' ? 'is-active' : undefined}>
               <input
@@ -253,9 +286,9 @@ export function CustomerOfferPanel({
           </div>
         ) : null}
 
-        {source === 'onBehalf' && canSubmitOnBehalf ? <OnBehalfQuotationPanel shipment={shipment} /> : null}
+        {showComposer && source === 'onBehalf' && canSubmitOnBehalf ? <OnBehalfQuotationPanel shipment={shipment} /> : null}
 
-        {source === 'platform' && canCompose ? (
+        {showComposer && source === 'platform' && canCompose ? (
           <form
             className="mz-form mz-offer-form"
             onSubmit={(event) => {
@@ -349,7 +382,7 @@ export function CustomerOfferPanel({
           </form>
         ) : null}
 
-        {source === 'provider' && canPublish ? (
+        {showComposer && source === 'provider' && canPublish ? (
           <form
             className="mz-form mz-offer-form"
             onSubmit={(event) => {
@@ -483,9 +516,9 @@ export function CustomerOfferPanel({
               </button>
             </div>
           </form>
-        ) : source === 'provider' && quotations.length === 0 && shipment.status === 'published' ? (
+        ) : showComposer && source === 'provider' && quotations.length === 0 && shipment.status === 'published' ? (
           <p className="mz-offer__hint">{t('shipments.noSubmittedQuotations')}</p>
-        ) : source === 'provider' && selectable.length === 0 && quotations.length > 0 && shipment.status === 'published' ? (
+        ) : showComposer && source === 'provider' && selectable.length === 0 && quotations.length > 0 && shipment.status === 'published' ? (
           <p className="mz-offer__hint">{t('shipments.noValidQuotations')}</p>
         ) : null}
       </div>
@@ -590,11 +623,12 @@ function PublishedOffer({
   const provider = owned ? null : (offer.provider ?? quotation?.provider)
 
   return (
-    <article className="mz-offer-live">
+    <article className={`mz-offer-live${canConfirm ? ' is-pending' : ''}`}>
       <div className="mz-offer-live__top">
         <div>
           <h3>{t('shipments.currentOffer')}</h3>
           <p>{offer.reference}</p>
+          {canConfirm ? <p className="mz-offer-live__status">{t('shipments.agreementPending')}</p> : null}
           {owned ? <p>{t('shipments.platformFulfillment')}</p> : null}
           {provider ? (
             <Link className="mz-link" to={`/providers/${provider.id}`}>
@@ -642,7 +676,6 @@ function PublishedOffer({
         unitLabel={unitLabel}
         note={offer.conditions}
       />
-      {canConfirm ? <p className="mz-offer__hint">{t('shipments.agreementPending')}</p> : null}
       {canConfirm || canWithdraw ? (
         <div className="mz-form-actions">
           {canConfirm ? (

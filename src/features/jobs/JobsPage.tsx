@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { fetchJobs } from '@/core/api/services.ts'
+import { useAuth } from '@/core/auth/AuthContext.tsx'
 import type { TransportJob } from '@/core/api/types.ts'
 import { PageHeader } from '@/shared/components/PageHeader.tsx'
 import { DateRangeFilter, FilterBar, StatusFilter } from '@/shared/components/FilterBar.tsx'
@@ -19,6 +20,8 @@ import { fetchAllPages } from '@/shared/reports/fetchAllPages.ts'
 
 export function JobsPage() {
   const { t } = useTranslation()
+  const { user } = useAuth()
+  const showCustomer = user?.user_type !== 'provider'
   const list = useListQuery()
   const scope = useRecordScopeLabels('', list.project)
   const catalog = useCatalog()
@@ -58,7 +61,9 @@ export function JobsPage() {
           t('common.noValue')
         ),
     },
-    { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
+    ...(showCustomer
+      ? [{ id: 'customer', header: t('common.customer'), cell: (row: TransportJob) => organizationName(row.customer) }]
+      : []),
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },
     { id: 'price', header: t('quotations.price'), cell: (row) => formatMoney(row.total_price, row.currency ?? undefined) },
     { id: 'progress', header: t('common.progress'), cell: (row) => formatPercent(row.progress_percent) },
@@ -95,7 +100,7 @@ export function JobsPage() {
                 filters: listReportFilters(t, { ...list, project: scope.projectLabel }),
                 columns: [
                   t('common.reference'),
-                  t('common.customer'),
+                  ...(showCustomer ? [t('common.customer')] : []),
                   t('common.provider'),
                   t('quotations.price'),
                   t('common.progress'),
@@ -103,7 +108,7 @@ export function JobsPage() {
                 ],
                 rows: items.map((row) => [
                   row.reference,
-                  organizationName(row.customer),
+                  ...(showCustomer ? [organizationName(row.customer)] : []),
                   organizationName(row.provider),
                   formatMoney(row.total_price, row.currency ?? undefined),
                   formatPercent(row.progress_percent),

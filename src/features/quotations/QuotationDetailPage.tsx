@@ -270,7 +270,9 @@ export function QuotationDetailPage() {
               <InfoGrid
                 fields={[
                   { icon: 'quotations', label: t('common.reference'), value: shipmentLink },
-                  { icon: 'customers', label: t('common.customer'), value: customerLink },
+                  ...(customerLink
+                    ? [{ icon: 'customers' as const, label: t('common.customer'), value: customerLink }]
+                    : []),
                   { icon: 'roles', label: t('common.status'), value: <StatusBadge status={shipment.status} /> },
                   { icon: 'shipments', label: t('shipments.cargoType'), value: shipment.cargo_type },
                   { icon: 'quantity', label: t('common.quantity'), value: formatQuantity(shipment.quantity, shipment.quantity_unit) },

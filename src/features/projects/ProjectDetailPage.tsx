@@ -25,6 +25,7 @@ export function ProjectDetailPage() {
   const { t } = useTranslation()
   const { user, hasPermission } = useAuth()
   const canManage = user?.user_type === 'platform' && hasPermission(PERMISSIONS.JOBS_MANAGE)
+  const showCustomer = user?.user_type !== 'provider'
   const queryClient = useQueryClient()
   const query = useQuery({ queryKey: ['project', id], queryFn: () => fetchProject(id), enabled: Boolean(id) })
   const unassigned = useQuery({
@@ -105,7 +106,9 @@ export function ProjectDetailPage() {
         </Link>
       ),
     },
-    { id: 'customer', header: t('common.customer'), cell: (row) => organizationName(row.customer) },
+    ...(showCustomer
+      ? [{ id: 'customer', header: t('common.customer'), cell: (row: TransportJob) => organizationName(row.customer) }]
+      : []),
     { id: 'provider', header: t('common.provider'), cell: (row) => organizationName(row.provider) },
     { id: 'status', header: t('common.status'), cell: (row) => <StatusBadge status={row.status} /> },
     {
