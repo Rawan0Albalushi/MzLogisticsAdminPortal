@@ -735,6 +735,7 @@
     "confirmFailed": "تعذر تأكيد التحويل البنكي.",
     "receipt": "الإيصال",
     "receiptHint": "PDF أو صورة، بحد 5 ميغابايت.",
+    "receiptAlreadyUploaded": "رفع العميل إيصال التحويل. يمكنك تأكيده أو استبداله بملف آخر.",
     "receiptRequired": "اختر إيصال التحويل.",
     "receiptFailed": "تعذر فتح الإيصال.",
     "transferReference": "رقم الحوالة"

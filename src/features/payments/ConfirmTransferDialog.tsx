@@ -51,7 +51,7 @@ export function ConfirmTransferDialog({
 
   const mutation = useMutation({
     mutationFn: () => {
-      if (!payment || !receipt) {
+      if (!payment || (!receipt && !payment.has_receipt)) {
         throw new Error(t('payments.receiptRequired'))
       }
       return confirmBankTransfer(payment.id, receipt, reference)
@@ -71,7 +71,7 @@ export function ConfirmTransferDialog({
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!receipt) {
+    if (!receipt && !payment?.has_receipt) {
       setError(t('payments.receiptRequired'))
       return
     }
@@ -84,7 +84,7 @@ export function ConfirmTransferDialog({
       title={t('payments.confirmTransfer')}
       confirmLabel={mutation.isPending ? t('common.saving') : t('payments.confirmTransfer')}
       busy={mutation.isPending}
-      disabled={!receipt}
+      disabled={!receipt && !payment?.has_receipt}
       onConfirm={() => {
         const form = document.getElementById('confirm-transfer-form') as HTMLFormElement | null
         form?.requestSubmit()
@@ -94,7 +94,12 @@ export function ConfirmTransferDialog({
       <form id="confirm-transfer-form" className="mz-form" onSubmit={onSubmit}>
         <p className="mz-field__hint">{t('payments.confirmTransferHint', { reference: payment?.reference ?? '' })}</p>
         {error ? <div className="mz-alert">{error}</div> : null}
-        <FormField label={t('payments.receipt')} htmlFor="transfer-receipt" required hint={t('payments.receiptHint')}>
+        <FormField
+          label={t('payments.receipt')}
+          htmlFor="transfer-receipt"
+          required={!payment?.has_receipt}
+          hint={payment?.has_receipt ? t('payments.receiptAlreadyUploaded') : t('payments.receiptHint')}
+        >
           <input
             id="transfer-receipt"
             className="mz-input"

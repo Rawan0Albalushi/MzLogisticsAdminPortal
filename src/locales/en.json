@@ -735,6 +735,7 @@
     "confirmFailed": "Unable to confirm the bank transfer.",
     "receipt": "Receipt",
     "receiptHint": "PDF or image, up to 5 MB.",
+    "receiptAlreadyUploaded": "The customer already uploaded a receipt. Confirm it, or replace it with another file.",
     "receiptRequired": "Choose the transfer receipt.",
     "receiptFailed": "Unable to open the receipt.",
     "transferReference": "Transfer reference"

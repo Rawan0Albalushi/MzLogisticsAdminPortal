@@ -605,11 +605,13 @@ export async function recordInvoiceBankTransfer(
 
 export async function confirmBankTransfer(
   id: string | number,
-  receipt: File,
+  receipt: File | null,
   transferReference: string,
 ): Promise<{ payment: Payment; job: TransportJob | null }> {
   const form = new FormData()
-  form.append('receipt', receipt)
+  if (receipt) {
+    form.append('receipt', receipt)
+  }
   if (transferReference.trim()) {
     form.append('transfer_reference', transferReference.trim())
   }
