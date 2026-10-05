@@ -1901,9 +1901,34 @@ html[dir='rtl'] .mz-timeline__step::after {
   align-items: start;
 }
 
+.mz-trip-layout__wide {
+  grid-column: 1 / -1;
+}
+
+.mz-trip-route {
+  display: grid;
+  gap: 12px;
+}
+
+.mz-trip-route .mz-map {
+  height: auto;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+}
+
 @media (min-width: 961px) {
   .mz-trip-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mz-trip-route {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .mz-trip-route > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
   }
 }
 

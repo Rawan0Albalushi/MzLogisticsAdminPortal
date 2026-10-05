@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { api, getApiMessage } from '@/core/api/client.ts'
-import { fetchTrip, submitTripPod, updateTripOperations, updateTripStatus, uploadTripPodDocuments } from '@/core/api/services.ts'
+import { fetchTrip, submitTripPod, updateTripStatus, uploadTripPodDocuments } from '@/core/api/services.ts'
 import type { Trip } from '@/core/api/types.ts'
 import { useAuth } from '@/core/auth/AuthContext.tsx'
 import { PERMISSIONS } from '@/core/constants/permissions.ts'
@@ -132,84 +132,6 @@ function PodDocumentsForm({ tripId }: { tripId: number }) {
       </div>
       <button type="submit" className="mz-btn mz-btn--primary" disabled={save.isPending || (!invoice && !weightTicket)}>
         {save.isPending ? t('common.saving') : t('trips.saveDocuments')}
-      </button>
-    </form>
-  )
-}
-
-function TripOperationsForm({ trip }: { trip: Trip }) {
-  const { t } = useTranslation()
-  const queryClient = useQueryClient()
-  const [error, setError] = useState('')
-  const [feedback, setFeedback] = useState('')
-  const [form, setForm] = useState({
-    trailer_plate: trip.trailer_plate ?? '',
-    delivery_note_number: trip.delivery_note_number ?? '',
-    operations_notes: trip.operations_notes ?? '',
-  })
-
-  const save = useMutation({
-    mutationFn: () =>
-      updateTripOperations(trip.id, {
-        trailer_plate: form.trailer_plate.trim() || null,
-        delivery_note_number: form.delivery_note_number.trim() || null,
-        operations_notes: form.operations_notes.trim() || null,
-      }),
-    onSuccess: async () => {
-      setError('')
-      setFeedback(t('trips.operationsSaved'))
-      await queryClient.invalidateQueries({ queryKey: ['trip', String(trip.id)] })
-    },
-    onError: (err) => {
-      setFeedback('')
-      setError(getApiMessage(err, t('trips.operationsFailed')))
-    },
-  })
-
-  function onSubmit(event: FormEvent) {
-    event.preventDefault()
-    save.mutate()
-  }
-
-  return (
-    <form className="mz-form" onSubmit={onSubmit}>
-      <SectionTitle icon="dispatch" title={t('trips.operationsSection')} />
-      {error ? <div className="mz-alert">{error}</div> : null}
-      {feedback ? <div className="mz-alert mz-alert--ok">{feedback}</div> : null}
-      <div className="mz-grid-2">
-        <FormField label={t('trips.trailerPlate')} htmlFor="trip-trailer">
-          <input
-            id="trip-trailer"
-            className="mz-input"
-            dir="ltr"
-            maxLength={32}
-            value={form.trailer_plate}
-            onChange={(event) => setForm((current) => ({ ...current, trailer_plate: event.target.value }))}
-          />
-        </FormField>
-        <FormField label={t('trips.deliveryNote')} htmlFor="trip-dn">
-          <input
-            id="trip-dn"
-            className="mz-input"
-            dir="ltr"
-            maxLength={40}
-            value={form.delivery_note_number}
-            onChange={(event) => setForm((current) => ({ ...current, delivery_note_number: event.target.value }))}
-          />
-        </FormField>
-      </div>
-      <FormField label={t('trips.operationsNotes')} htmlFor="trip-ops-notes" hint={t('trips.operationsNotesHint')}>
-        <textarea
-          id="trip-ops-notes"
-          className="mz-textarea"
-          maxLength={1000}
-          rows={3}
-          value={form.operations_notes}
-          onChange={(event) => setForm((current) => ({ ...current, operations_notes: event.target.value }))}
-        />
-      </FormField>
-      <button type="submit" className="mz-btn mz-btn--primary" disabled={save.isPending}>
-        {save.isPending ? t('common.saving') : t('common.save')}
       </button>
     </form>
   )
@@ -528,7 +450,6 @@ export function TripDetailPage() {
   const pod = trip.proof_of_delivery
   const platformJob = trip.job?.provider?.type === 'platform'
   const canAssign = platformJob && hasPermission(PERMISSIONS.TRIPS_ASSIGN) && (trip.status === 'unassigned' || trip.status === 'assigned')
-  const canEditOperations = trip.status !== 'cancelled' && (hasPermission(PERMISSIONS.TRIPS_UPDATE) || hasPermission(PERMISSIONS.TRIPS_ASSIGN))
   const canUploadPodDocuments = hasPermission(PERMISSIONS.TRIPS_UPDATE)
   const canUpdateStatus = hasPermission(PERMISSIONS.TRIPS_UPDATE)
   const routeLabel =
@@ -548,10 +469,10 @@ export function TripDetailPage() {
     { label: t('trips.sequence'), value: numericValue(trip.sequence) },
     { label: t('common.driver'), value: trip.driver?.name },
     { label: t('common.truck'), value: ltr(trip.truck?.plate_number) },
-    canEditOperations ? null : { label: t('trips.trailerPlate'), value: ltr(trip.trailer_plate) },
-    canEditOperations ? null : { label: t('trips.deliveryNote'), value: ltr(trip.delivery_note_number) },
+    { label: t('trips.trailerPlate'), value: ltr(trip.trailer_plate) },
+    { label: t('trips.deliveryNote'), value: ltr(trip.delivery_note_number) },
     { label: t('drivers.civilId'), value: ltr(trip.driver?.driver_profile?.civil_id) },
-    canEditOperations ? null : { label: t('trips.operationsNotes'), value: trip.operations_notes },
+    { label: t('trips.operationsNotes'), value: trip.operations_notes },
     trip.driver_pay_amount != null
       ? { label: t('trips.driverPay'), value: formatMoney(trip.driver_pay_amount, currency) }
       : null,
@@ -618,17 +539,6 @@ export function TripDetailPage() {
             </div>
           </section>
 
-          {canEditOperations ? (
-            <section className="mz-card">
-              <div className="mz-card__body">
-                <TripOperationsForm
-                  key={`${trip.id}-${trip.trailer_plate ?? ''}-${trip.delivery_note_number ?? ''}-${trip.operations_notes ?? ''}`}
-                  trip={trip}
-                />
-              </div>
-            </section>
-          ) : null}
-
           {pod ? (
             <section className="mz-card">
               <div className="mz-card__body">
@@ -690,34 +600,34 @@ export function TripDetailPage() {
               </div>
             </section>
           ) : null}
-
-          <section className="mz-card">
-            <div className="mz-card__body">
-              <SectionTitle icon="trips" title={t('shipments.routeSection')} />
-              <div className="mz-stack">
-                <LocationMap
-                  icon="pickup"
-                  label={t('common.pickup')}
-                  address={trip.pickup_address}
-                  city={trip.pickup_city}
-                  lat={trip.pickup_lat}
-                  lng={trip.pickup_lng}
-                />
-                <LocationMap
-                  icon="delivery"
-                  label={t('common.delivery')}
-                  address={trip.delivery_address}
-                  city={trip.delivery_city}
-                  lat={trip.delivery_lat}
-                  lng={trip.delivery_lng}
-                />
-                {LIVE_TRACKING_ENABLED ? (
-                  <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
-                ) : null}
-              </div>
-            </div>
-          </section>
         </div>
+
+        <section className="mz-card mz-trip-layout__wide">
+          <div className="mz-card__body">
+            <SectionTitle icon="trips" title={t('shipments.routeSection')} />
+            <div className="mz-trip-route">
+              <LocationMap
+                icon="pickup"
+                label={t('common.pickup')}
+                address={trip.pickup_address}
+                city={trip.pickup_city}
+                lat={trip.pickup_lat}
+                lng={trip.pickup_lng}
+              />
+              <LocationMap
+                icon="delivery"
+                label={t('common.delivery')}
+                address={trip.delivery_address}
+                city={trip.delivery_city}
+                lat={trip.delivery_lat}
+                lng={trip.delivery_lng}
+              />
+              {LIVE_TRACKING_ENABLED ? (
+                <LocationMap icon="tracking" label={t('common.location')} lat={trip.current_lat} lng={trip.current_lng} />
+              ) : null}
+            </div>
+          </div>
+        </section>
       </div>
     </>
   )
