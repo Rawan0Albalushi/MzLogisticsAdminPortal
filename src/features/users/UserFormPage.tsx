@@ -48,7 +48,7 @@ export function UserFormPage() {
     setForm((current) => ({
       ...current,
       name: existing.data.name,
-      email: existing.data.email,
+      email: existing.data.email ?? '',
       phone: existing.data.phone ?? '',
       role: existing.data.roles?.[0] ?? current.role,
       locale: existing.data.locale ?? 'ar',
