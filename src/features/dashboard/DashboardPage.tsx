@@ -302,15 +302,17 @@ export function DashboardPage() {
                 id: item.id,
                 title: item.reference,
                 meta: (
-                  <>
+                  <span className="mz-queue-line">
                     {item.customer ? (
                       <>
-                        {organizationName(item.customer)}
-                        {' · '}
+                        <span>{organizationName(item.customer)}</span>
+                        <span className="mz-queue-line__sep" aria-hidden="true">
+                          ·
+                        </span>
                       </>
                     ) : null}
                     <RouteLabel from={item.pickup_city ?? '—'} to={item.delivery_city ?? '—'} />
-                  </>
+                  </span>
                 ),
                 status: item.status,
                 to: `/shipments/${item.id}`,
@@ -348,11 +350,13 @@ export function DashboardPage() {
                 id: item.id,
                 title: item.reference,
                 meta: (
-                  <>
-                    {item.driver?.name ?? t('common.noValue')}
-                    {' · '}
+                  <span className="mz-queue-line">
+                    <span>{item.driver?.name ?? t('common.noValue')}</span>
+                    <span className="mz-queue-line__sep" aria-hidden="true">
+                      ·
+                    </span>
                     <RouteLabel from={item.pickup_city ?? '—'} to={item.delivery_city ?? '—'} />
-                  </>
+                  </span>
                 ),
                 status: item.status,
                 to: `/trips/${item.id}`,
